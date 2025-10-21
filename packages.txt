@@ -1,0 +1,37 @@
+# Pakiety NuGet wymagane dla Forum Dyskusyjne
+
+## Aktualnie zainstalowane pakiety:
+Microsoft.Extensions.Configuration@8.0.0
+Microsoft.Extensions.Configuration.Json@8.0.0
+Npgsql@8.0.3
+
+## Komendy instalacji:
+
+# Przywracanie wszystkich pakietów z pliku .csproj:
+dotnet restore
+
+# Lub instalacja pojedynczych pakietów:
+dotnet add package Microsoft.Extensions.Configuration --version 8.0.0
+dotnet add package Microsoft.Extensions.Configuration.Json --version 8.0.0
+dotnet add package Npgsql --version 8.0.3
+
+## Dodatkowe pakiety (opcjonalne):
+
+# Entity Framework Core dla PostgreSQL:
+dotnet add package Microsoft.EntityFrameworkCore --version 8.0.0
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 8.0.0
+dotnet add package Microsoft.EntityFrameworkCore.Tools --version 8.0.0
+
+# ASP.NET Core (jeśli będzie aplikacja webowa):
+dotnet add package Microsoft.AspNetCore.App
+
+# Testowanie:
+dotnet add package Microsoft.NET.Test.Sdk --version 17.8.0
+dotnet add package xunit --version 2.6.1
+dotnet add package xunit.runner.visualstudio --version 2.5.3
+
+# Logowanie:
+dotnet add package Serilog --version 3.0.1
+dotnet add package Serilog.Extensions.Hosting --version 7.0.0
+dotnet add package Serilog.Sinks.Console --version 4.1.0
+dotnet add package Serilog.Sinks.File --version 5.0.0
