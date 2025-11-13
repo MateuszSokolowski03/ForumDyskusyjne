@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Forum Dyskusyjne - Logowanie</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="login-page relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden p-4">
+        <div class="login-container flex h-full grow flex-col items-center justify-center">
+            <div class="login-wrapper w-full max-w-md">
+                <!-- Header -->
+                <div class="login-header flex flex-col items-center justify-center text-center mb-8">
+                    <div class="brand-section flex items-center gap-4 text-gray-800 dark:text-white mb-4">
+                        <div class="brand-icon size-8 text-primary">
+                            <span class="material-symbols-outlined !text-4xl">forum</span>
+                        </div>
+                        <h1 class="brand-name text-gray-900 dark:text-white text-3xl font-bold leading-tight tracking-[-0.015em]">Forum Dyskusyjne</h1>
+                    </div>
+                    <h2 class="login-title text-2xl font-bold text-gray-900 dark:text-white">Zaloguj się</h2>
+                    <p class="login-subtitle text-gray-600 dark:text-gray-400 mt-2">Witaj ponownie! Wpisz swoje dane, aby kontynuować.</p>
+                </div>
+
+                <!-- Login Form -->
+                <div class="login-card rounded-xl border border-gray-200 dark:border-[#232f48] bg-white dark:bg-[#111722] p-6 sm:p-8 shadow-lg">
+                    <form id="loginForm" class="login-form flex flex-col gap-5">
+                        <div class="username-field flex flex-col gap-2">
+                            <label class="field-label text-sm font-medium text-gray-700 dark:text-gray-300" for="username">Nazwa użytkownika lub e-mail</label>
+                            <div class="input-container relative">
+                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">person</span>
+                                <input class="username-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary" 
+                                       id="username" 
+                                       name="username"
+                                       placeholder="wpisz nazwę lub e-mail" 
+                                       type="text" 
+                                       required/>
+                            </div>
+                        </div>
+                        
+                        <div class="password-field flex flex-col gap-2">
+                            <label class="field-label text-sm font-medium text-gray-700 dark:text-gray-300" for="password">Hasło</label>
+                            <div class="input-container relative">
+                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+                                <input class="password-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary" 
+                                       id="password" 
+                                       name="password"
+                                       placeholder="wpisz hasło" 
+                                       type="password" 
+                                       required/>
+                            </div>
+                        </div>
+                        
+                        <div class="form-controls flex flex-wrap items-center justify-between gap-2">
+                            <div class="remember-section flex items-center">
+                                <input class="remember-checkbox form-checkbox h-4 w-4 rounded border-gray-300 bg-gray-50 text-primary focus:ring-primary dark:border-[#324467] dark:bg-[#232f48] dark:checked:bg-primary dark:focus:ring-offset-background-dark" 
+                                       id="remember-me" 
+                                       name="rememberMe"
+                                       type="checkbox"/>
+                                <label class="remember-label ml-2 block text-sm text-gray-600 dark:text-gray-400" for="remember-me">Zapamiętaj mnie</label>
+                            </div>
+                            <a class="forgot-password-link text-sm font-medium text-primary hover:underline" href="/forgot-password">Zapomniałem hasła?</a>
+                        </div>
+                        
+                        <button class="login-button flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 px-4 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" 
+                                type="submit">
+                            <span class="button-text truncate">Zaloguj się</span>
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Register Link -->
+                <div class="register-section mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+                    <p class="register-prompt">
+                        Nie masz jeszcze konta?
+                        <a class="register-link font-medium text-primary hover:underline" href="/register">Zarejestruj się</a>
+                    </p>
+                </div>
+                
+                <!-- Back to Home -->
+                <div class="navigation-section mt-4 text-center">
+                    <a class="home-link inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary" href="/">
+                        <span class="back-icon material-symbols-outlined text-sm">arrow_back</span>
+                        <span class="back-text">Powrót do strony głównej</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

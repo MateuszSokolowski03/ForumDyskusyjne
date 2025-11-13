@@ -1,0 +1,55 @@
+/* Login Page Styles */
+
+/* Login form loading state */
+.login-form-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Error messages */
+.login-error {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+}
+
+.dark .login-error {
+    background-color: #7f1d1d;
+    border-color: #991b1b;
+    color: #fca5a5;
+}
+
+/* Success messages */
+.login-success {
+    color: #10b981;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.5rem;
+}
+
+.dark .login-success {
+    background-color: #064e3b;
+    border-color: #065f46;
+    color: #6ee7b7;
+}
+
+/* Additional utility styles for login page */
+.field-icon {
+    transition: color 0.2s ease;
+}
+
+.login-button:hover .button-text {
+    text-decoration: none;
+}
+
+.home-link:hover .back-icon {
+    transform: translateX(-2px);
+    transition: transform 0.2s ease;
+}
