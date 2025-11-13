@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum Dyskusyjne - Strona Główna</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Tailwind Config -->
+    <script src="js/tailwind-config.js"></script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="min-h-screen flex flex-col">
+        <!-- Top Navigation Bar -->
+        <header class="sticky top-0 z-50 bg-white/95 dark:bg-[#111722]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#232f48]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <!-- Logo and Brand -->
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-primary">
+                                <span class="material-symbols-outlined text-2xl">forum</span>
+                            </div>
+                            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+                                Forum Dyskusyjne
+                            </h1>
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <nav class="hidden md:flex items-center gap-6">
+                        <a href="#" class="nav-item nav-item--active" title="Strona główna">
+                            🏠
+                        </a>
+                        <a href="#" class="nav-item" title="Kategorie">
+                            📂
+                        </a>
+                        <a href="#" class="nav-item" title="Użytkownicy">
+                            👥
+                        </a>
+                        <a href="#" class="nav-item" title="Wiadomości">
+                            💬
+                        </a>
+                    </nav>
+
+                    <!-- Search and User Actions -->
+                    <div class="flex items-center gap-4">
+                        <!-- Search Bar -->
+                        <div class="flex items-center relative">
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">
+                                    search
+                                </span>
+                                <input 
+                                    type="text" 
+                                    placeholder="Szukaj..." 
+                                    class="w-40 md:w-64 pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Auth Buttons -->
+                        <div class="flex items-center gap-3">
+                            <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                                Rejestracja
+                            </button>
+                            <button class="px-4 py-2 bg-gray-200 dark:bg-[#232f48] text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#2a3851] transition-colors font-medium">
+                                Logowanie
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Container -->
+        <div class="flex-1">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="max-w-4xl mx-auto">
+
+                <!-- Forum Categories -->
+                <div class="categories-section">
+                    <!-- Technologie Category -->
+                    <div class="category-card">
+                        <details class="category-details" open>
+                            <summary class="category-header">
+                                <div class="category-title-wrapper">
+                                    <span class="category-icon">💻</span>
+                                    <h3 class="category-title">Technologie</h3>
+                                </div>
+                                <span class="material-symbols-outlined category-expand-icon">
+                                    expand_more
+                                </span>
+                            </summary>
+                            
+                            <div class="category-content">
+                                <!-- Forum Thread -->
+                                <div class="forum-thread">
+                                    <div class="thread-main-info">
+                                        <span class="thread-icon">🔧</span>
+                                        <div class="thread-details">
+                                            <h4 class="thread-title">
+                                                <a href="#">Programowanie</a>
+                                            </h4>
+                                            <p class="thread-description">
+                                                Dyskusje o językach, frameworkach i dobrych praktykach.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="thread-stats">
+                                        <p class="stat-number">1.2k</p>
+                                        <p class="stat-label">Wątków</p>
+                                    </div>
+                                    <div class="thread-stats">
+                                        <p class="stat-number">15k</p>
+                                        <p class="stat-label">Postów</p>
+                                    </div>
+                                    <div class="thread-activity">
+                                        <p class="activity-text">
+                                            Nowy post w: <a href="#" class="activity-link">"Problem z asynchronicznością"</a>
+                                        </p>
+                                        <p class="activity-meta">
+                                            przez <a href="#" class="activity-link">devUser</a>, 2 min temu
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Another Forum Thread -->
+                                <div class="forum-thread">
+                                    <div class="thread-main-info">
+                                        <span class="thread-icon">🖥️</span>
+                                        <div class="thread-details">
+                                            <h4 class="thread-title">
+                                                <a href="#">Sprzęt Komputerowy</a>
+                                            </h4>
+                                            <p class="thread-description">
+                                                Porady, recenzje i dyskusje o podzespołach.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="thread-stats">
+                                        <p class="stat-number">845</p>
+                                        <p class="stat-label">Wątków</p>
+                                    </div>
+                                    <div class="thread-stats">
+                                        <p class="stat-number">9.1k</p>
+                                        <p class="stat-label">Postów</p>
+                                    </div>
+                                    <div class="thread-activity">
+                                        <p class="activity-text">
+                                            Nowy post w: <a href="#" class="activity-link">"Jaka karta graficzna do 4K?"</a>
+                                        </p>
+                                        <p class="activity-meta">
+                                            przez <a href="#" class="activity-link">gamerX</a>, 15 min temu
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- Rozrywka Category -->
+                    <div class="category-card">
+                        <details class="category-details">
+                            <summary class="category-header">
+                                <div class="category-title-wrapper">
+                                    <span class="category-icon">🎮</span>
+                                    <h3 class="category-title">Rozrywka</h3>
+                                </div>
+                                <span class="material-symbols-outlined category-expand-icon">
+                                    expand_more
+                                </span>
+                            </summary>
+                            <div class="category-content">
+                                <p class="category-placeholder">
+                                    Tutaj znajduje się lista forów w kategorii Rozrywka...
+                                </p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- Społeczność Category -->
+                    <div class="category-card">
+                        <details class="category-details">
+                            <summary class="category-header">
+                                <div class="category-title-wrapper">
+                                    <span class="category-icon">👥</span>
+                                    <h3 class="category-title">Społeczność</h3>
+                                </div>
+                                <span class="material-symbols-outlined category-expand-icon">
+                                    expand_more
+                                </span>
+                            </summary>
+                            <div class="category-content">
+                                <p class="category-placeholder">
+                                    Tutaj znajduje się lista forów w kategorii Społeczność...
+                                </p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <!-- Forum Statistics -->
+                <div class="stats-section">
+                    <h3 class="stats-title">
+                        📊 Statystyki Forum
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <p class="stat-value">1,234</p>
+                            <p class="stat-name">👤 Użytkownicy</p>
+                        </div>
+                        <div class="stat-card">
+                            <p class="stat-value">25</p>
+                            <p class="stat-name">📂 Fora</p>
+                        </div>
+                        <div class="stat-card">
+                            <p class="stat-value">5,678</p>
+                            <p class="stat-name">💬 Wątki</p>
+                        </div>
+                        <div class="stat-card">
+                            <p class="stat-value">98,765</p>
+                            <p class="stat-name">✉️ Wiadomości</p>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/main.js"></script>
+</body>
+</html>
