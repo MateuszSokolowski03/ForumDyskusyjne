@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Panel Administracyjny - Forum Dyskusyjne</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/users">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/categories">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/threads">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/moderators">
+                            <span class="material-symbols-outlined">shield_person</span>Moderatorzy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
+                            <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
+                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                        <span class="material-symbols-outlined">logout</span>Wyloguj
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8">
+                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Przegląd aktywności i statystyk forum.</p>
+                    </header>
+
+                    <!-- Stats Cards -->
+                    <div class="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <div class="stat-content flex items-center">
+                                <div class="stat-icon flex-shrink-0 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">group</span>
+                                </div>
+                                <div class="stat-info ml-4">
+                                    <p class="stat-label text-sm font-medium text-gray-600 dark:text-gray-400">Użytkownicy</p>
+                                    <p class="stat-value text-2xl font-bold text-gray-900 dark:text-white">1,234</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <div class="stat-content flex items-center">
+                                <div class="stat-icon flex-shrink-0 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                    <span class="material-symbols-outlined text-green-600 dark:text-green-400">forum</span>
+                                </div>
+                                <div class="stat-info ml-4">
+                                    <p class="stat-label text-sm font-medium text-gray-600 dark:text-gray-400">Wątki</p>
+                                    <p class="stat-value text-2xl font-bold text-gray-900 dark:text-white">5,678</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <div class="stat-content flex items-center">
+                                <div class="stat-icon flex-shrink-0 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">chat</span>
+                                </div>
+                                <div class="stat-info ml-4">
+                                    <p class="stat-label text-sm font-medium text-gray-600 dark:text-gray-400">Posty</p>
+                                    <p class="stat-value text-2xl font-bold text-gray-900 dark:text-white">12,345</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <div class="stat-content flex items-center">
+                                <div class="stat-icon flex-shrink-0 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">category</span>
+                                </div>
+                                <div class="stat-info ml-4">
+                                    <p class="stat-label text-sm font-medium text-gray-600 dark:text-gray-400">Kategorie</p>
+                                    <p class="stat-value text-2xl font-bold text-gray-900 dark:text-white">15</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="activity-section space-y-8">
+                        <div class="activity-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Ostatnia aktywność</h3>
+                            <div class="activity-list space-y-4">
+                                <div class="activity-item flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#101622] rounded-lg">
+                                    <div class="activity-icon p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                        <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 !text-xl">person_add</span>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-text text-gray-800 dark:text-gray-200">Nowy użytkownik <strong>JanKowalski</strong> zarejestrował się</p>
+                                        <p class="activity-time text-sm text-gray-500 dark:text-gray-400">5 minut temu</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="activity-item flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#101622] rounded-lg">
+                                    <div class="activity-icon p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                        <span class="material-symbols-outlined text-green-600 dark:text-green-400 !text-xl">add_comment</span>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-text text-gray-800 dark:text-gray-200">Nowy wątek <strong>"Pomoc z instalacją"</strong> w kategorii Wsparcie</p>
+                                        <p class="activity-time text-sm text-gray-500 dark:text-gray-400">15 minut temu</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="activity-item flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#101622] rounded-lg">
+                                    <div class="activity-icon p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                        <span class="material-symbols-outlined text-red-600 dark:text-red-400 !text-xl">report</span>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-text text-gray-800 dark:text-gray-200">Post zgłoszony do moderacji przez <strong>ModeratorXYZ</strong></p>
+                                        <p class="activity-time text-sm text-gray-500 dark:text-gray-400">30 minut temu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>

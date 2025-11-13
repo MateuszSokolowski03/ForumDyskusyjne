@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Ustawienia Zaawansowane - Panel Administracyjny</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/users">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/categories">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/threads">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/moderators">
+                            <span class="material-symbols-outlined">shield_person</span>Moderatorzy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
+                            <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
+                        </a></li>
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/settings">
+                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                        <span class="material-symbols-outlined">logout</span>Wyloguj
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8">
+                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Ustawienia Zaawansowane</h2>
+                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj zaawansowanymi opcjami i konfiguracją forum.</p>
+                    </header>
+
+                    <div class="settings-sections space-y-8">
+                        <!-- User Management Section -->
+                        <div class="settings-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Zarządzanie Użytkownikami</h3>
+                            <div class="settings-options space-y-4">
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Zarządzanie rangami</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Nadawaj rangi (użytkownik, moderator, admin) i konfiguruj automatyczne nadawanie rang.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]">
+                                        <span class="material-symbols-outlined">manage_accounts</span>
+                                        Zarządzaj rangami
+                                    </button>
+                                </div>
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-200 dark:border-[#232f48] pt-4">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Lista użytkowników</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Przeglądaj, blokuj i resetuj hasła użytkowników.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]" onclick="window.location.href='/admin/users'">
+                                        <span class="material-symbols-outlined">group</span>
+                                        Zobacz listę
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Categories Management Section -->
+                        <div class="settings-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Zarządzanie Kategoriami i Forami</h3>
+                            <div class="settings-options space-y-4">
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Struktura forum</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Twórz, edytuj kategorie i przypisuj do nich fora.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-primary h-10 px-6 text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90">
+                                        <span class="material-symbols-outlined">account_tree</span>
+                                        Zarządzaj strukturą
+                                    </button>
+                                </div>
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-200 dark:border-[#232f48] pt-4">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Uprawnienia dla gości</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Ustaw co mogą widzieć i robić anonimowi użytkownicy.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]">
+                                        <span class="material-symbols-outlined">visibility_off</span>
+                                        Konfiguruj uprawnienia
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Banned Words Section -->
+                        <div class="settings-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Słownik Słów Zakazanych</h3>
+                            <p class="section-desc text-sm text-gray-500 dark:text-gray-400 mb-4">Dodawaj słowa, które będą automatycznie cenzurowane lub będą blokować publikację wiadomości.</p>
+                            <form class="banned-words-form flex flex-col sm:flex-row gap-4 items-start" id="bannedWordsForm">
+                                <div class="form-input-wrapper w-full">
+                                    <label class="sr-only" for="banned-word">Dodaj słowo</label>
+                                    <input class="form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-gray-50 dark:bg-[#101622] text-gray-800 dark:text-white focus:border-primary focus:ring-primary" id="banned-word" placeholder="Wpisz słowo do zablokowania..." type="text"/>
+                                </div>
+                                <button class="add-word-btn flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-primary h-10 px-6 text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90" type="submit">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                    Dodaj
+                                </button>
+                            </form>
+                            <div class="banned-words-list mt-4 border-t border-gray-200 dark:border-[#232f48] pt-4">
+                                <p class="list-title text-gray-800 dark:text-gray-200 font-medium mb-2">Lista zablokowanych słów:</p>
+                                <div class="words-container flex flex-wrap gap-2" id="bannedWordsList">
+                                    <span class="tag">słowo1<button class="tag-remove" onclick="removeBannedWord('słowo1')"><span class="material-symbols-outlined !text-base">close</span></button></span>
+                                    <span class="tag">słowo2<button class="tag-remove" onclick="removeBannedWord('słowo2')"><span class="material-symbols-outlined !text-base">close</span></button></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other Settings Section -->
+                        <div class="settings-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Pozostałe Ustawienia</h3>
+                            <div class="settings-options space-y-4">
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Limity załączników i awatarów</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Określ maksymalny rozmiar i typy plików.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]">
+                                        <span class="material-symbols-outlined">attachment</span>
+                                        Ustaw limity
+                                    </button>
+                                </div>
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-200 dark:border-[#232f48] pt-4">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Dozwolone znaczniki HTML</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Zarządzaj listą tagów HTML, których mogą używać użytkownicy.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]">
+                                        <span class="material-symbols-outlined">code</span>
+                                        Edytuj listę
+                                    </button>
+                                </div>
+                                <div class="setting-item flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-gray-200 dark:border-[#232f48] pt-4">
+                                    <div class="setting-info">
+                                        <p class="setting-name font-medium text-gray-800 dark:text-gray-200">Zarządzanie skórkami i językami</p>
+                                        <p class="setting-desc text-sm text-gray-500 dark:text-gray-400">Dodawaj i konfiguruj skórki oraz języki interfejsu.</p>
+                                    </div>
+                                    <button class="setting-btn mt-2 sm:mt-0 flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-[#232f48] h-10 px-6 text-gray-800 dark:text-white text-sm font-medium leading-normal tracking-wide hover:bg-gray-300 dark:hover:bg-[#324467]">
+                                        <span class="material-symbols-outlined">palette</span>
+                                        Zarządzaj
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/admin.js"></script>
+    <script src="../js/admin-settings.js"></script>
+</body>
+</html>

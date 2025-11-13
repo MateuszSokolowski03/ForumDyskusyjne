@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Słownik Słów Zakazanych - Panel Administracyjny</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/users">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/categories">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/threads">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/moderators">
+                            <span class="material-symbols-outlined">shield_person</span>Moderatorzy
+                        </a></li>
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/banned-words">
+                            <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
+                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                        <span class="material-symbols-outlined">logout</span>Wyloguj
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8">
+                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Słownik Słów Zakazanych</h2>
+                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj słowami, które będą automatycznie cenzurowane lub blokowane.</p>
+                    </header>
+
+                    <!-- Add New Word Form -->
+                    <div class="add-word-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] mb-8">
+                        <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white mb-4">Dodaj nowe słowo zakazane</h3>
+                        <form id="addWordForm" class="add-word-form flex flex-col sm:flex-row gap-4 items-end">
+                            <div class="form-group flex-1">
+                                <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="new-word">Słowo do zablokowania</label>
+                                <input class="word-input form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-gray-50 dark:bg-[#101622] text-gray-800 dark:text-white focus:border-primary focus:ring-primary" 
+                                       id="new-word" 
+                                       name="word"
+                                       placeholder="Wpisz słowo..." 
+                                       required
+                                       type="text"/>
+                            </div>
+                            <button class="add-btn flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-primary h-10 px-6 text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90" type="submit">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                Dodaj
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Banned Words List -->
+                    <div class="banned-words-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                        <div class="section-header flex items-center justify-between mb-6">
+                            <h3 class="section-title text-xl font-bold text-gray-900 dark:text-white">Lista zablokowanych słów</h3>
+                            <div class="words-count text-sm text-gray-500 dark:text-gray-400">
+                                Łącznie: <span id="wordsCount">0</span> słów
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="loadingState" class="loading-state text-center py-8">
+                            <div class="loading-spinner inline-block w-8 h-8 border-4 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                            <p class="loading-text text-gray-500 dark:text-gray-400 mt-2">Ładowanie...</p>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="errorState" class="error-state hidden text-center py-8">
+                            <div class="error-icon text-red-500 mb-2">
+                                <span class="material-symbols-outlined !text-6xl">error</span>
+                            </div>
+                            <p class="error-text text-red-600 dark:text-red-400 mb-4">Nie udało się załadować słów zakazanych</p>
+                            <button id="retryBtn" class="retry-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
+                                Spróbuj ponownie
+                            </button>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="emptyState" class="empty-state hidden text-center py-8">
+                            <div class="empty-icon text-gray-400 dark:text-gray-500 mb-2">
+                                <span class="material-symbols-outlined !text-6xl">block</span>
+                            </div>
+                            <p class="empty-text text-gray-500 dark:text-gray-400">Brak zablokowanych słów</p>
+                        </div>
+
+                        <!-- Words List -->
+                        <div id="wordsList" class="words-list hidden">
+                            <div class="words-grid flex flex-wrap gap-2" id="wordsContainer">
+                                <!-- Words will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container fixed top-4 right-4 z-50"></div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/admin.js"></script>
+    <script>
+        // Banned Words Management
+        class BannedWordsManager {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadBannedWords();
+            }
+
+            setupEventListeners() {
+                const addWordForm = document.getElementById('addWordForm');
+                const retryBtn = document.getElementById('retryBtn');
+
+                if (addWordForm) {
+                    addWordForm.addEventListener('submit', (e) => this.handleAddWord(e));
+                }
+
+                if (retryBtn) {
+                    retryBtn.addEventListener('click', () => this.loadBannedWords());
+                }
+            }
+
+            async loadBannedWords() {
+                this.showLoading();
+
+                try {
+                    const response = await fetch('/api/admin/banned-words');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const words = await response.json();
+                    this.displayWords(words);
+                    this.updateWordsCount(words.length);
+
+                } catch (error) {
+                    console.error('Błąd ładowania słów zakazanych:', error);
+                    this.showError();
+                }
+            }
+
+            async handleAddWord(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const word = formData.get('word').trim();
+
+                if (!word) {
+                    this.showMessage('Proszę wprowadzić słowo', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/admin/banned-words', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ word })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showMessage(`Słowo "${word}" zostało dodane do listy zakazanych`, 'success');
+                        e.target.reset();
+                        this.loadBannedWords(); // Refresh list
+                    } else {
+                        this.showMessage('Nie udało się dodać słowa', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Błąd dodawania słowa:', error);
+                    this.showMessage('Wystąpił błąd podczas dodawania słowa', 'error');
+                }
+            }
+
+            async removeWord(wordId, wordText) {
+                if (!confirm(`Czy na pewno chcesz usunąć słowo "${wordText}" z listy zakazanych?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/banned-words/${wordId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showMessage(`Słowo "${wordText}" zostało usunięte`, 'success');
+                        this.loadBannedWords(); // Refresh list
+                    } else {
+                        this.showMessage('Nie udało się usunąć słowa', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Błąd usuwania słowa:', error);
+                    this.showMessage('Wystąpił błąd podczas usuwania słowa', 'error');
+                }
+            }
+
+            displayWords(words) {
+                const container = document.getElementById('wordsContainer');
+                const wordsList = document.getElementById('wordsList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (!words || words.length === 0) {
+                    this.showEmpty();
+                    return;
+                }
+
+                container.innerHTML = '';
+                
+                words.forEach(word => {
+                    const wordElement = this.createWordElement(word);
+                    container.appendChild(wordElement);
+                });
+
+                this.hideAllStates();
+                wordsList.classList.remove('hidden');
+            }
+
+            createWordElement(word) {
+                const wordElement = document.createElement('span');
+                wordElement.className = 'word-tag flex items-center gap-2 bg-gray-200 dark:bg-[#232f48] text-sm px-3 py-1 rounded-full';
+                wordElement.innerHTML = `
+                    <span class="word-text">${this.escapeHtml(word.word)}</span>
+                    <button class="remove-btn text-gray-500 dark:text-gray-400 hover:text-red-500" 
+                            onclick="bannedWordsManager.removeWord(${word.id}, '${this.escapeHtml(word.word)}')"
+                            title="Usuń słowo">
+                        <span class="material-symbols-outlined !text-base">close</span>
+                    </button>
+                `;
+                return wordElement;
+            }
+
+            showLoading() {
+                this.hideAllStates();
+                document.getElementById('loadingState').classList.remove('hidden');
+            }
+
+            showError() {
+                this.hideAllStates();
+                document.getElementById('errorState').classList.remove('hidden');
+            }
+
+            showEmpty() {
+                this.hideAllStates();
+                document.getElementById('emptyState').classList.remove('hidden');
+                this.updateWordsCount(0);
+            }
+
+            hideAllStates() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.add('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('wordsList').classList.add('hidden');
+            }
+
+            updateWordsCount(count) {
+                const countElement = document.getElementById('wordsCount');
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+            }
+
+            showMessage(message, type = 'info') {
+                const container = document.getElementById('messageContainer');
+                const messageElement = document.createElement('div');
+                
+                const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                
+                messageElement.className = `message-toast ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg mb-2 opacity-0 transform translate-x-full transition-all duration-300`;
+                messageElement.textContent = message;
+
+                container.appendChild(messageElement);
+
+                // Animate in
+                setTimeout(() => {
+                    messageElement.classList.remove('opacity-0', 'translate-x-full');
+                }, 100);
+
+                // Remove after 5 seconds
+                setTimeout(() => {
+                    messageElement.classList.add('opacity-0', 'translate-x-full');
+                    setTimeout(() => {
+                        if (container.contains(messageElement)) {
+                            container.removeChild(messageElement);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize banned words manager
+        let bannedWordsManager;
+        document.addEventListener('DOMContentLoaded', function() {
+            bannedWordsManager = new BannedWordsManager();
+        });
+    </script>
+</body>
+</html>

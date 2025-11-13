@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Zarządzanie Użytkownikami - Panel Administracyjny</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/users">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/categories">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/threads">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/moderators">
+                            <span class="material-symbols-outlined">shield_person</span>Moderatorzy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
+                            <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
+                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                        <span class="material-symbols-outlined">logout</span>Wyloguj
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8">
+                        <div class="header-content flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Zarządzanie Użytkownikami</h2>
+                                <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Przeglądaj i zarządzaj kontami użytkowników.</p>
+                            </div>
+                            <button class="add-user-btn btn-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined">person_add</span>
+                                Dodaj użytkownika
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Filters -->
+                    <div class="filters-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] mb-8">
+                        <div class="filters-grid grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="filter-group">
+                                <label class="filter-label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Wyszukaj</label>
+                                <input type="text" id="search-users" class="form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-white dark:bg-[#101622] text-gray-800 dark:text-white" placeholder="Nazwa użytkownika lub email...">
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rola</label>
+                                <select id="filter-role" class="form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-white dark:bg-[#101622] text-gray-800 dark:text-white">
+                                    <option value="">Wszystkie role</option>
+                                    <option value="user">Użytkownik</option>
+                                    <option value="moderator">Moderator</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                                <select id="filter-status" class="form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-white dark:bg-[#101622] text-gray-800 dark:text-white">
+                                    <option value="">Wszystkie statusy</option>
+                                    <option value="active">Aktywny</option>
+                                    <option value="blocked">Zablokowany</option>
+                                    <option value="pending">Oczekujący</option>
+                                </select>
+                            </div>
+                            <div class="filter-group flex items-end">
+                                <button class="filter-btn btn-primary w-full">
+                                    <span class="material-symbols-outlined mr-2">search</span>
+                                    Filtruj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="users-table-section bg-white dark:bg-[#192231] rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] overflow-hidden">
+                        <div class="table-wrapper overflow-x-auto">
+                            <table class="admin-table w-full">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left">Użytkownik</th>
+                                        <th class="text-left">Email</th>
+                                        <th class="text-left">Rola</th>
+                                        <th class="text-left">Status</th>
+                                        <th class="text-left">Data rejestracji</th>
+                                        <th class="text-left">Ostatnia aktywność</th>
+                                        <th class="text-center">Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Users will be loaded here -->
+                                    <tr>
+                                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                            <div class="loading-state">
+                                                <div class="spinner mx-auto mb-2"></div>
+                                                <p>Ładowanie użytkowników...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="pagination-section p-4 border-t border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div class="pagination-info text-sm text-gray-500 dark:text-gray-400">
+                                Showing <span id="results-start">1</span>-<span id="results-end">10</span> of <span id="results-total">100</span> users
+                            </div>
+                            <div class="pagination-controls flex gap-2">
+                                <button class="pagination-btn btn-secondary" id="prev-page" disabled>
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <div class="pagination-numbers flex gap-1" id="pagination-numbers">
+                                    <!-- Page numbers will be generated here -->
+                                </div>
+                                <button class="pagination-btn btn-secondary" id="next-page">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/admin.js"></script>
+    <script src="../js/admin-users.js"></script>
+</body>
+</html>
