@@ -45,6 +45,9 @@ app.MapGet("/", () => Results.Redirect("/index.html"));
 // Strona logowania
 app.MapGet("/login", () => Results.Redirect("/login.html"));
 
+// Strona rejestracji
+app.MapGet("/register", () => Results.Redirect("/register.html"));
+
 // API endpoint dla sprawdzenia statusu
 app.MapGet("/api/status", async () =>
 {
@@ -147,13 +150,99 @@ app.MapPost("/api/auth/login", async (LoginRequest request) =>
     }
 });
 
+// API endpoint dla rejestracji
+app.MapPost("/api/auth/register", async (RegisterRequest request) =>
+{
+    Console.WriteLine($"📝 Próba rejestracji: {request.Username}");
+    
+    try
+    {
+        // Walidacja podstawowa
+        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+        {
+            return Results.BadRequest(new { message = "Wszystkie pola są wymagane" });
+        }
+        
+        if (request.Username.Length < 3)
+        {
+            return Results.BadRequest(new { message = "Nazwa użytkownika musi mieć co najmniej 3 znaki" });
+        }
+        
+        if (request.Password.Length < 6)
+        {
+            return Results.BadRequest(new { message = "Hasło musi mieć co najmniej 6 znaków" });
+        }
+        
+        if (request.Password != request.ConfirmPassword)
+        {
+            return Results.BadRequest(new { message = "Hasła nie są identyczne" });
+        }
+        
+        if (!request.Terms)
+        {
+            return Results.BadRequest(new { message = "Musisz zaakceptować regulamin" });
+        }
+        
+        // Sprawdź czy użytkownik już istnieje
+        using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        
+        var checkQuery = "SELECT COUNT(*) FROM \"user\" WHERE username = @username OR email = @email";
+        using var checkCommand = new NpgsqlCommand(checkQuery, connection);
+        checkCommand.Parameters.AddWithValue("@username", request.Username);
+        checkCommand.Parameters.AddWithValue("@email", request.Email);
+        
+        var existingCount = (long)(await checkCommand.ExecuteScalarAsync() ?? 0L);
+        if (existingCount > 0)
+        {
+            return Results.BadRequest(new { message = "Użytkownik z tą nazwą lub e-mailem już istnieje" });
+        }
+        
+        // Utwórz nowego użytkownika
+        var insertQuery = @"
+            INSERT INTO ""user"" (username, email, password_hash, role, created_at, last_activity_at) 
+            VALUES (@username, @email, @passwordHash, @role, @createdAt, @lastActivity) 
+            RETURNING id";
+        
+        using var insertCommand = new NpgsqlCommand(insertQuery, connection);
+        insertCommand.Parameters.AddWithValue("@username", request.Username);
+        insertCommand.Parameters.AddWithValue("@email", request.Email);
+        insertCommand.Parameters.AddWithValue("@passwordHash", request.Password); // TODO: Hash password properly
+        insertCommand.Parameters.AddWithValue("@role", "user");
+        insertCommand.Parameters.AddWithValue("@createdAt", DateTime.Now);
+        insertCommand.Parameters.AddWithValue("@lastActivity", DateTime.Now);
+        
+        var newUserId = (int)(await insertCommand.ExecuteScalarAsync() ?? 0);
+        
+        Console.WriteLine($"✅ Rejestracja udana dla: {request.Username} (ID: {newUserId})");
+        
+        return Results.Ok(new { 
+            success = true, 
+            message = "Konto zostało utworzone pomyślnie",
+            user = new { 
+                id = newUserId,
+                username = request.Username,
+                email = request.Email,
+                role = "user"
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Błąd podczas rejestracji: {ex.Message}");
+        return Results.Problem($"Błąd serwera: {ex.Message}");
+    }
+});
+
 Console.WriteLine("🌐 Aplikacja dostępna na:");
 Console.WriteLine("   - http://localhost:5000");
 Console.WriteLine("   - https://localhost:5001");
 Console.WriteLine("📊 Status API: http://localhost:5000/api/status");
 Console.WriteLine("🔐 Login API: http://localhost:5000/api/auth/login");
+Console.WriteLine("📝 Register API: http://localhost:5000/api/auth/register");
 
 app.Run();
 
-// Model dla żądania logowania
+// Modele dla żądań
 public record LoginRequest(string Username, string Password, bool RememberMe);
+public record RegisterRequest(string Username, string Email, string Password, string ConfirmPassword, bool Terms);

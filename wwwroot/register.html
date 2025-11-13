@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Forum Dyskusyjne - Rejestracja</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/register.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="register-layout relative flex min-h-screen w-full flex-col overflow-x-hidden">
+        <div class="page-wrapper flex h-full grow flex-col">
+            <!-- Header -->
+            <header class="site-header flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-[#232f48] px-4 md:px-10 py-3">
+                <div class="brand-section flex items-center gap-8">
+                    <div class="logo-wrapper flex items-center gap-4 text-gray-800 dark:text-white">
+                        <div class="logo-icon size-6 text-primary">
+                            <span class="material-symbols-outlined !text-3xl">forum</span>
+                        </div>
+                        <h2 class="brand-title text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Forum Dyskusyjne</h2>
+                    </div>
+                </div>
+                <div class="nav-actions flex flex-1 justify-end items-center gap-4 md:gap-8">
+                    <div class="login-section flex gap-2">
+                        <a href="/login" class="login-btn flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-[#232f48] text-gray-800 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-gray-300 dark:hover:bg-[#2a3851] transition-colors">
+                            <span class="truncate">Logowanie</span>
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content flex flex-1 items-center justify-center py-10 px-4 sm:px-6 lg:px-8">
+                <div class="content-container w-full max-w-md space-y-8">
+                    <!-- Header Section -->
+                    <div class="page-header">
+                        <h2 class="main-title text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            Utwórz nowe konto
+                        </h2>
+                        <div class="alt-action mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                            <p class="action-text">
+                                Masz już konto?
+                                <a class="login-link font-medium text-primary hover:text-primary/80" href="/login">Zaloguj się</a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <div class="form-card bg-white dark:bg-[#111722] p-8 rounded-xl border border-gray-200 dark:border-[#324467] shadow-sm">
+                        <form id="registerForm" class="register-form mt-8 space-y-6">
+                            <div class="form-fields space-y-4">
+                                <!-- Username Field -->
+                                <div class="username-group">
+                                    <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300" for="username">Nazwa użytkownika</label>
+                                    <div class="input-wrapper mt-1">
+                                        <input class="username-input form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-[#324467] bg-white dark:bg-[#232f48] focus:border-primary h-10 placeholder:text-gray-400 dark:placeholder:text-[#92a4c9] px-4 text-sm font-normal leading-normal" 
+                                               id="username" 
+                                               name="username" 
+                                               placeholder="JanKowalski" 
+                                               required 
+                                               type="text"/>
+                                    </div>
+                                </div>
+
+                                <!-- Email Field -->
+                                <div class="email-group">
+                                    <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300" for="email">Adres e-mail</label>
+                                    <div class="input-wrapper mt-1">
+                                        <input class="email-input form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-[#324467] bg-white dark:bg-[#232f48] focus:border-primary h-10 placeholder:text-gray-400 dark:placeholder:text-[#92a4c9] px-4 text-sm font-normal leading-normal" 
+                                               autocomplete="email" 
+                                               id="email" 
+                                               name="email" 
+                                               placeholder="ty@example.com" 
+                                               required 
+                                               type="email"/>
+                                    </div>
+                                </div>
+
+                                <!-- Password Field -->
+                                <div class="password-group">
+                                    <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300" for="password">Hasło</label>
+                                    <div class="input-wrapper mt-1">
+                                        <input class="password-input form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-[#324467] bg-white dark:bg-[#232f48] focus:border-primary h-10 placeholder:text-gray-400 dark:placeholder:text-[#92a4c9] px-4 text-sm font-normal leading-normal" 
+                                               autocomplete="new-password" 
+                                               id="password" 
+                                               name="password" 
+                                               placeholder="••••••••" 
+                                               required 
+                                               type="password"/>
+                                    </div>
+                                </div>
+
+                                <!-- Confirm Password Field -->
+                                <div class="confirm-group">
+                                    <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300" for="confirm-password">Potwierdź hasło</label>
+                                    <div class="input-wrapper mt-1">
+                                        <input class="confirm-input form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-[#324467] bg-white dark:bg-[#232f48] focus:border-primary h-10 placeholder:text-gray-400 dark:placeholder:text-[#92a4c9] px-4 text-sm font-normal leading-normal" 
+                                               autocomplete="new-password" 
+                                               id="confirm-password" 
+                                               name="confirmPassword" 
+                                               placeholder="••••••••" 
+                                               required 
+                                               type="password"/>
+                                    </div>
+                                </div>
+
+                                <!-- Avatar Field -->
+                                <div class="avatar-group">
+                                    <label class="field-label block text-sm font-medium text-gray-700 dark:text-gray-300">Awatar (opcjonalnie)</label>
+                                    <div class="avatar-upload mt-2 flex items-center gap-4">
+                                        <span class="avatar-preview inline-block h-12 w-12 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                            <svg class="avatar-icon h-full w-full text-gray-300 dark:text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                            </svg>
+                                        </span>
+                                        <label class="upload-btn cursor-pointer rounded-md border border-gray-300 dark:border-[#324467] bg-white dark:bg-[#232f48] py-2 px-3 text-sm font-medium leading-4 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700" for="avatar-upload">
+                                            <span class="btn-text">Zmień</span>
+                                            <input class="file-input sr-only" id="avatar-upload" name="avatar" type="file" accept="image/*"/>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms Checkbox -->
+                            <div class="terms-section flex items-start">
+                                <div class="checkbox-wrapper flex h-5 items-center">
+                                    <input class="terms-checkbox form-checkbox h-4 w-4 rounded border-gray-300 dark:border-[#324467] bg-gray-100 dark:bg-gray-700 text-primary focus:ring-primary" 
+                                           id="terms" 
+                                           name="terms" 
+                                           required 
+                                           type="checkbox"/>
+                                </div>
+                                <div class="terms-text ml-3 text-sm">
+                                    <label class="checkbox-label font-medium text-gray-700 dark:text-gray-300" for="terms">
+                                        Akceptuję <a class="terms-link text-primary hover:text-primary/80" href="/terms">regulamin</a> forum
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="submit-wrapper">
+                                <button class="submit-btn group relative flex w-full justify-center rounded-lg border border-transparent bg-primary py-2.5 px-4 text-sm font-bold text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" 
+                                        type="submit">
+                                    <span class="btn-text">Zarejestruj się</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Back to Home -->
+                    <div class="back-section mt-4 text-center">
+                        <a class="back-link inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary" href="/">
+                            <span class="back-icon material-symbols-outlined text-sm">arrow_back</span>
+                            <span class="link-text">Powrót do strony głównej</span>
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/register.js"></script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+/* Register Page Styles */
+
+/* Register form loading state */
+.register-form-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Error messages */
+.error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+}
+
+.dark .error-message {
+    background-color: #7f1d1d;
+    border-color: #991b1b;
+    color: #fca5a5;
+}
+
+/* Success messages */
+.success-message {
+    color: #10b981;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.5rem;
+}
+
+.dark .success-message {
+    background-color: #064e3b;
+    border-color: #065f46;
+    color: #6ee7b7;
+}
+
+/* Password strength indicator */
+.password-strength-indicator {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.password-strength-weak-indicator {
+    color: #ef4444;
+}
+
+.password-strength-medium-indicator {
+    color: #f59e0b;
+}
+
+.password-strength-strong-indicator {
+    color: #10b981;
+}
+
+/* Avatar preview styles */
+.avatar-preview {
+    transition: all 0.2s ease;
+}
+
+.avatar-preview:hover {
+    transform: scale(1.05);
+}
+
+.upload-btn {
+    transition: all 0.2s ease;
+}
+
+.upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Form field animations */
+.field-label {
+    transition: color 0.2s ease;
+}
+
+.username-input:focus + .field-label,
+.email-input:focus + .field-label,
+.password-input:focus + .field-label,
+.confirm-password-input:focus + .field-label {
+    color: #135bec;
+}
+
+/* Register button hover effects */
+.register-button:hover .button-text {
+    text-decoration: none;
+}
+
+/* Terms link styling */
+.terms-link {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+/* Back link animation */
+.home-link:hover .back-icon {
+    transform: translateX(-2px);
+    transition: transform 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .register-card {
+        padding: 1.5rem;
+    }
+    
+    .brand-name {
+        font-size: 1rem;
+    }
+    
+    .register-title {
+        font-size: 1.75rem;
+    }
+}
