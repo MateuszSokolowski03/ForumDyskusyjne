@@ -18,6 +18,7 @@ Thumbs.db
 appsettings.json
 *.env
 .env*
+cookies.txt
 
 # DOZWOLONE PRZYKŁADY
 !appsettings.example.json

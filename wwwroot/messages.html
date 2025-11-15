@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiadomości Prywatne - Forum Dyskusyjne</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Hide auth container until JS sets content -->
+    <style>
+        #auth-container {
+            visibility: hidden;
+            opacity: 0;
+        }
+    </style>
+    
+    <!-- Tailwind Config -->
+    <script src="js/tailwind-config.js"></script>
+    
+    <!-- Initialize auth container early -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const authContainer = document.getElementById('auth-container');
+            if (!authContainer) return;
+            
+            // Check if user is logged in based on cookie
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            const sessionCookie = cookies.find(c => c.startsWith('user_session='));
+            
+            if (sessionCookie) {
+                // Extract username from session cookie (format: id|username|role|avatar)
+                const cookieValue = decodeURIComponent(sessionCookie.split('=')[1]);
+                const parts = cookieValue.split('|');
+                const username = parts.length >= 2 ? parts[1] : 'User';
+                const userInitial = username.charAt(0).toUpperCase();
+                
+                // User appears to be logged in - show avatar placeholder
+                authContainer.innerHTML = `
+                    <div class="user-avatar-container relative">
+                        <button id="avatar-dropdown-trigger" class="w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 transition-all flex items-center justify-center font-semibold">${userInitial}</button>
+                        
+                        <div id="avatar-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                            <a href="profile.html" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
+                                <span class="material-symbols-outlined text-base">person</span>
+                                Profil
+                            </a>
+                            <button onclick="window.ForumApp.logout()" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
+                                <span class="material-symbols-outlined text-base">logout</span>
+                                Wyloguj
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // User not logged in - show login/register buttons
+                authContainer.innerHTML = `
+                    <div class="flex space-x-4">
+                        <a href="login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100">
+                            Zaloguj się
+                        </a>
+                        <a href="register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Zarejestruj się
+                        </a>
+                    </div>
+                `;
+            }
+            
+            // Show the container
+            authContainer.style.visibility = 'visible';
+            authContainer.style.opacity = '1';
+        });
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="flex flex-col h-screen overflow-hidden">
+        <!-- Top Navigation Bar -->
+        <header class="sticky top-0 z-50 bg-white/95 dark:bg-[#111722]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#232f48]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <!-- Logo and Brand -->
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-primary">
+                                <span class="material-symbols-outlined text-2xl">forum</span>
+                            </div>
+                            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+                                Forum Dyskusyjne
+                            </h1>
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <nav class="hidden md:flex items-center gap-6">
+                        <a href="/" class="nav-item" title="Strona główna">
+                            🏠
+                        </a>
+                        <a href="forum.html" class="nav-item" title="Kategorie">
+                            📂
+                        </a>
+                        <a href="messages.html" class="nav-item" title="Wiadomości">
+                            💬
+                        </a>
+                        <button id="search-toggle" class="nav-item" title="Szukaj">
+                            🔍
+                        </button>
+                    </nav>
+
+                    <!-- Search and User Actions -->
+                    <div class="flex items-center gap-4">
+                        <!-- Expandable Search Bar -->
+                        <div id="search-container" class="hidden items-center relative">
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">
+                                    search
+                                </span>
+                                <input 
+                                    id="search-input"
+                                    type="text" 
+                                    placeholder="Szukaj..." 
+                                    class="w-40 md:w-64 pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                >
+                                <button id="search-close" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                                    <span class="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Auth Buttons / User Avatar (will be dynamically updated) -->
+                        <div class="auth-buttons flex items-center gap-3" id="auth-container">
+                            <!-- Zawartość będzie ustawiona przez JavaScript -->
+                        </div>
+
+                        <!-- Inline script do sprawdzenia cookie przed renderem -->
+                        <script>
+                            (function() {
+                                // Sprawdź czy jest cookie user_session
+                                const hasUserSession = document.cookie.split(';').some(cookie => 
+                                    cookie.trim().startsWith('user_session=')
+                                );
+                                
+                                const authContainer = document.getElementById('auth-container');
+                                
+                                if (hasUserSession) {
+                                    // Użytkownik zalogowany - pokaż placeholder dla avatara
+                                    authContainer.innerHTML = `
+                                        <div class="bg-gray-300 dark:bg-gray-600 rounded-full size-10 animate-pulse"></div>
+                                    `;
+                                } else {
+                                    // Użytkownik niezalogowany - pokaż przyciski logowania
+                                    authContainer.innerHTML = `
+                                        <a href="register.html" class="cta-button px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                                            Rejestracja
+                                        </a>
+                                        <a href="login.html" class="secondary-button px-4 py-2 bg-gray-200 dark:bg-[#232f48] text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#2a3851] transition-colors font-medium">
+                                            Logowanie
+                                        </a>
+                                    `;
+                                }
+                                
+                                // Pokaż kontener
+                                authContainer.style.opacity = '1';
+                                authContainer.style.visibility = 'visible';
+                            })();
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231] h-[700px]">
+                    <!-- Left Column: Conversation List -->
+                    <aside class="flex flex-col w-full md:w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Wiadomości</h1>
+                        <button class="text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-2xl">edit_square</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">
+                            search
+                        </span>
+                        <input 
+                            type="text" 
+                            placeholder="Szukaj konwersacji..." 
+                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-[#232f48] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                        >
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto">
+                    <!-- Active Conversation Item -->
+                    <div class="flex items-center gap-4 bg-primary/10 dark:bg-primary/20 px-4 min-h-[72px] py-2 justify-between cursor-pointer border-l-4 border-primary">
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <div class="relative shrink-0">
+                                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12" style='background-image: url("https://images.unsplash.com/photo-1494790108755-2616b612b1b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                                <div class="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 border-2 border-white dark:border-[#192231]"></div>
+                            </div>
+                            <div class="flex flex-col justify-center overflow-hidden">
+                                <p class="text-gray-900 dark:text-white text-base font-semibold leading-normal truncate">Anna Kowalska</p>
+                                <p class="text-primary text-sm font-medium leading-normal truncate">Pisze...</p>
+                            </div>
+                        </div>
+                        <div class="shrink-0 flex flex-col items-end gap-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs font-normal leading-normal">10:42</p>
+                            <div class="flex size-5 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">2</div>
+                        </div>
+                    </div>
+
+                    <!-- Unread Conversation Item -->
+                    <div class="flex items-center gap-4 bg-transparent hover:bg-gray-100 dark:hover:bg-[#232f48] px-4 min-h-[72px] py-2 justify-between cursor-pointer">
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <div class="relative shrink-0">
+                                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12" style='background-image: url("https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                            </div>
+                            <div class="flex flex-col justify-center overflow-hidden">
+                                <p class="text-gray-900 dark:text-white text-base font-semibold leading-normal truncate">Marek Nowak</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal truncate">Dzięki za informację.</p>
+                            </div>
+                        </div>
+                        <div class="shrink-0 flex flex-col items-end gap-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs font-normal leading-normal">09:15</p>
+                        </div>
+                    </div>
+
+                    <!-- Read Conversation Item -->
+                    <div class="flex items-center gap-4 bg-transparent hover:bg-gray-100 dark:hover:bg-[#232f48] px-4 min-h-[72px] py-2 justify-between cursor-pointer">
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <div class="relative shrink-0">
+                                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12" style='background-image: url("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                                <div class="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 border-2 border-white dark:border-[#192231]"></div>
+                            </div>
+                            <div class="flex flex-col justify-center overflow-hidden">
+                                <p class="text-gray-900 dark:text-white text-base font-semibold leading-normal truncate">Jan Wiśniewski</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal truncate">Jasne, do zobaczenia!</p>
+                            </div>
+                        </div>
+                        <div class="shrink-0 flex flex-col items-end gap-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs font-normal leading-normal">Wczoraj</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+                    <!-- Right Column: Active Conversation -->
+                    <div class="hidden md:flex flex-1 flex-col bg-gray-100 dark:bg-background-dark">
+                        <!-- Chat Header -->
+                        <header class="flex shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-[#192231]">
+                            <div class="flex items-center gap-4">
+                                <div class="relative shrink-0">
+                                    <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://images.unsplash.com/photo-1494790108755-2616b612b1b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                                    <div class="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 border-2 border-white dark:border-[#192231]"></div>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 dark:text-white">Anna Kowalska</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Aktywna teraz</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                                <span class="material-symbols-outlined text-2xl">more_horiz</span>
+                            </button>
+                        </header>
+
+                        <!-- Messages Area -->
+                        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <!-- Received Message -->
+                    <div class="flex items-start gap-3 max-w-lg">
+                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0" style='background-image: url("https://images.unsplash.com/photo-1494790108755-2616b612b1b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                        <div class="space-y-1">
+                            <div class="bg-white dark:bg-[#192231] p-3 rounded-lg rounded-tl-none border border-gray-200 dark:border-gray-700">
+                                <p class="text-sm text-gray-900 dark:text-white">Cześć! Masz chwilę? Chciałam zapytać o ten projekt, o którym wczoraj rozmawialiśmy.</p>
+                            </div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">10:40</span>
+                        </div>
+                    </div>
+
+                    <!-- Sent Message -->
+                    <div class="flex flex-row-reverse items-start gap-3">
+                        <div class="space-y-1 text-right">
+                            <div class="bg-primary/20 dark:bg-primary/30 p-3 rounded-lg rounded-tr-none border border-primary/30">
+                                <p class="text-sm text-gray-900 dark:text-white">Hej, jasne. Co dokładnie chcesz wiedzieć? Jestem teraz dostępny.</p>
+                            </div>
+                            <div class="flex items-center justify-end gap-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">10:41</span>
+                                <span class="material-symbols-outlined text-base text-primary">done_all</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Received Message -->
+                    <div class="flex items-start gap-3 max-w-lg">
+                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0" style='background-image: url("https://images.unsplash.com/photo-1494790108755-2616b612b1b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80");'></div>
+                        <div class="space-y-1">
+                            <div class="bg-white dark:bg-[#192231] p-3 rounded-lg rounded-tl-none border border-gray-200 dark:border-gray-700">
+                                <p class="text-sm text-gray-900 dark:text-white">Super. Chodzi mi o deadline. Czy na pewno musimy oddać wszystko do piątku? Mam wrażenie, że to trochę mało czasu.</p>
+                            </div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">10:42</span>
+                        </div>
+                    </div>
+
+                    <!-- Sent Message with delivery status -->
+                    <div class="flex flex-row-reverse items-start gap-3">
+                        <div class="space-y-1 text-right">
+                            <div class="bg-primary/20 dark:bg-primary/30 p-3 rounded-lg rounded-tr-none border border-primary/30">
+                                <p class="text-sm text-gray-900 dark:text-white">Zaraz to sprawdzę. Daj mi sekundę.</p>
+                            </div>
+                            <div class="flex items-center justify-end gap-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">10:42</span>
+                                <span class="material-symbols-outlined text-base text-gray-500 dark:text-gray-400">done</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input Area -->
+                <div class="flex items-center gap-4 border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-[#192231]">
+                    <button class="text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-2xl">add_circle</span>
+                    </button>
+                    <div class="flex-1">
+                        <input class="w-full bg-gray-100 dark:bg-[#232f48] border border-gray-300 dark:border-gray-600 rounded-lg h-10 px-4 focus:ring-2 focus:ring-primary focus:border-primary text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400" placeholder="Napisz wiadomość..." type="text"/>
+                    </div>
+                    <button class="text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-2xl">sentiment_satisfied</span>
+                    </button>
+                    <button class="bg-primary text-white rounded-lg h-10 w-10 flex items-center justify-center hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined text-2xl">send</span>
+                    </button>
+                </div>
+            </main>
+
+            <!-- Placeholder for mobile/narrow screens -->
+            <div class="md:hidden flex-1 flex flex-col items-center justify-center bg-gray-100 dark:bg-background-dark text-center p-8">
+                <span class="material-symbols-outlined text-6xl text-gray-500 dark:text-gray-400 mb-4">chat</span>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Wybierz konwersację</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Wybierz rozmowę z listy po lewej, aby wyświetlić wiadomości.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script>
+        // Search toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchToggle = document.getElementById('search-toggle');
+            const searchContainer = document.getElementById('search-container');
+            const searchInput = document.getElementById('search-input');
+            const searchClose = document.getElementById('search-close');
+
+            searchToggle.addEventListener('click', function() {
+                searchContainer.classList.remove('hidden');
+                searchContainer.classList.add('flex');
+                searchInput.focus();
+            });
+
+            searchClose.addEventListener('click', function() {
+                searchContainer.classList.add('hidden');
+                searchContainer.classList.remove('flex');
+                searchInput.value = '';
+            });
+
+            // Close search on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !searchContainer.classList.contains('hidden')) {
+                    searchContainer.classList.add('hidden');
+                    searchContainer.classList.remove('flex');
+                    searchInput.value = '';                }
+            });
+
+        });
+    </script>
+</body>
+</html>

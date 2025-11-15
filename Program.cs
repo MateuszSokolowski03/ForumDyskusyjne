@@ -48,6 +48,9 @@ app.MapGet("/login", () => Results.Redirect("/login.html"));
 // Strona rejestracji
 app.MapGet("/register", () => Results.Redirect("/register.html"));
 
+// Widok forum
+
+
 // Panel administracyjny - serwowanie bezpośrednie bez przekierowań
 app.MapGet("/admin", async (HttpContext context) =>
 {
@@ -104,7 +107,7 @@ app.MapGet("/api/status", async () =>
 });
 
 // API endpoint dla logowania (podstawowa wersja)
-app.MapPost("/api/auth/login", async (LoginRequest request) =>
+app.MapPost("/api/auth/login", async (HttpContext context, LoginRequest request) =>
 {
     Console.WriteLine($"🔐 Próba logowania: {request.Username}");
     
@@ -150,6 +153,16 @@ app.MapPost("/api/auth/login", async (LoginRequest request) =>
                 updateCommand.Parameters.AddWithValue("@userId", userId);
                 await updateCommand.ExecuteNonQueryAsync();
                 
+                // Ustaw cookie sesji (w produkcji użyj JWT lub bezpieczniejszej sesji)
+                var sessionData = $"{userId}|{storedUsername}|{userRole}|{avatarUrl ?? ""}";
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = false, // Pozwól JavaScript na odczyt cookie dla auth UI
+                    SameSite = SameSiteMode.Lax,
+                    Expires = request.RememberMe ? DateTime.Now.AddDays(30) : DateTime.Now.AddHours(8)
+                };
+                context.Response.Cookies.Append("user_session", sessionData, cookieOptions);
+                
                 return Results.Ok(new { 
                     success = true, 
                     message = "Logowanie udane",
@@ -157,8 +170,7 @@ app.MapPost("/api/auth/login", async (LoginRequest request) =>
                         id = userId,
                         username = storedUsername,
                         role = userRole,
-                        avatar_url = avatarUrl,
-                        last_activity = lastActivity
+                        avatar = avatarUrl
                     }
                 });
             }
@@ -604,22 +616,97 @@ static async Task<long> GetCountAsync(NpgsqlConnection connection, string tableN
     return (long)(await command.ExecuteScalarAsync() ?? 0L);
 }
 
-Console.WriteLine("🌐 Aplikacja dostępna na:");
-Console.WriteLine("   - http://localhost:5000");
-Console.WriteLine("   - https://localhost:5001");
-Console.WriteLine("📊 Status API: http://localhost:5000/api/status");
-Console.WriteLine("🔐 Login API: http://localhost:5000/api/auth/login");
-Console.WriteLine("📝 Register API: http://localhost:5000/api/auth/register");
-Console.WriteLine("👨‍💼 Admin Panel: http://localhost:5000/admin");
-
-app.Run();
-
-// Dodatkowy routing dla panelu administratora
+// Dodatkowy routing dla panelu administratora (MUSI BYĆ PRZED app.Run())
 app.MapGet("/admin/users", () => Results.Redirect("/admin/users.html"));
 app.MapGet("/admin/categories", () => Results.Redirect("/admin/categories.html"));
 app.MapGet("/admin/threads", () => Results.Redirect("/admin/threads.html"));
 app.MapGet("/admin/banned-words", () => Results.Redirect("/admin/banned-words.html"));
 app.MapGet("/admin/settings", () => Results.Redirect("/admin/settings.html"));
+
+// API endpoint dla sprawdzenia statusu uwierzytelniania
+app.MapGet("/api/auth/status", async (HttpContext context) =>
+{
+    try
+    {
+        Console.WriteLine($"🔍 Sprawdzanie statusu uwierzytelniania - cookies count: {context.Request.Cookies.Count}");
+        
+        // TODO: Sprawdź sesję/token z cookies
+        // Na razie zwracamy przykładowe dane jeśli jest ustawiony cookie
+        if (context.Request.Cookies.ContainsKey("user_session"))
+        {
+            var sessionValue = context.Request.Cookies["user_session"];
+            Console.WriteLine($"🍪 Znaleziono cookie user_session: {sessionValue}");
+            
+            // W rzeczywistej aplikacji tutaj sprawdzilibyśmy sesję w bazie
+            // Na razie dekodujemy podstawowe informacje z cookie
+            if (!string.IsNullOrEmpty(sessionValue))
+            {
+                try
+                {
+                    // Podstawowa deserializacja (w produkcji użyj JWT lub sesji w bazie)
+                    var parts = sessionValue.Split('|');
+                    Console.WriteLine($"🔍 Parts count: {parts.Length}, Parts: {string.Join(", ", parts)}");
+                    if (parts.Length >= 2)
+                    {
+                        var userData = new {
+                            id = int.Parse(parts[0]),
+                            username = parts[1],
+                            role = parts.Length > 2 ? parts[2] : "user",
+                            avatar = parts.Length > 3 && !string.IsNullOrEmpty(parts[3]) ? parts[3] : null
+                        };
+                        Console.WriteLine($"✅ Zwracam dane użytkownika: {userData.username}");
+                        return Results.Ok(userData);
+                    }
+                }
+                catch
+                {
+                    // Cookie nieprawidłowy, usuń go
+                    context.Response.Cookies.Delete("user_session");
+                }
+            }
+        }
+        
+        Console.WriteLine("❌ Brak cookie user_session lub jest pusty");
+        return Results.Json(new { message = "Not authenticated" }, statusCode: 401);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Błąd sprawdzania statusu uwierzytelniania: {ex.Message}");
+        return Results.Problem($"Błąd serwera: {ex.Message}");
+    }
+});
+
+// API endpoint dla wylogowania
+app.MapPost("/api/auth/logout", async (HttpContext context) =>
+{
+    try
+    {
+        // Usuń cookie sesji
+        context.Response.Cookies.Delete("user_session");
+        
+        Console.WriteLine("🚪 Użytkownik wylogowany");
+        return Results.Ok(new { success = true, message = "Wylogowano pomyślnie" });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Błąd podczas wylogowania: {ex.Message}");
+        return Results.Problem($"Błąd serwera: {ex.Message}");
+    }
+});
+
+Console.WriteLine("🌐 Aplikacja dostępna na:");
+Console.WriteLine("   - http://localhost:5000");
+Console.WriteLine("   - https://localhost:5001");
+
+Console.WriteLine("📊 Status API: http://localhost:5000/api/status");
+Console.WriteLine("🔐 Login API: http://localhost:5000/api/auth/login");
+Console.WriteLine("🔑 Auth Status API: http://localhost:5000/api/auth/status");
+Console.WriteLine("🚪 Logout API: http://localhost:5000/api/auth/logout");
+Console.WriteLine("📝 Register API: http://localhost:5000/api/auth/register");
+Console.WriteLine("👨‍💼 Admin Panel: http://localhost:5000/admin");
+Console.WriteLine("📂 Forum: http://localhost:5000/forum.html");
+
+app.Run();
 
 // Modele dla żądań
 public record LoginRequest(string Username, string Password, bool RememberMe);

@@ -43,10 +43,11 @@ async function handleLoginSubmit(e) {
         
         if (response.ok) {
             const result = await response.json();
-            console.log('✅ Logowanie udane');
+            console.log('✅ Logowanie udane:', result);
+            
             showSuccessMessage('Logowanie udane! Przekierowywanie...');
             
-            // Przekierowanie po krótkim opóźnieniu
+            // Przekierowanie po krótkim opóźnieniu - serwer już ustawił cookies
             setTimeout(() => {
                 window.location.href = '/';
             }, 1500);

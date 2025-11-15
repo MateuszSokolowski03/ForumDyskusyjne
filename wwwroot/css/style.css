@@ -237,3 +237,8 @@
         display: none !important;
     }
 }
+
+/* Auth buttons ready state */
+.auth-buttons {
+    transition: opacity 0.2s ease;
+}
