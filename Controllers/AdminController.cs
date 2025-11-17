@@ -325,12 +325,295 @@ namespace ForumDyskusyjne.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+
+        // === ZARZĄDZANIE KATEGORIAMI ===
+        
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    return BadRequest(new { error = "Nazwa kategorii jest wymagana" });
+                }
+
+                // Sprawdź czy kategoria o takiej nazwie już istnieje
+                var existingCategory = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Name.ToLower());
+
+                if (existingCategory != null)
+                {
+                    return BadRequest(new { error = "Kategoria o takiej nazwie już istnieje" });
+                }
+
+                // Znajdź najwyższy SortOrder i dodaj 1
+                var maxSortOrder = await _context.Categories.MaxAsync(c => (int?)c.SortOrder) ?? 0;
+
+                var category = new Category
+                {
+                    Name = request.Name.Trim(),
+                    Description = request.Description?.Trim(),
+                    Icon = request.Icon?.Trim(),
+                    SortOrder = maxSortOrder + 1,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Kategoria została utworzona",
+                    category = new
+                    {
+                        category.Id,
+                        category.Name,
+                        category.Description,
+                        category.Icon,
+                        category.SortOrder,
+                        category.CreatedAt
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("categories/{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
+        {
+            try
+            {
+                var category = await _context.Categories.FindAsync(id);
+                if (category == null)
+                {
+                    return NotFound(new { error = "Kategoria nie została znaleziona" });
+                }
+
+                // Sprawdź czy nazwa nie jest zajęta przez inną kategorię
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var existingCategory = await _context.Categories
+                        .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Name.ToLower() && c.Id != id);
+
+                    if (existingCategory != null)
+                    {
+                        return BadRequest(new { error = "Kategoria o takiej nazwie już istnieje" });
+                    }
+
+                    category.Name = request.Name.Trim();
+                }
+
+                if (request.Description != null)
+                {
+                    category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+                }
+
+                if (request.Icon != null)
+                {
+                    category.Icon = string.IsNullOrWhiteSpace(request.Icon) ? null : request.Icon.Trim();
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Kategoria została zaktualizowana" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("categories/{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            try
+            {
+                var category = await _context.Categories
+                    .Include(c => c.Forums)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (category == null)
+                {
+                    return NotFound(new { error = "Kategoria nie została znaleziona" });
+                }
+
+                // Sprawdź czy kategoria ma fora
+                if (category.Forums.Any())
+                {
+                    return BadRequest(new { error = "Nie można usunąć kategorii która zawiera fora. Usuń najpierw wszystkie fora." });
+                }
+
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Kategoria została usunięta" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("categories/reorder")]
+        public async Task<IActionResult> ReorderCategories([FromBody] ReorderCategoriesRequest request)
+        {
+            try
+            {
+                if (request.CategoryOrders == null || !request.CategoryOrders.Any())
+                {
+                    return BadRequest(new { error = "Lista kategorii jest wymagana" });
+                }
+
+                foreach (var order in request.CategoryOrders)
+                {
+                    var category = await _context.Categories.FindAsync(order.CategoryId);
+                    if (category != null)
+                    {
+                        category.SortOrder = order.SortOrder;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Kolejność kategorii została zaktualizowana" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // === ZARZĄDZANIE UŻYTKOWNIKAMI ===
+
+        [HttpPut("users/{id}/ban")]
+        public async Task<IActionResult> BanUser(int id, [FromBody] BanUserRequest request)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                if (user.Role == UserRole.Admin)
+                {
+                    return BadRequest(new { error = "Nie można zbanować administratora" });
+                }
+
+                user.IsBanned = true;
+                user.BanReason = request.Reason?.Trim();
+                user.BanExpiresAt = request.ExpiresAt;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Użytkownik został zbanowany" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("users/{id}/unban")]
+        public async Task<IActionResult> UnbanUser(int id)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                user.IsBanned = false;
+                user.BanReason = null;
+                user.BanExpiresAt = null;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Ban użytkownika został zniesiony" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("users/{id}/role")]
+        public async Task<IActionResult> ChangeUserRole(int id, [FromBody] ChangeRoleRequest request)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                if (!Enum.IsDefined(typeof(UserRole), request.Role))
+                {
+                    return BadRequest(new { error = "Nieprawidłowa rola" });
+                }
+
+                user.Role = request.Role;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Rola użytkownika została zmieniona" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 
+    // === REQUEST DTOs ===
+    
     public class BannedWordRequest
     {
         public string Word { get; set; } = string.Empty;
         public string? Replacement { get; set; }
         public SeverityLevel Severity { get; set; } = SeverityLevel.Warning;
+    }
+
+    public class CreateCategoryRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Icon { get; set; }
+    }
+
+    public class UpdateCategoryRequest
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Icon { get; set; }
+    }
+
+    public class ReorderCategoriesRequest
+    {
+        public List<CategoryOrder> CategoryOrders { get; set; } = new();
+    }
+
+    public class CategoryOrder
+    {
+        public int CategoryId { get; set; }
+        public int SortOrder { get; set; }
+    }
+
+    public class BanUserRequest
+    {
+        public string? Reason { get; set; }
+        public DateTime? ExpiresAt { get; set; }
+    }
+
+    public class ChangeRoleRequest
+    {
+        public UserRole Role { get; set; }
     }
 }

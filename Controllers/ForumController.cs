@@ -336,6 +336,153 @@ namespace ForumDyskusyjne.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+
+        [HttpGet("categories/{categoryId}/threads")]
+        public async Task<IActionResult> GetCategoryThreads(int categoryId, int page = 1, int pageSize = 20)
+        {
+            try
+            {
+                var category = await _context.Categories.FindAsync(categoryId);
+                if (category == null)
+                {
+                    return NotFound(new { error = "Kategoria nie została znaleziona" });
+                }
+
+                var forums = await _context.Forums
+                    .Where(f => f.CategoryId == categoryId)
+                    .Select(f => f.Id)
+                    .ToListAsync();
+
+                var totalThreads = await _context.Threads
+                    .Where(t => forums.Contains(t.ForumId))
+                    .CountAsync();
+
+                var threads = await _context.Threads
+                    .Include(t => t.Author)
+                    .Include(t => t.Forum)
+                    .Include(t => t.Messages.OrderByDescending(m => m.CreatedAt).Take(1))
+                        .ThenInclude(m => m.Author)
+                    .Where(t => forums.Contains(t.ForumId))
+                    .OrderByDescending(t => t.IsPinned)
+                    .ThenByDescending(t => t.Messages.Max(m => (DateTime?)m.CreatedAt) ?? t.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.Title,
+                        t.CreatedAt,
+                        t.IsPinned,
+                        t.Views,
+                        RepliesCount = t.Messages.Count - 1,
+                        Author = new
+                        {
+                            t.Author.Id,
+                            t.Author.Username
+                        },
+                        Forum = new
+                        {
+                            t.Forum.Id,
+                            t.Forum.Name
+                        },
+                        LastMessage = t.Messages.OrderByDescending(m => m.CreatedAt).Select(m => new
+                        {
+                            m.CreatedAt,
+                            Author = new
+                            {
+                                m.Author.Id,
+                                m.Author.Username
+                            }
+                        }).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    Category = new
+                    {
+                        category.Id,
+                        category.Name,
+                        category.Description
+                    },
+                    Threads = threads,
+                    TotalThreads = totalThreads,
+                    TotalPages = (int)Math.Ceiling((double)totalThreads / pageSize),
+                    CurrentPage = page,
+                    PageSize = pageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("messages/{id}")]
+        public async Task<IActionResult> UpdateMessage(int id, [FromBody] UpdateMessageRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Content))
+                {
+                    return BadRequest(new { error = "Treść wiadomości jest wymagana" });
+                }
+
+                var message = await _context.Messages.FindAsync(id);
+                if (message == null)
+                {
+                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
+                }
+
+                // TODO: Sprawdź czy użytkownik ma prawo do edycji (autor lub moderator/admin)
+                
+                message.Content = request.Content.Trim();
+                message.IsEdited = true;
+                message.EditedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wiadomość została zaktualizowana" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("messages/{id}")]
+        public async Task<IActionResult> DeleteMessage(int id, int userId)
+        {
+            try
+            {
+                var message = await _context.Messages
+                    .Include(m => m.Thread)
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                if (message == null)
+                {
+                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
+                }
+
+                // TODO: Sprawdź czy użytkownik ma prawo do usunięcia (autor lub moderator/admin)
+
+                _context.Messages.Remove(message);
+                
+                // Aktualizuj licznik odpowiedzi w wątku
+                if (message.Thread.RepliesCount > 0)
+                {
+                    message.Thread.RepliesCount--;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wiadomość została usunięta" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 
     public class CreateThreadRequest
@@ -351,5 +498,10 @@ namespace ForumDyskusyjne.Controllers
         public string Content { get; set; } = string.Empty;
         public int ThreadId { get; set; }
         public int AuthorId { get; set; } // Tymczasowo, później z sesji/tokena
+    }
+
+    public class UpdateMessageRequest
+    {
+        public string Content { get; set; } = string.Empty;
     }
 }

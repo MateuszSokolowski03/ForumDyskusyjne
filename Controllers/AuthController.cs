@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ForumDyskusyjne.Data;
+using ForumDyskusyjne.Models;
 
 namespace ForumDyskusyjne.Controllers;
 
@@ -266,8 +268,159 @@ public class AuthController : ControllerBase
             return Problem($"Błąd serwera: {ex.Message}");
         }
     }
+
+    [HttpGet("profile/{userId}")]
+    public async Task<IActionResult> GetProfile(int userId)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.CurrentRank)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { error = "Użytkownik nie został znaleziony" });
+            }
+
+            return Ok(new
+            {
+                user.Id,
+                user.Username,
+                user.Email,
+                user.Bio,
+                user.AvatarUrl,
+                user.CreatedAt,
+                user.LastActivityAt,
+                user.PostCount,
+                ThreadCount = user.Threads.Count(),
+                Rank = user.CurrentRank?.Name ?? "Użytkownik",
+                Settings = new
+                {
+                    user.AutoLogoutMinutes,
+                    user.MessagesPerPage,
+                    user.ThreadsPerPage
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(request.UserId);
+            if (user == null)
+            {
+                return NotFound(new { error = "Użytkownik nie został znaleziony" });
+            }
+
+            // Aktualizuj profil
+            if (!string.IsNullOrWhiteSpace(request.Bio))
+            {
+                user.Bio = request.Bio.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.AvatarUrl))
+            {
+                user.AvatarUrl = request.AvatarUrl.Trim();
+            }
+
+            // Aktualizuj ustawienia
+            if (request.AutoLogoutMinutes.HasValue && request.AutoLogoutMinutes > 0)
+            {
+                user.AutoLogoutMinutes = request.AutoLogoutMinutes.Value;
+            }
+
+            if (request.MessagesPerPage.HasValue && request.MessagesPerPage > 0)
+            {
+                user.MessagesPerPage = request.MessagesPerPage.Value;
+            }
+
+            if (request.ThreadsPerPage.HasValue && request.ThreadsPerPage > 0)
+            {
+                user.ThreadsPerPage = request.ThreadsPerPage.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Profil został zaktualizowany" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPut("password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword) || 
+                string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest(new { error = "Aktualne i nowe hasło są wymagane" });
+            }
+
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return BadRequest(new { error = "Nowe hasło i potwierdzenie muszą być identyczne" });
+            }
+
+            if (request.NewPassword.Length < 6)
+            {
+                return BadRequest(new { error = "Nowe hasło musi mieć co najmniej 6 znaków" });
+            }
+
+            var user = await _context.Users.FindAsync(request.UserId);
+            if (user == null)
+            {
+                return NotFound(new { error = "Użytkownik nie został znaleziony" });
+            }
+
+            // Sprawdź aktualne hasło (w prawdziwej aplikacji używamy BCrypt)
+            if (user.PasswordHash != request.CurrentPassword)
+            {
+                return BadRequest(new { error = "Aktualne hasło jest nieprawidłowe" });
+            }
+
+            // Ustaw nowe hasło (w prawdziwej aplikacji używamy BCrypt)
+            user.PasswordHash = request.NewPassword;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Hasło zostało zmienione" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 }
 
 // DTOs dla żądań
 public record LoginRequest(string Username, string Password, bool RememberMe);
 public record RegisterRequest(string Username, string Email, string Password, string ConfirmPassword, bool Terms);
+
+public class UpdateProfileRequest
+{
+    public int UserId { get; set; }
+    public string? Bio { get; set; }
+    public string? AvatarUrl { get; set; }
+    public int? AutoLogoutMinutes { get; set; }
+    public int? MessagesPerPage { get; set; }
+    public int? ThreadsPerPage { get; set; }
+}
+
+public class ChangePasswordRequest
+{
+    public int UserId { get; set; }
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}

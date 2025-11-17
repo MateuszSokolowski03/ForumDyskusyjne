@@ -2,23 +2,24 @@
 
 ## 🎯 Kolejne kroki implementacji (w kolejności priorytetów)
 
-1. **Utworzenie pierwszego Controller** - AuthController dla testów
-2. **Przeniesienie API auth** - Przenieść logikę logowania z Program.cs do AuthController
-3. **Testy funkcjonalności** - Sprawdzić czy logowanie nadal działa
-4. **Dodanie kolejnych Controllers** - ForumController, PostController, etc.
-5. **Implementacja logiki biznesowej** - Services i Repository patterns
+1. **Integracja frontendowych formularzy z backend API** - Aktualizacja JS do nowych endpointów
+2. **Testowanie kompletnych flow** - od logowania przez tworzenie postów po administrację
+3. **Dodanie Services Layer** - Repository patterns i logika biznesowa
+4. **Rozbudowa panelu administracyjnego** - pozostałe funkcjonalności z TODO
+5. **Implementacja zaawansowanych funkcji** - wiadomości, załączniki, moderacja
 
 ---
 
 ## 🚀 PRIORYTET WYSOKI (Podstawowa funkcjonalność)
 
-### 1. Refaktoryzacja Backend - Architektura MVC
-- [ ] **Przeniesienie logiki z Program.cs do Controllers**
-  - [ ] Utworzenie AuthController (login, register, logout, status)
-  - [ ] Utworzenie ForumController (kategorie, wątki)
-  - [ ] Utworzenie PostController (wiadomości w wątkach)
-  - [ ] Utworzenie UserController (profil, edycja danych)
-  - [ ] Utworzenie AdminController (zarządzanie forum)
+### 1. Refaktoryzacja Backend - Architektura MVC ✅ UKOŃCZONA
+- [x] **Przeniesienie logiki z Program.cs do Controllers**
+  - [x] Utworzenie AuthController (login, register, logout, status)
+  - [x] Utworzenie ForumController (kategorie, wątki)
+  - [x] Utworzenie MessagesController (wiadomości prywatne)
+  - [x] Utworzenie StatusController (status systemu)
+  - [x] Utworzenie AdminController (zarządzanie forum)
+  - [x] Utworzenie HomeController (routing stron HTML)
 
 - [x] **Warstwa danych (Data Layer) - UKOŃCZONA ✅**
   - [x] Implementacja DbContext (Entity Framework Core) - ✅ ForumDbContext.cs
@@ -28,20 +29,26 @@
   - [x] Wszystkie DbSets skonfigurowane - ✅ 17 tabel utworzonych
   - [ ] Repository Pattern (opcjonalnie)
 
-### 2. API Endpoints - Podstawowe funkcjonalności forum
-- [ ] **Forum/Wątki/Wiadomości**
-  - [ ] `GET /api/categories` - lista kategorii
-  - [ ] `GET /api/categories/{id}/threads` - wątki w kategorii
-  - [ ] `POST /api/threads` - tworzenie nowego wątku
-  - [ ] `GET /api/threads/{id}` - szczegóły wątku
-  - [ ] `POST /api/threads/{id}/posts` - dodanie wiadomości do wątku
-  - [ ] `PUT /api/posts/{id}` - edycja wiadomości
-  - [ ] `DELETE /api/posts/{id}` - usunięcie wiadomości
+### 2. API Endpoints - Podstawowe funkcjonalności forum ✅ UKOŃCZONA
+- [x] **Forum/Wątki/Wiadomości**
+  - [x] `GET /api/forum/categories` - lista kategorii
+  - [x] `GET /api/forum/categories/{categoryId}/threads` - wątki w kategorii
+  - [x] `POST /api/forum/thread` - tworzenie nowego wątku
+  - [x] `GET /api/forum/thread/{threadId}` - szczegóły wątku
+  - [x] `POST /api/forum/message` - dodanie wiadomości do wątku
+  - [x] `PUT /api/forum/messages/{id}` - edycja wiadomości
+  - [x] `DELETE /api/forum/messages/{id}` - usunięcie wiadomości
 
-- [ ] **Profil użytkownika**
-  - [ ] `GET /api/user/profile` - pobranie profilu
-  - [ ] `PUT /api/user/profile` - edycja profilu
-  - [ ] `PUT /api/user/password` - zmiana hasła
+- [x] **Profil użytkownika**
+  - [x] `GET /api/auth/profile/{userId}` - pobranie profilu
+  - [x] `PUT /api/auth/profile` - edycja profilu
+  - [x] `PUT /api/auth/password` - zmiana hasła
+
+- [x] **Autoryzacja**
+  - [x] `POST /api/auth/login` - logowanie
+  - [x] `POST /api/auth/register` - rejestracja
+  - [x] `POST /api/auth/logout` - wylogowanie
+  - [x] `GET /api/auth/status` - sprawdzenie statusu użytkownika
 
 ### 3. Frontend - Integracja z API
 - [ ] **Aktualizacja JavaScript w istniejących stronach**
@@ -65,13 +72,13 @@
 
 ## 🔧 PRIORYTET ŚREDNI (Funkcjonalności rozszerzające)
 
-### 5. Panel administracyjny - Zarządzanie użytkownikami
-- [ ] **Backend - API administracyjne**
-  - [ ] `GET /api/admin/users` - lista wszystkich użytkowników z filtrowaniem
-  - [ ] `GET /api/admin/users/{id}` - szczegóły użytkownika dla admina
-  - [ ] `PUT /api/admin/users/{id}/ban` - zbanowanie użytkownika
-  - [ ] `PUT /api/admin/users/{id}/unban` - odbanowanie użytkownika
-  - [ ] `PUT /api/admin/users/{id}/role` - zmiana roli użytkownika
+### 5. Panel administracyjny - Zarządzanie użytkownikami ✅ CZĘŚCIOWO UKOŃCZONA
+- [x] **Backend - API administracyjne**
+  - [x] `GET /api/admin/users` - lista wszystkich użytkowników z filtrowaniem
+  - [x] `GET /api/admin/stats` - statystyki systemu
+  - [x] `PUT /api/admin/users/{id}/ban` - zbanowanie użytkownika
+  - [x] `PUT /api/admin/users/{id}/unban` - odbanowanie użytkownika
+  - [x] `PUT /api/admin/users/{id}/role` - zmiana roli użytkownika
   - [ ] `DELETE /api/admin/users/{id}` - usunięcie użytkownika
   - [ ] `POST /api/admin/users/{id}/warning` - dodanie ostrzeżenia
 
@@ -90,11 +97,12 @@
   - [ ] `PUT /api/admin/posts/{id}/reject` - odrzucenie postu
   - [ ] `DELETE /api/admin/posts/{id}` - usunięcie postu przez admina
 
-- [ ] **Backend - API zarządzania kategoriami**
-  - [ ] `POST /api/admin/categories` - tworzenie nowej kategorii
-  - [ ] `PUT /api/admin/categories/{id}` - edycja kategorii (nazwa, opis, ikona)
-  - [ ] `DELETE /api/admin/categories/{id}` - usuwanie kategorii
-  - [ ] `PUT /api/admin/categories/reorder` - zmiana kolejności kategorii
+- [x] **Backend - API zarządzania kategoriami**
+  - [x] `GET /api/admin/categories` - lista kategorii dla admina
+  - [x] `POST /api/admin/categories` - tworzenie nowej kategorii
+  - [x] `PUT /api/admin/categories/{id}` - edycja kategorii (nazwa, opis, ikona)
+  - [x] `DELETE /api/admin/categories/{id}` - usuwanie kategorii
+  - [x] `PUT /api/admin/categories/reorder` - zmiana kolejności kategorii
   - [ ] `PUT /api/admin/categories/{id}/toggle` - aktywacja/deaktywacja kategorii
 
 - [ ] **Frontend - Panel zarządzania treścią**
@@ -144,12 +152,13 @@
 
 ### 10. Wiadomości prywatne
 
-- [ ] **API endpointy**
-  - [ ] `GET /api/messages` - lista wiadomości użytkownika
-  - [ ] `POST /api/messages` - wysłanie nowej wiadomości
-  - [ ] `PUT /api/messages/{id}/read` - oznaczenie jako przeczytane
-  - [ ] `DELETE /api/messages/{id}` - usunięcie wiadomości
-  - [ ] `GET /api/messages/unread-count` - liczba nieprzeczytanych
+- [x] **API endpointy** ✅ UKOŃCZONA
+  - [x] `GET /api/messages` - lista wiadomości użytkownika
+  - [x] `POST /api/messages` - wysłanie nowej wiadomości
+  - [x] `PUT /api/messages/{id}/read` - oznaczenie jako przeczytane
+  - [x] `DELETE /api/messages/{id}` - usunięcie wiadomości
+  - [x] `GET /api/messages/unread-count` - liczba nieprzeczytanych
+  - [x] `GET /api/messages/search-users` - wyszukiwanie użytkowników do wysłania wiadomości
 
 - [ ] **Frontend - system wiadomości**
   - [ ] Rozszerzenie messages.html
@@ -199,11 +208,11 @@
 
 ### 14. Słownik słów zakazanych z automatyczną moderacją
 
-- [ ] **Backend - API zarządzania słownikiem**
-  - [ ] `GET /api/admin/banned-words` - lista słów z paginacją
-  - [ ] `POST /api/admin/banned-words` - dodanie słowa
+- [x] **Backend - API zarządzania słownikiem** ✅ CZĘŚCIOWO UKOŃCZONA
+  - [x] `GET /api/admin/banned-words` - lista słów z paginacją
+  - [x] `POST /api/admin/banned-words` - dodanie słowa
+  - [x] `DELETE /api/admin/banned-words/{id}` - usunięcie słowa
   - [ ] `PUT /api/admin/banned-words/{id}` - edycja reguły
-  - [ ] `DELETE /api/admin/banned-words/{id}` - usunięcie słowa
   - [ ] `POST /api/admin/banned-words/import` - import listy (CSV/JSON)
   - [ ] `GET /api/admin/banned-words/statistics` - statystyki wykryć
 
@@ -299,7 +308,7 @@
 - [x] **Style CSS** - responsywny design z Tailwind CSS
 - [x] **Podstawowy JavaScript** - logika logowania, rejestracji, nawigacji
 - [x] **Konfiguracja autoryzacji** - JWT tokens w Program.cs
-- [x] **Podstawowe API endpointy** - login, register w Program.cs
+- [x] **Kompletne API backend** - AuthController, AdminController, ForumController, MessagesController, StatusController, HomeController z wszystkimi kluczowymi endpointami
 
 ---
 
