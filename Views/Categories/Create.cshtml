@@ -1,0 +1,70 @@
+@model ForumDyskusyjne.Models.Category
+
+@{
+    ViewData["Title"] = "Dodaj Kategorię";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h1><i class="fas fa-plus-circle"></i> Dodaj Nową Kategorię</h1>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label">
+                                    <i class="fas fa-tag"></i> Nazwa Kategorii
+                                </label>
+                                <input asp-for="Name" class="form-control" placeholder="np. Dyskusje ogólne" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SortOrder" class="form-label">
+                                    <i class="fas fa-sort-numeric-up"></i> Kolejność Sortowania
+                                </label>
+                                <input asp-for="SortOrder" class="form-control" type="number" min="1" placeholder="1" />
+                                <span asp-validation-for="SortOrder" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">
+                            <i class="fas fa-info-circle"></i> Opis Kategorii
+                        </label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Opisz czego dotyczy ta kategoria..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Icon" class="form-label">
+                            <i class="fas fa-icons"></i> Ikona FontAwesome
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-eye"></i></span>
+                            <input asp-for="Icon" class="form-control" placeholder="fa-comments" />
+                        </div>
+                        <div class="form-text">
+                            Przykłady: fa-comments, fa-question-circle, fa-bug, fa-users
+                        </div>
+                        <span asp-validation-for="Icon" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Zapisz</button>
+                    <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

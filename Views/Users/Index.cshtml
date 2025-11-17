@@ -1,0 +1,166 @@
+@model IEnumerable<ForumDyskusyjne.Models.User>
+
+@{
+    ViewData["Title"] = "Użytkownicy";
+    Layout = "_Layout";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h1><i class="fas fa-users"></i> Użytkownicy Forum</h1>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <p class="text-muted mb-0">Zarządzaj kontami użytkowników</p>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="fas fa-user-plus"></i> Dodaj Użytkownika
+            </a>
+        </div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Username)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Email)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PasswordHash)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Role)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AvatarUrl)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CreatedAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastActivityAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EmailVerified)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Bio)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastLogin)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsBanned)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BanReason)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BanExpiresAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LoginAttempts)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastIpAddress)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PostCount)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AutoLogoutMinutes)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MessagesPerPage)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ThreadsPerPage)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CurrentRank)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Username)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Email)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PasswordHash)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Role)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AvatarUrl)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LastActivityAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EmailVerified)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Bio)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LastLogin)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsBanned)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BanReason)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BanExpiresAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LoginAttempts)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LastIpAddress)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PostCount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AutoLogoutMinutes)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MessagesPerPage)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ThreadsPerPage)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CurrentRank.Name)
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+    </div>
+</div>

@@ -15,70 +15,8 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- Hide auth container until JS sets content -->
-    <style>
-        #auth-container {
-            visibility: hidden;
-            opacity: 0;
-        }
-    </style>
-    
     <!-- Tailwind Config -->
     <script src="js/tailwind-config.js"></script>
-    
-    <!-- Initialize auth container early -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const authContainer = document.getElementById('auth-container');
-            if (!authContainer) return;
-            
-            // Check if user is logged in based on cookie
-            const cookies = document.cookie.split(';').map(c => c.trim());
-            const sessionCookie = cookies.find(c => c.startsWith('user_session='));
-            
-            if (sessionCookie) {
-                // Extract username from session cookie (format: id|username|role|avatar)
-                const cookieValue = decodeURIComponent(sessionCookie.split('=')[1]);
-                const parts = cookieValue.split('|');
-                const username = parts.length >= 2 ? parts[1] : 'User';
-                const userInitial = username.charAt(0).toUpperCase();
-                
-                // User appears to be logged in - show avatar placeholder
-                authContainer.innerHTML = `
-                    <div class="user-avatar-container relative">
-                        <button id="avatar-dropdown-trigger" class="w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 transition-all flex items-center justify-center font-semibold">${userInitial}</button>
-                        
-                        <div id="avatar-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                            <a href="profile.html" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
-                                <span class="material-symbols-outlined text-base">person</span>
-                                Profil
-                            </a>
-                            <button onclick="window.ForumApp.logout()" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
-                                <span class="material-symbols-outlined text-base">logout</span>
-                                Wyloguj
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // User not logged in - show login/register buttons
-                authContainer.innerHTML = `
-                    <div class="flex space-x-4">
-                        <a href="login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100">
-                            Zaloguj się
-                        </a>
-                        <a href="register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Zarejestruj się
-                        </a>
-                    </div>
-                `;
-            }
-            
-            // Show the container
-            authContainer.style.visibility = 'visible';
-            authContainer.style.opacity = '1';
-        });
-    </script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
     <div class="min-h-screen flex flex-col">
@@ -106,12 +44,12 @@
                         <a href="forum.html" class="nav-item nav-item--active" title="Kategorie">
                             📂
                         </a>
-                        <a href="messages.html" class="nav-item" title="Wiadomości">
-                            💬
-                        </a>
                         <button id="search-toggle" class="nav-item" title="Szukaj">
                             🔍
                         </button>
+                        <a href="messages.html" class="nav-item" title="Wiadomości">
+                            💬
+                        </a>
                     </nav>
 
                     <!-- Search and User Actions -->
@@ -134,43 +72,15 @@
                             </div>
                         </div>
 
-                        <!-- Auth Buttons / User Avatar (will be dynamically updated) -->
-                        <div class="auth-buttons flex items-center gap-3" id="auth-container">
-                            <!-- Zawartość będzie ustawiona przez JavaScript -->
+                        <!-- Auth Buttons -->
+                        <div class="auth-buttons flex items-center gap-3">
+                            <a href="/register" class="cta-button px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                                Rejestracja
+                            </a>
+                            <a href="/login" class="secondary-button px-4 py-2 bg-gray-200 dark:bg-[#232f48] text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#2a3851] transition-colors font-medium">
+                                Logowanie
+                            </a>
                         </div>
-
-                        <!-- Inline script do sprawdzenia cookie przed renderem -->
-                        <script>
-                            (function() {
-                                // Sprawdź czy jest cookie user_session
-                                const hasUserSession = document.cookie.split(';').some(cookie => 
-                                    cookie.trim().startsWith('user_session=')
-                                );
-                                
-                                const authContainer = document.getElementById('auth-container');
-                                
-                                if (hasUserSession) {
-                                    // Użytkownik zalogowany - pokaż placeholder dla avatara
-                                    authContainer.innerHTML = `
-                                        <div class="bg-gray-300 dark:bg-gray-600 rounded-full size-10 animate-pulse"></div>
-                                    `;
-                                } else {
-                                    // Użytkownik niezalogowany - pokaż przyciski logowania
-                                    authContainer.innerHTML = `
-                                        <a href="register.html" class="cta-button px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
-                                            Rejestracja
-                                        </a>
-                                        <a href="login.html" class="secondary-button px-4 py-2 bg-gray-200 dark:bg-[#232f48] text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#2a3851] transition-colors font-medium">
-                                            Logowanie
-                                        </a>
-                                    `;
-                                }
-                                
-                                // Pokaż kontener
-                                authContainer.style.opacity = '1';
-                                authContainer.style.visibility = 'visible';
-                            })();
-                        </script>
                     </div>
                 </div>
             </div>
@@ -450,8 +360,6 @@
                     searchInput.value = '';
                 }
             }
-
-
         });
     </script>
 </body>
