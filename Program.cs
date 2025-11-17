@@ -1,6 +1,12 @@
 ﻿using Npgsql;
+using Microsoft.EntityFrameworkCore;
+using ForumDyskusyjne.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Konfiguracja Entity Framework Core
+builder.Services.AddDbContext<ForumDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Dodaj usługi
 builder.Services.AddControllers();
