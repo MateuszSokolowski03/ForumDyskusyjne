@@ -7,22 +7,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 Console.WriteLine("🚀 Forum Dyskusyjne - Aplikacja Web");
 
-// Konfiguracja connection string
 var connectionString = Environment.GetEnvironmentVariable("FORUM_CONNECTION_STRING") ?? 
     builder.Configuration.GetConnectionString("DefaultConnection") ?? 
     "Host=localhost;Port=5432;Database=forum_db;Username=forum_user;Password=forum_password;";
 
 Console.WriteLine($"Connection string loaded: {!string.IsNullOrEmpty(connectionString)}");
 
-// Konfiguracja Entity Framework z PostgreSQL
 builder.Services.AddDbContext<ForumDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Dodaj kontrolery API i MVC
-builder.Services.AddControllers();
-builder.Services.AddControllersWithViews(); // Dla formularzy CRUD
+builder.Services.AddControllersWithViews();
 
-// Konfiguracja sesji
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -34,7 +29,6 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// Test połączenia z bazą danych
 try
 {
     using var connection = new NpgsqlConnection(connectionString);
@@ -51,7 +45,6 @@ catch (Exception ex)
     Console.WriteLine($"❌ Błąd połączenia z bazą danych: {ex.Message}");
 }
 
-// Konfiguracja middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -63,20 +56,15 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 
-// Mapowanie kontrolerów
-app.MapControllers(); // API kontrolery
-
-// Routing MVC dla formularzy CRUD  
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Categories}/{action=Index}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Seed przykładowych danych (jeśli pusta baza)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
     
-    // Seed kategorii
     if (!db.Categories.Any())
     {
         db.Categories.AddRange(
@@ -90,7 +78,6 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("✅ Dodano przykładowe kategorie");
     }
     
-    // Seed forów (jeśli kategorie istnieją)
     if (!db.Forums.Any() && db.Categories.Any())
     {
         var categories = db.Categories.ToList();
@@ -105,7 +92,6 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("✅ Dodano przykładowe fora");
     }
     
-    // Seed rang użytkowników
     if (!db.UserRanks.Any())
     {
         db.UserRanks.AddRange(
@@ -120,7 +106,6 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("✅ Dodano rangi użytkowników");
     }
     
-    // Seed przykładowych użytkowników
     if (!db.Users.Any() && db.UserRanks.Any())
     {
         var ranks = db.UserRanks.ToList();
@@ -132,7 +117,7 @@ using (var scope = app.Services.CreateScope())
             new User { 
                 Username = "admin", 
                 Email = "admin@forum.pl", 
-                PasswordHash = "dummy_hash", // W produkcji użyj prawdziwego hash
+                PasswordHash = "dummy_hash",
                 Role = UserRole.Admin, 
                 CurrentRankId = adminRank.Id,
                 EmailVerified = true,
@@ -162,13 +147,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Przekierowania do statycznych stron HTML
-app.MapGet("/", () => Results.Redirect("/forum.html"));
-app.MapGet("/login", () => Results.Redirect("/login.html"));
-app.MapGet("/register", () => Results.Redirect("/register.html"));
-app.MapGet("/admin", () => Results.Redirect("/admin/index.html"));
-
-// Wyświetl dostępne endpointy
 Console.WriteLine("🌐 Aplikacja dostępna na:");
 Console.WriteLine("   - http://localhost:5000");
 Console.WriteLine("   - https://localhost:5001");
@@ -179,6 +157,6 @@ Console.WriteLine("🚪 Logout API: http://localhost:5000/api/auth/logout");
 Console.WriteLine("📝 Register API: http://localhost:5000/api/auth/register");
 Console.WriteLine("👨‍💼 Admin Panel: http://localhost:5000/admin");
 Console.WriteLine("📂 Forum: http://localhost:5000/forum.html");
-Console.WriteLine("📋 CRUD Forms: http://localhost:5000/Categories (17 modeli)");
+Console.WriteLine("📋 CRUD Forms: http://localhost:5000/Categories (i inne kontrolery)");
 
 app.Run();

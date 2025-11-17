@@ -49,7 +49,7 @@ async function handleLoginSubmit(e) {
             
             // Przekierowanie po krótkim opóźnieniu - serwer już ustawił cookies
             setTimeout(() => {
-                window.location.href = '/';
+                window.location.href = '/index.html';
             }, 1500);
         } else {
             const error = await response.json();

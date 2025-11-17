@@ -16,7 +16,7 @@ namespace ForumDyskusyjne.Controllers
         {
             return Redirect("/login.html");
         }
-
+        
         [HttpGet("register")]
         public IActionResult Register()
         {
@@ -28,7 +28,7 @@ namespace ForumDyskusyjne.Controllers
         {
             return Redirect("/forum.html");
         }
-
+        
         [HttpGet("admin")]
         public async Task<IActionResult> Admin()
         {
@@ -41,11 +41,10 @@ namespace ForumDyskusyjne.Controllers
             }
             return NotFound();
         }
-
+        
         [HttpGet("admin/{page}")]
         public async Task<IActionResult> AdminPage(string page)
         {
-            // Zabezpieczenie przed path traversal
             if (page.Contains("..") || page.Contains("/") || page.Contains("\\"))
             {
                 return BadRequest("Invalid page name");
@@ -61,7 +60,6 @@ namespace ForumDyskusyjne.Controllers
             return NotFound($"Admin page '{page}' not found");
         }
 
-        // Dodatkowy routing dla panelu administratora
         [HttpGet("admin/users")]
         public IActionResult AdminUsers()
         {

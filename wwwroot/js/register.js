@@ -89,7 +89,7 @@ async function handleRegisterSubmit(e) {
             
             // Przekierowanie po krótkim opóźnieniu
             setTimeout(() => {
-                window.location.href = '/login';
+                window.location.href = '/login.html';
             }, 2000);
         } else {
             const error = await response.json();
