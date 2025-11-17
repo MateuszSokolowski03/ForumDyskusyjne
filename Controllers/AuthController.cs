@@ -199,7 +199,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("status")]
-    public async Task<IActionResult> Status()
+    public IActionResult Status()
     {
         try
         {
@@ -252,7 +252,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    public IActionResult Logout()
     {
         try
         {

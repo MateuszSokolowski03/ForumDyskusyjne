@@ -45,14 +45,7 @@ catch (Exception ex)
     Console.WriteLine($"❌ Błąd połączenia z bazą danych: {ex.Message}");
 }
 
-// Wszystkie endpointy przeniesione do kontrolerów
-
-
-
-
-
-
-// Mapowanie Controllers
+// Mapowanie Controllers - wszystkie endpointy są w kontrolerach
 app.MapControllers();
 
 Console.WriteLine("🌐 Aplikacja dostępna na:");
@@ -68,5 +61,3 @@ Console.WriteLine("👨‍💼 Admin Panel: http://localhost:5000/admin");
 Console.WriteLine("📂 Forum: http://localhost:5000/forum.html");
 
 app.Run();
-
-// Wszystkie modele przeniesione do kontrolerów

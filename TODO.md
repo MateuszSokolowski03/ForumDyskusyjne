@@ -21,6 +21,11 @@
   - [x] Utworzenie AdminController (zarządzanie forum)
   - [x] Utworzenie HomeController (routing stron HTML)
 
+- [x] **Porządkowanie struktury projektu** ✅
+  - [x] Usunięcie niepotrzebnego folderu Views (pusty, nieużywany)
+  - [x] Uproszczenie Program.cs (minimalna konfiguracja)
+  - [x] Naprawienie warningów kompilacji (async/await)
+
 - [x] **Warstwa danych (Data Layer) - UKOŃCZONA ✅**
   - [x] Implementacja DbContext (Entity Framework Core) - ✅ ForumDbContext.cs
   - [x] Konfiguracja Entity Framework w Program.cs - ✅ 
@@ -72,15 +77,15 @@
 
 ## 🔧 PRIORYTET ŚREDNI (Funkcjonalności rozszerzające)
 
-### 5. Panel administracyjny - Zarządzanie użytkownikami ✅ CZĘŚCIOWO UKOŃCZONA
+### 5. Panel administracyjny - Zarządzanie użytkownikami ✅ UKOŃCZONA
 - [x] **Backend - API administracyjne**
   - [x] `GET /api/admin/users` - lista wszystkich użytkowników z filtrowaniem
   - [x] `GET /api/admin/stats` - statystyki systemu
   - [x] `PUT /api/admin/users/{id}/ban` - zbanowanie użytkownika
   - [x] `PUT /api/admin/users/{id}/unban` - odbanowanie użytkownika
   - [x] `PUT /api/admin/users/{id}/role` - zmiana roli użytkownika
-  - [ ] `DELETE /api/admin/users/{id}` - usunięcie użytkownika
-  - [ ] `POST /api/admin/users/{id}/warning` - dodanie ostrzeżenia
+  - [x] `DELETE /api/admin/users/{id}` - usunięcie użytkownika
+  - [x] `POST /api/admin/users/{id}/warning` - dodanie ostrzeżenia
 
 - [ ] **Frontend - Panel admina**
   - [ ] Rozbudowa admin/users.html
@@ -97,13 +102,13 @@
   - [ ] `PUT /api/admin/posts/{id}/reject` - odrzucenie postu
   - [ ] `DELETE /api/admin/posts/{id}` - usunięcie postu przez admina
 
-- [x] **Backend - API zarządzania kategoriami**
+- [x] **Backend - API zarządzania kategoriami** ✅ UKOŃCZONA
   - [x] `GET /api/admin/categories` - lista kategorii dla admina
   - [x] `POST /api/admin/categories` - tworzenie nowej kategorii
   - [x] `PUT /api/admin/categories/{id}` - edycja kategorii (nazwa, opis, ikona)
   - [x] `DELETE /api/admin/categories/{id}` - usuwanie kategorii
   - [x] `PUT /api/admin/categories/reorder` - zmiana kolejności kategorii
-  - [ ] `PUT /api/admin/categories/{id}/toggle` - aktywacja/deaktywacja kategorii
+  - [x] `PUT /api/admin/categories/{id}/toggle` - aktywacja/deaktywacja kategorii
 
 - [ ] **Frontend - Panel zarządzania treścią**
   - [ ] admin/categories.html - zarządzanie kategoriami
