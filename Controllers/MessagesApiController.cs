@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
+using System.Security.Claims;
 
 namespace ForumDyskusyjne.Controllers
 {
     [Route("api/messages")]
     [ApiController]
+    [Authorize]
     public class MessagesApiController : ControllerBase
     {
         private readonly ForumDbContext _context;
@@ -16,133 +19,25 @@ namespace ForumDyskusyjne.Controllers
             _context = context;
         }
 
-        [HttpGet("")]
-        public async Task<IActionResult> GetMessages(int userId, string type = "received", int page = 1, int pageSize = 20)
+        private int GetCurrentUserId()
         {
-            try
-            {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
-                
-                var query = _context.PrivateMessages
-                    .Include(pm => pm.Sender)
-                    .Include(pm => pm.Recipient)
-                    .AsQueryable();
-
-                // Filtruj według typu
-                switch (type.ToLower())
-                {
-                    case "sent":
-                        query = query.Where(pm => pm.SenderId == userId && !pm.DeletedBySender);
-                        break;
-                    case "received":
-                    default:
-                        query = query.Where(pm => pm.RecipientId == userId && !pm.DeletedByRecipient);
-                        break;
-                }
-
-                var totalMessages = await query.CountAsync();
-                var messages = await query
-                    .OrderByDescending(pm => pm.SentAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(pm => new
-                    {
-                        pm.Id,
-                        pm.Subject,
-                        pm.IsRead,
-                        pm.SentAt,
-                        Sender = new
-                        {
-                            pm.Sender.Id,
-                            pm.Sender.Username,
-                            pm.Sender.AvatarUrl
-                        },
-                        Recipient = new
-                        {
-                            pm.Recipient.Id,
-                            pm.Recipient.Username,
-                            pm.Recipient.AvatarUrl
-                        },
-                        // Podgląd treści (pierwsze 100 znaków)
-                        ContentPreview = pm.Content.Length > 100 
-                            ? pm.Content.Substring(0, 100) + "..." 
-                            : pm.Content
-                    })
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    messages,
-                    totalMessages,
-                    totalPages = (int)Math.Ceiling((double)totalMessages / pageSize),
-                    currentPage = page,
-                    pageSize,
-                    type
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+                return userId;
+            throw new UnauthorizedAccessException("Użytkownik nie jest zalogowany");
         }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetMessage(int id, int userId)
+        [AllowAnonymous]
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllMessages()
         {
             try
             {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
+                var messages = await _context.Messages
+                    .Include(m => m.Author)
+                    .OrderByDescending(m => m.CreatedAt)
+                    .ToListAsync();
                 
-                var message = await _context.PrivateMessages
-                    .Include(pm => pm.Sender)
-                    .Include(pm => pm.Recipient)
-                    .FirstOrDefaultAsync(pm => pm.Id == id);
-
-                if (message == null)
-                {
-                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
-                }
-
-                // Sprawdź czy użytkownik ma prawo do odczytania wiadomości
-                if (message.SenderId != userId && message.RecipientId != userId)
-                {
-                    return Forbid("Nie masz uprawnień do odczytania tej wiadomości");
-                }
-
-                // Sprawdź czy wiadomość nie została usunięta
-                if ((message.SenderId == userId && message.DeletedBySender) ||
-                    (message.RecipientId == userId && message.DeletedByRecipient))
-                {
-                    return NotFound(new { error = "Wiadomość została usunięta" });
-                }
-
-                // Oznacz jako przeczytaną jeśli jest odbiorcą
-                if (message.RecipientId == userId && !message.IsRead)
-                {
-                    message.IsRead = true;
-                    await _context.SaveChangesAsync();
-                }
-
-                return Ok(new
-                {
-                    message.Id,
-                    message.Subject,
-                    message.Content,
-                    message.IsRead,
-                    message.SentAt,
-                    Sender = new
-                    {
-                        message.Sender.Id,
-                        message.Sender.Username,
-                        message.Sender.AvatarUrl
-                    },
-                    Recipient = new
-                    {
-                        message.Recipient.Id,
-                        message.Recipient.Username,
-                        message.Recipient.AvatarUrl
-                    }
-                });
+                return Ok(messages);
             }
             catch (Exception ex)
             {
@@ -155,50 +50,158 @@ namespace ForumDyskusyjne.Controllers
         {
             try
             {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
-                
-                if (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Content))
+                var senderId = GetCurrentUserId();
+
+                if (request == null)
+                    return BadRequest(new { error = "Brak danych żądania" });
+
+                if (string.IsNullOrWhiteSpace(request.Content))
+                    return BadRequest(new { error = "Treść wiadomości jest wymagana" });
+
+                int? recipientId = request.RecipientId > 0 ? request.RecipientId : (int?)null;
+                if (recipientId == null)
                 {
-                    return BadRequest(new { error = "Temat i treść wiadomości są wymagane" });
+                    if (string.IsNullOrWhiteSpace(request.RecipientUsername))
+                        return BadRequest(new { error = "RecipientId lub RecipientUsername wymagane" });
+
+                    var recipient = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.RecipientUsername);
+                    if (recipient == null)
+                        return NotFound(new { error = "Odbiorca nie znaleziony" });
+
+                    recipientId = recipient.Id;
                 }
 
-                if (request.SenderId == request.RecipientId)
-                {
+                if (recipientId == senderId)
                     return BadRequest(new { error = "Nie możesz wysłać wiadomości do siebie" });
-                }
 
-                // Sprawdź czy odbiorca istnieje
-                var recipient = await _context.Users.FindAsync(request.RecipientId);
-                if (recipient == null)
+                var pm = new PrivateMessage
                 {
-                    return NotFound(new { error = "Odbiorca nie został znaleziony" });
-                }
-
-                // Sprawdź czy nadawca istnieje
-                var sender = await _context.Users.FindAsync(request.SenderId);
-                if (sender == null)
-                {
-                    return NotFound(new { error = "Nadawca nie został znaleziony" });
-                }
-
-                var privateMessage = new PrivateMessage
-                {
-                    SenderId = request.SenderId,
-                    RecipientId = request.RecipientId,
-                    Subject = request.Subject.Trim(),
-                    Content = request.Content.Trim(),
+                    SenderId = senderId,
+                    RecipientId = recipientId.Value,
+                    Subject = request.Subject ?? string.Empty,
+                    Content = request.Content,
                     SentAt = DateTime.UtcNow,
-                    IsRead = false
+                    IsRead = false,
+                    DeletedBySender = false,
+                    DeletedByRecipient = false
                 };
 
-                _context.PrivateMessages.Add(privateMessage);
+                _context.PrivateMessages.Add(pm);
                 await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetMessage), new { id = pm.Id }, new { id = pm.Id, message = "Wiadomość wysłana" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("inbox")]
+        public async Task<IActionResult> GetInbox()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                var messages = await _context.PrivateMessages
+                    .Where(pm => pm.RecipientId == userId && !pm.DeletedByRecipient)
+                    .Include(pm => pm.Sender)
+                    .OrderByDescending(pm => pm.SentAt)
+                    .Select(pm => new
+                    {
+                        pm.Id,
+                        pm.Subject,
+                        pm.Content,
+                        pm.IsRead,
+                        pm.SentAt,
+                        senderId = pm.Sender.Id,
+                        senderName = pm.Sender.Username,
+                        Sender = new { pm.Sender.Id, pm.Sender.Username }
+                    })
+                    .ToListAsync();
+
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("sent")]
+        public async Task<IActionResult> GetSent()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                var messages = await _context.PrivateMessages
+                    .Where(pm => pm.SenderId == userId && !pm.DeletedBySender)
+                    .Include(pm => pm.Recipient)
+                    .OrderByDescending(pm => pm.SentAt)
+                    .Select(pm => new
+                    {
+                        pm.Id,
+                        pm.Subject,
+                        pm.Content,
+                        pm.SentAt,
+                        recipientId = pm.Recipient.Id,
+                        recipientName = pm.Recipient.Username,
+                        Recipient = new { pm.Recipient.Id, pm.Recipient.Username }
+                    })
+                    .ToListAsync();
+
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetMessage(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                var message = await _context.PrivateMessages
+                    .Include(pm => pm.Sender)
+                    .Include(pm => pm.Recipient)
+                    .FirstOrDefaultAsync(pm => pm.Id == id);
+
+                if (message == null)
+                    return NotFound(new { error = "Wiadomość nie znaleziona" });
+
+                if (message.SenderId != userId && message.RecipientId != userId)
+                    return Forbid();
+
+                if ((message.SenderId == userId && message.DeletedBySender) ||
+                    (message.RecipientId == userId && message.DeletedByRecipient))
+                    return NotFound(new { error = "Wiadomość została usunięta" });
+
+                if (message.RecipientId == userId && !message.IsRead)
+                {
+                    message.IsRead = true;
+                    _context.PrivateMessages.Update(message);
+                    await _context.SaveChangesAsync();
+                }
 
                 return Ok(new
                 {
-                    message = "Wiadomość została wysłana",
-                    messageId = privateMessage.Id,
-                    sentAt = privateMessage.SentAt
+                    message.Id,
+                    message.Subject,
+                    message.Content,
+                    message.IsRead,
+                    message.SentAt,
+                    message.SenderId,
+                    message.RecipientId,
+                    SenderName = message.Sender.Username,
+                    Sender = new { message.Sender.Id, message.Sender.Username },
+                    RecipientName = message.Recipient.Username,
+                    Recipient = new { message.Recipient.Id, message.Recipient.Username }
                 });
             }
             catch (Exception ex)
@@ -208,28 +211,24 @@ namespace ForumDyskusyjne.Controllers
         }
 
         [HttpPut("{id}/read")]
-        public async Task<IActionResult> MarkAsRead(int id, int userId)
+        public async Task<IActionResult> MarkAsRead(int id)
         {
             try
             {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
-                
+                var userId = GetCurrentUserId();
+
                 var message = await _context.PrivateMessages.FindAsync(id);
                 if (message == null)
-                {
-                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
-                }
+                    return NotFound(new { error = "Wiadomość nie znaleziona" });
 
-                // Sprawdź czy użytkownik jest odbiorcą
                 if (message.RecipientId != userId)
-                {
-                    return Forbid("Nie masz uprawnień do oznaczenia tej wiadomości jako przeczytanej");
-                }
+                    return Forbid();
 
                 message.IsRead = true;
+                _context.PrivateMessages.Update(message);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Wiadomość została oznaczona jako przeczytana" });
+                return Ok(new { message = "Wiadomość oznaczona jako przeczytana" });
             }
             catch (Exception ex)
             {
@@ -238,44 +237,33 @@ namespace ForumDyskusyjne.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMessage(int id, int userId)
+        public async Task<IActionResult> DeleteMessage(int id)
         {
             try
             {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
-                
+                var userId = GetCurrentUserId();
+
                 var message = await _context.PrivateMessages.FindAsync(id);
                 if (message == null)
-                {
-                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
-                }
+                    return NotFound(new { error = "Wiadomość nie znaleziona" });
 
-                // Sprawdź czy użytkownik ma prawo do usunięcia
                 if (message.SenderId != userId && message.RecipientId != userId)
-                {
-                    return Forbid("Nie masz uprawnień do usunięcia tej wiadomości");
-                }
+                    return Forbid();
 
-                // Oznacz jako usuniętą dla odpowiedniego użytkownika
                 if (message.SenderId == userId)
-                {
                     message.DeletedBySender = true;
-                }
-                
-                if (message.RecipientId == userId)
-                {
-                    message.DeletedByRecipient = true;
-                }
 
-                // Jeśli usunięta przez obu użytkowników, usuń fizycznie z bazy
+                if (message.RecipientId == userId)
+                    message.DeletedByRecipient = true;
+
                 if (message.DeletedBySender && message.DeletedByRecipient)
-                {
                     _context.PrivateMessages.Remove(message);
-                }
+                else
+                    _context.PrivateMessages.Update(message);
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Wiadomość została usunięta" });
+                return Ok(new { message = "Wiadomość usunięta" });
             }
             catch (Exception ex)
             {
@@ -284,12 +272,12 @@ namespace ForumDyskusyjne.Controllers
         }
 
         [HttpGet("unread-count")]
-        public async Task<IActionResult> GetUnreadCount(int userId)
+        public async Task<IActionResult> GetUnreadCount()
         {
             try
             {
-                // TODO: Walidacja użytkownika (po implementacji autentyfikacji)
-                
+                var userId = GetCurrentUserId();
+
                 var unreadCount = await _context.PrivateMessages
                     .Where(pm => pm.RecipientId == userId && !pm.IsRead && !pm.DeletedByRecipient)
                     .CountAsync();
@@ -303,26 +291,18 @@ namespace ForumDyskusyjne.Controllers
         }
 
         [HttpGet("search-users")]
-        public async Task<IActionResult> SearchUsers(string query, int currentUserId)
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchUsers([FromQuery] string query)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
-                {
                     return BadRequest(new { error = "Zapytanie musi mieć co najmniej 2 znaki" });
-                }
 
                 var users = await _context.Users
-                    .Where(u => u.Id != currentUserId && 
-                               (u.Username.Contains(query) || u.Email.Contains(query)) &&
-                               !u.IsBanned)
+                    .Where(u => u.Username.Contains(query) && !u.IsBanned)
                     .Take(10)
-                    .Select(u => new
-                    {
-                        u.Id,
-                        u.Username,
-                        u.AvatarUrl
-                    })
+                    .Select(u => new { u.Id, u.Username })
                     .ToListAsync();
 
                 return Ok(users);
@@ -336,8 +316,8 @@ namespace ForumDyskusyjne.Controllers
 
     public class SendMessageRequest
     {
-        public int SenderId { get; set; } // Tymczasowo, później z sesji/tokena
-        public int RecipientId { get; set; }
+        public int RecipientId { get; set; } = 0;
+        public string RecipientUsername { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
     }

@@ -1,100 +1,28 @@
 <!DOCTYPE html>
 <html class="dark" lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forum Dyskusyjne - Strona Główna</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
-    
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="css/style.css">
-    
-    <!-- Hide auth container until JS sets content -->
-    <style>
-        #auth-container {
-            visibility: hidden;
-            opacity: 0;
-        }
-    </style>
-    
-    <!-- Tailwind Config -->
-    <script src="js/tailwind-config.js"></script>
-    
-    <!-- Initialize auth container early -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Inline script: DOM załadowany');
-            const authContainer = document.getElementById('auth-container');
-            console.log('🔧 Inline script: authContainer found:', !!authContainer);
-            if (!authContainer) return;
-            
-            // Check if user is logged in based on cookie
-            const cookies = document.cookie.split(';').map(c => c.trim());
-            const sessionCookie = cookies.find(c => c.startsWith('user_session='));
-            console.log('🔧 Inline script: cookies:', document.cookie);
-            console.log('🔧 Inline script: sessionCookie:', sessionCookie);
-            
-            if (sessionCookie) {
-                // Extract username from session cookie (format: id|username|role|avatar)
-                const cookieValue = decodeURIComponent(sessionCookie.split('=')[1]);
-                const parts = cookieValue.split('|');
-                const username = parts.length >= 2 ? parts[1] : 'User';
-                const userInitial = username.charAt(0).toUpperCase();
-                
-                // User appears to be logged in - show avatar placeholder
-                authContainer.innerHTML = `
-                    <div class="user-avatar-container relative">
-                        <button id="avatar-dropdown-trigger" class="w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 transition-all flex items-center justify-center font-semibold">${userInitial}</button>
-                        
-                        <div id="avatar-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                            <a href="profile.html" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
-                                <span class="material-symbols-outlined text-base">person</span>
-                                Profil
-                            </a>
-                            <button onclick="window.ForumApp.logout()" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
-                                <span class="material-symbols-outlined text-base">logout</span>
-                                Wyloguj
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // User not logged in - show login/register buttons
-                authContainer.innerHTML = `
-                    <div class="flex space-x-4">
-                        <a href="login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100">
-                            Zaloguj się
-                        </a>
-                        <a href="register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Zarejestruj się
-                        </a>
-                    </div>
-                `;
-            }
-            
-            // Show the container
-            authContainer.style.visibility = 'visible';
-            authContainer.style.opacity = '1';
-        });
-    </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forum Dyskusyjne - Strona Główna</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/tailwind-config.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
-    <div class="min-h-screen flex flex-col">
-        <!-- Top Navigation Bar -->
-        <header class="sticky top-0 z-50 bg-white/95 dark:bg-[#111722]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#232f48]">
+<div class="min-h-screen flex flex-col">
+    <header class="sticky top-0 z-50 bg-white/95 dark:bg-[#111722]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#232f48]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <!-- Logo and Brand -->
                     <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-3">
-                            <div class="text-primary">
-                                <span class="material-symbols-outlined text-2xl">forum</span>
+                            <div id="logo-container" class="flex items-center gap-3">
+                            <div class="text-primary flex items-center">
+                                <svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"></path>
+                                </svg>
+                                <span class="material-symbols-outlined text-2xl ml-2 hidden sm:inline">forum</span>
                             </div>
                             <h1 class="text-xl font-bold text-gray-900 dark:text-white">
                                 Forum Dyskusyjne
@@ -138,235 +66,491 @@
                             </div>
                         </div>
 
-                        <!-- Auth Buttons / User Avatar (will be dynamically updated) -->
-                        <div class="auth-buttons flex items-center gap-3" id="auth-container">
-                            <!-- Zawartość będzie ustawiona przez JavaScript -->
+                        <!-- Auth Container - Avatar lub Login/Register -->
+                        <div id="auth-container" class="relative">
+                            <!-- Dynamicznie wstawiane przez JavaScript -->
                         </div>
-
                     </div>
                 </div>
             </div>
         </header>
+        
 
-        <!-- Main Content Container -->
-        <div class="flex-1">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div class="max-w-4xl mx-auto">
 
-                <!-- Forum Categories -->
-                <div class="categories-section">
-                    <!-- Technologie Category -->
-                    <div class="category-card">
-                        <details class="category-details" open>
-                            <summary class="category-header">
-                                <div class="category-title-wrapper">
-                                    <span class="category-icon">💻</span>
-                                    <h3 class="category-title">Technologie</h3>
-                                </div>
-                                <span class="material-symbols-outlined category-expand-icon">
-                                    expand_more
-                                </span>
-                            </summary>
-                            
-                            <div class="category-content">
-                                <!-- Forum Thread -->
-                                <div class="forum-thread">
-                                    <div class="thread-main-info">
-                                        <span class="thread-icon">🔧</span>
-                                        <div class="thread-details">
-                                            <h4 class="thread-title">
-                                                <a href="#">Programowanie</a>
-                                            </h4>
-                                            <p class="thread-description">
-                                                Dyskusje o językach, frameworkach i dobrych praktykach.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">1.2k</p>
-                                        <p class="stat-label">Wątków</p>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">15k</p>
-                                        <p class="stat-label">Postów</p>
-                                    </div>
-                                    <div class="thread-activity">
-                                        <p class="activity-text">
-                                            Nowy post w: <a href="#" class="activity-link">"Problem z asynchronicznością"</a>
-                                        </p>
-                                        <p class="activity-meta">
-                                            przez <a href="#" class="activity-link">devUser</a>, 2 min temu
-                                        </p>
-                                    </div>
-                                </div>
+    <div class="flex-1">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="max-w-4xl mx-auto">
 
-                                <!-- Another Forum Thread -->
-                                <div class="forum-thread">
-                                    <div class="thread-main-info">
-                                        <span class="thread-icon">🖥️</span>
-                                        <div class="thread-details">
-                                            <h4 class="thread-title">
-                                                <a href="#">Sprzęt Komputerowy</a>
-                                            </h4>
-                                            <p class="thread-description">
-                                                Porady, recenzje i dyskusje o podzespołach.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">845</p>
-                                        <p class="stat-label">Wątków</p>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">9.1k</p>
-                                        <p class="stat-label">Postów</p>
-                                    </div>
-                                    <div class="thread-activity">
-                                        <p class="activity-text">
-                                            Nowy post w: <a href="#" class="activity-link">"Jaka karta graficzna do 4K?"</a>
-                                        </p>
-                                        <p class="activity-meta">
-                                            przez <a href="#" class="activity-link">gamerX</a>, 15 min temu
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
-                    </div>
+            <div class="Announcements mb-8">
+                <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">🔥 Ogłoszenia</h3>
+                <div id="announcements-container" class="space-y-4">
+                    <!-- Ogłoszenia będą wstawiane dynamicznie -->
+                </div>
+            </div>
+        
 
-                    <!-- Rozrywka Category -->
-                    <div class="category-card">
-                        <details class="category-details">
-                            <summary class="category-header">
-                                <div class="category-title-wrapper">
-                                    <span class="category-icon">🎮</span>
-                                    <h3 class="category-title">Rozrywka</h3>
-                                </div>
-                                <span class="material-symbols-outlined category-expand-icon">
-                                    expand_more
-                                </span>
-                            </summary>
-                            <div class="category-content">
-                                <p class="category-placeholder">
-                                    Tutaj znajduje się lista forów w kategorii Rozrywka...
-                                </p>
-                            </div>
-                        </details>
-                    </div>
-
-                    <!-- Społeczność Category -->
-                    <div class="category-card">
-                        <details class="category-details">
-                            <summary class="category-header">
-                                <div class="category-title-wrapper">
-                                    <span class="category-icon">👥</span>
-                                    <h3 class="category-title">Społeczność</h3>
-                                </div>
-                                <span class="material-symbols-outlined category-expand-icon">
-                                    expand_more
-                                </span>
-                            </summary>
-                            <div class="category-content">
-                                <!-- Forum Thread -->
-                                <div class="forum-thread">
-                                    <div class="thread-main-info">
-                                        <span class="thread-icon">💬</span>
-                                        <div class="thread-details">
-                                            <h4 class="thread-title">
-                                                <a href="forum.html">Ogólne Dyskusje</a>
-                                            </h4>
-                                            <p class="thread-description">
-                                                Forum poświęcone ogólnym tematom. Dziel się swoimi przemyśleniami i dyskutuj na każdy temat.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">1.2k</p>
-                                        <p class="stat-label">Wątków</p>
-                                    </div>
-                                    <div class="thread-stats">
-                                        <p class="stat-number">56k</p>
-                                        <p class="stat-label">Postów</p>
-                                    </div>
-                                    <div class="thread-activity">
-                                        <p class="activity-text">
-                                            Nowy post w: <a href="#" class="activity-link">"Gorący temat tygodnia"</a>
-                                        </p>
-                                        <p class="activity-meta">
-                                            przez <a href="#" class="activity-link">JanNowak</a>, wczoraj o 09:15
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
+                <!-- Sekcja 2 najbardziej odwiedzanych wątków -->
+                <div class="popular-threads-section mb-8">
+                    <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">🔥 Najbardziej odwiedzane wątki</h3>
+                    <div id="popular-threads" class="grid grid-cols-1 gap-6">
+                        <!-- Wątki zostaną wstawione dynamicznie -->
                     </div>
                 </div>
-                <!-- Forum Statistics -->
+
+                <!-- Sekcja statystyk -->
                 <div class="stats-section">
-                    <h3 class="stats-title">
-                        📊 Statystyki Forum
-                    </h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <p class="stat-value">1,234</p>
+                    <h3 class="stats-title">📊 Statystyki Forum</h3>
+                    <div class="stats-grid grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
+                        <div class="stat-card p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] text-center">
+                            <p class="stat-value" id="stat-users">—</p>
                             <p class="stat-name">👤 Użytkownicy</p>
                         </div>
-                        <div class="stat-card">
-                            <p class="stat-value">25</p>
+                        <div class="stat-card p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] text-center">
+                            <p class="stat-value" id="stat-forums">—</p>
                             <p class="stat-name">📂 Fora</p>
                         </div>
-                        <div class="stat-card">
-                            <p class="stat-value">5,678</p>
+                        <div class="stat-card p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] text-center">
+                            <p class="stat-value" id="stat-threads">—</p>
                             <p class="stat-name">💬 Wątki</p>
                         </div>
-                        <div class="stat-card">
-                            <p class="stat-value">98,765</p>
+                        <div class="stat-card p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] text-center">
+                            <p class="stat-value" id="stat-messages">—</p>
                             <p class="stat-name">✉️ Wiadomości</p>
                         </div>
                     </div>
                 </div>
-                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- JavaScript -->
-    <script src="js/main.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchToggle = document.getElementById('search-toggle');
-            const searchContainer = document.getElementById('search-container');
-            const searchInput = document.getElementById('search-input');
-            const searchClose = document.getElementById('search-close');
+            <footer class="mt-auto border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
+                    <div class="flex gap-6 text-sm">
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
 
-            if (searchToggle && searchContainer && searchInput && searchClose) {
-                // Otwórz search bar
-                searchToggle.addEventListener('click', function() {
-                    searchContainer.classList.remove('hidden');
-                    searchContainer.classList.add('flex');
-                    searchInput.focus();
-                });
+</div>
 
-                // Zamknij search bar przez przycisk X
-                searchClose.addEventListener('click', function() {
-                    closeSearchBar();
-                });
+<script src="js/main.js"></script>
+<script>
+/* Replace loadPopularThreads implementation: fetch several endpoints, normalize shape, pick top-2 by views */
+async function fetchJson(url, opts = {}) {
+    try {
+        const res = await fetch(url, Object.assign({ credentials: 'include', headers: { 'Accept': 'application/json' } }, opts));
+        if (!res.ok) return { ok: false, status: res.status, json: null };
+        const json = await res.json();
+        return { ok: true, status: res.status, json };
+    } catch (e) {
+        console.warn('fetchJson error', url, e);
+        return { ok: false, status: 0, json: null };
+    }
+}
 
-                // Zamknij search bar przez klawisz Escape
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' && !searchContainer.classList.contains('hidden')) {
-                        closeSearchBar();
-                    }
-                });
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+}
+async function loadAnnouncements() {
+    const container = document.getElementById('announcements-container');
+    if (!container) return;
 
-                function closeSearchBar() {
-                    searchContainer.classList.add('hidden');
-                    searchContainer.classList.remove('flex');
-                    searchInput.value = '';
+    const res = await fetchJson('/api/announcements');
+    if (!res.ok || !Array.isArray(res.json)) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const announcements = res.json
+        .filter(a => a.isActive !== false)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, 5);
+
+    if (announcements.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = announcements.map(announcement => {
+        const createdDate = announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString('pl-PL') : '';
+        
+        return `
+            <div class="announcement-item flex items-start gap-4 p-4 bg-white dark:bg-[#192231] rounded-lg border border-yellow-200 dark:border-[#232f48] mb-3 last:mb-0">
+                <div class="flex-shrink-0 pt-1">
+                    <span class="material-symbols-outlined text-2xl text-yellow-600 dark:text-yellow-500">announcement</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-lg text-gray-900 dark:text-white">${escapeHtml(announcement.title || 'Ogłoszenie')}</h4>
+                    <p class="text-gray-700 dark:text-gray-300 mt-2 break-words">${escapeHtml(announcement.content || '')}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        ${announcement.createdBy ? '👤 ' + escapeHtml(announcement.createdBy) + ' • ' : ''}
+                        📅 ${createdDate}
+                    </p>
+                </div>
+                <button class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" onclick="closeAnnouncement(this)">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+function closeAnnouncement(btn) {
+    const item = btn.closest('.announcement-item');
+    item.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => item.remove(), 300);
+}
+
+async function deleteAnnouncement(btn, announcementId, title) {
+    if (!confirm(`Czy na pewno chcesz usunąć ogłoszenie "${title}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/announcements/${announcementId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+            alert('Nie udało się usunąć ogłoszenia');
+            return;
+        }
+
+        // Animuj usunięcie
+        const item = btn.closest('.announcement-item');
+        item.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => item.remove(), 300);
+
+    } catch (error) {
+        console.error('Error deleting announcement:', error);
+        alert('Błąd przy usuwaniu ogłoszenia');
+    }
+}
+
+async function loadAnnouncements() {
+    const container = document.getElementById('announcements-container');
+    if (!container) return;
+
+    try {
+        // Check if user is admin
+        let isAdmin = false;
+        try {
+            const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
+            if (statusRes.ok) {
+                const user = await statusRes.json();
+                isAdmin = user.role === 'Admin' || user.role === 'ADMIN';
+            }
+        } catch (err) {
+            console.log('Not authenticated');
+        }
+
+        const response = await fetch('/api/announcements/active', {
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to load announcements');
+            container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>';
+            return;
+        }
+
+        let announcements = await response.json();
+
+        // Handle different response formats
+        if (announcements && typeof announcements === 'object' && 'data' in announcements) {
+            announcements = announcements.data;
+        }
+
+        if (!Array.isArray(announcements) || announcements.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>';
+            return;
+        }
+
+        container.innerHTML = announcements.map(announcement => `
+            <div class="announcement-item bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/20 dark:to-purple-900/20 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded-lg" data-announcement-id="${announcement.id}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-900 dark:text-white">${announcement.title}</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">${announcement.content}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            Dodane przez: <strong>${announcement.createdBy}</strong>
+                        </p>
+                    </div>
+                    ${isAdmin ? `
+                    <button onclick="deleteAnnouncement(this, '${announcement.id}', '${announcement.title}')" class="ml-4 text-red-400 hover:text-red-600 dark:hover:text-red-300 flex-shrink-0" title="Usuń ogłoszenie">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading announcements:', error);
+        container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Błąd przy ładowaniu ogłoszeń</p>';
+    }
+}
+
+async function loadPopularThreads() {
+    const container = document.getElementById('popular-threads');
+    if (!container) return;
+
+    container.innerHTML = '<p class="text-center text-gray-500">Ładowanie...</p>';
+
+    const tryEndpoints = [
+        '/api/admin/threads',
+        '/api/threads',
+        '/api/forum/popular?limit=10',
+        '/api/forum/threads?limit=50'
+    ];
+
+    let threads = [];
+
+    for (const url of tryEndpoints) {
+        const res = await fetchJson(url);
+        if (!res.ok) {
+            // if 401/403 try next
+            continue;
+        }
+
+        const body = res.json;
+        if (Array.isArray(body)) {
+            threads = body;
+        } else if (Array.isArray(body.threads)) {
+            threads = body.threads;
+        } else if (Array.isArray(body.data)) {
+            threads = body.data;
+        } else if (Array.isArray(body.items)) {
+            threads = body.items;
+        }
+
+        if (threads && threads.length) break;
+    }
+
+    if (!Array.isArray(threads) || threads.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500">Brak danych o popularnych wątkach</p>`;
+        return;
+    }
+
+    // normalize and sort by views (support several field names)
+    const normalized = threads.map(t => {
+        return {
+            id: t.id ?? t.Id ?? t.threadId ?? t.ThreadId ?? (t.Thread && (t.Thread.Id)),
+            title: t.title ?? t.Title ?? t.subject ?? (t.Thread && t.Thread.Title) ?? '(brak tytułu)',
+            description: t.description ?? t.Description ?? t.snippet ?? t.preview ?? '',
+            image: t.image ?? t.Image ?? null,
+            views: Number(t.views ?? t.Views ?? t.viewCount ?? t.ViewCount ?? 0),
+            postCount: Number(t.postCount ?? t.PostCount ?? t.messageCount ?? t.MessageCount ?? t.repliesCount ?? t.RepliesCount ?? 0),
+            forumName: t.forumName ?? t.ForumName ?? t.forum?.name ?? t.Forum?.Name ?? ''
+        };
+    });
+
+    normalized.sort((a, b) => (b.views || 0) - (a.views || 0));
+    const top = normalized.slice(0, 2);
+
+            container.innerHTML = top.map(thread => `
+            <div class="forum-thread p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] flex gap-4 items-start">
+                <div class="flex-1">
+                    <h4 class="font-semibold text-lg text-gray-900 dark:text-white">
+                        <a href="thread.html?threadId=${encodeURIComponent(thread.id)}" class="hover:underline">${escapeHtml(thread.title)}</a>
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(thread.description)}</p>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        ${thread.forumName ? escapeHtml(thread.forumName) + ' • ' : ''}
+                        👁️ ${Number(thread.views).toLocaleString('pl-PL')} • ✉️ ${Number(thread.postCount).toLocaleString('pl-PL')}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+}
+
+// keep existing stats loader or fallback
+async function loadStats() {
+    try {
+        const res = await fetchJson('/api/status');
+        if (!res.ok || !res.json) return;
+        const payload = res.json.stats ? res.json.stats : res.json;
+        // try both id sets used in different files
+        const usersEl = document.getElementById('stat-users') || document.getElementById('users-count');
+        const forumsEl = document.getElementById('stat-forums') || document.getElementById('forums-count');
+        const threadsEl = document.getElementById('stat-threads') || document.getElementById('threads-count');
+        const messagesEl = document.getElementById('stat-messages') || document.getElementById('messages-count');
+
+        if (usersEl) usersEl.textContent = Number(payload.totalUsers ?? payload.totalUsersCount ?? 0).toLocaleString('pl-PL');
+        if (forumsEl) forumsEl.textContent = Number(payload.totalForums ?? payload.totalCategories ?? payload.totalForumsCount ?? 0).toLocaleString('pl-PL');
+        if (threadsEl) threadsEl.textContent = Number(payload.totalThreads ?? payload.totalThreadsCount ?? 0).toLocaleString('pl-PL');
+        if (messagesEl) messagesEl.textContent = Number(payload.totalMessages ?? payload.totalMessagesCount ?? 0).toLocaleString('pl-PL');
+    } catch (e) {
+        console.warn('loadStats error', e);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+    loadAnnouncements();
+    loadPopularThreads();
+    loadStats();
+
+ try {
+        const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
+        const user = statusRes.ok ? await statusRes.json() : null;
+        
+        const authContainer = document.getElementById('auth-container');
+        if (!authContainer) return;
+        
+        if (user) {
+            // User is logged in - show avatar
+            const initial = (user.username || 'U').charAt(0).toUpperCase();
+            authContainer.innerHTML = `
+                <div class="relative flex items-center gap-3">
+                    <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 font-semibold flex items-center justify-center cursor-pointer" aria-label="Avatar"></button>
+                    <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${user.username}</span>
+                    <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white">${user.username}</p>
+                            <p class="text-xs text-gray-500">${user.email || ''}</p>
+                        </div>
+                        <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                            <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
+                        </a>
+                    <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                            <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
+                        </a>
+                    <hr class="my-1 border-gray-200 dark:border-gray-700">
+                    <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                            <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Set avatar image if available
+            const avatarBtnEl = document.querySelector('.js-avatar-btn, #avatar-btn');
+            if (avatarBtnEl) {
+                if (user.avatarUrl) {
+                    avatarBtnEl.style.backgroundImage = `url(${user.avatarUrl})`;
+                    avatarBtnEl.style.backgroundSize = 'cover';
+                    avatarBtnEl.style.backgroundPosition = 'center';
+                } else {
+                    avatarBtnEl.textContent = '';
                 }
             }
 
-        });
-    </script>
+            // Logout handler
+            const logoutBtnEl = document.querySelector('#logout-btn');
+            if (logoutBtnEl) {
+                logoutBtnEl.addEventListener('click', async () => {
+                    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                    window.location.href = '/';
+                });
+            }
+        } else {
+            // Not logged in - show login/register buttons
+            authContainer.innerHTML = `
+                <div class="flex space-x-3">
+                    <a href="/login.html" class="text-sm text-gray-700 dark:text-gray-300 hover:underline">Logowanie</a>
+                    <a href="/register.html" class="text-sm text-primary hover:underline font-medium">Rejestracja</a>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Auth setup error:', error);
+    }
+});
+</script>
+<script>
+// Logo and Avatar updater for index page
+function initUpdatersIndex() {
+    const logoContainer = document.getElementById('logo-container');
+    const authContainer = document.getElementById('auth-container');
+
+    async function updateLogo() {
+        if (!logoContainer) return false;
+        try {
+            const response = await fetch('/api/admin/settings/logo');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.logoUrl) {
+                    logoContainer.innerHTML = `
+                        <div class="flex items-center">
+                            <img src="${data.logoUrl}" alt="Logo" class="h-6 w-auto mr-2">
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">${data.forumName || 'Forum Dyskusyjne'}</h1>
+                    `;
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (e) {
+            console.warn('Logo update failed:', e);
+            return false;
+        }
+    }
+
+    async function updateAvatar() {
+        if (!authContainer) return false;
+        try {
+            const statusResponse = await fetch('/api/auth/status', { method: 'GET', credentials: 'include' });
+            if (statusResponse.ok) {
+                const currentUser = await statusResponse.json();
+                if (currentUser && currentUser.id) {
+                    const userResponse = await fetch(`/api/users/${currentUser.id}`, { credentials: 'include' });
+                    if (userResponse.ok) {
+                        const user = await userResponse.json();
+                        const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
+                        if (avatarBtn) {
+                            avatarBtn.style.backgroundImage = user.avatarUrl ? `url(${user.avatarUrl})` : '';
+                            if (user.avatarUrl) {
+                                avatarBtn.style.backgroundSize = 'cover';
+                                avatarBtn.style.backgroundPosition = 'center';
+                            }
+                            avatarBtn.textContent = '';
+                        }
+                        const headerName = authContainer.querySelector('#header-username');
+                        if (headerName && user.username) headerName.textContent = user.username;
+
+                        // ensure dropdown handlers from main.js catch this newly inserted HTML
+                        try { if (typeof ensureAvatarButtons === 'function') ensureAvatarButtons(); } catch(_){}
+                        try { if (typeof setupAvatarDelegation === 'function') setupAvatarDelegation(); } catch(_){}
+                        try { if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown(); } catch(_){}
+
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (e) {
+            console.warn('Avatar update failed:', e);
+            return false;
+        }
+    }
+
+    // Poll with simple backoff: normal 30s, on failure retry after 60s
+    async function poll() {
+        const logoOk = await updateLogo();
+        await updateAvatar();
+        const delay = logoOk ? 30000 : 60000;
+        setTimeout(poll, delay);
+    }
+
+    // start polling
+    poll();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUpdatersIndex);
+} else {
+    initUpdatersIndex();
+}
+</script>
 </body>
 </html>

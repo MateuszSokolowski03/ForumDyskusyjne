@@ -149,6 +149,10 @@ class AdminPanel {
         this.showNotification(message, 'error');
     }
 
+    showInfo(message) {
+        this.showNotification(message, 'info');
+    }
+
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type} fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;

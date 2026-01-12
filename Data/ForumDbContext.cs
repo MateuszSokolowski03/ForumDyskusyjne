@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Models;
 
+
 namespace ForumDyskusyjne.Data;
 
 public class ForumDbContext : DbContext
@@ -27,6 +28,7 @@ public class ForumDbContext : DbContext
     public DbSet<UserRankHistory> UserRankHistories { get; set; }
     public DbSet<ContentModerationLog> ContentModerationLogs { get; set; }
     public DbSet<AdminAction> AdminActions { get; set; }
+    public DbSet<ForumSettings> ForumSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +50,7 @@ public class ForumDbContext : DbContext
         modelBuilder.Entity<UserRankHistory>().ToTable("user_rank_history");
         modelBuilder.Entity<ContentModerationLog>().ToTable("content_moderation_logs");
         modelBuilder.Entity<AdminAction>().ToTable("admin_actions");
+        modelBuilder.Entity<ForumSettings>().ToTable("forum_settings");
 
         // Konfiguracja kluczy głównych złożonych
         modelBuilder.Entity<ForumModerator>()

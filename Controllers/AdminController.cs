@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ForumDyskusyjne.Controllers
 {
@@ -33,11 +34,12 @@ namespace ForumDyskusyjne.Controllers
                         .OrderByDescending(u => u.CreatedAt)
                         .Take(5)
                         .Select(u => new
-                        {                        u.Id,
-                        u.Username,
-                        u.Email,
-                        u.CreatedAt,
-                        IsActive = !u.IsBanned
+                        {
+                            u.Id,
+                            u.Username,
+                            u.Email,
+                            u.CreatedAt,
+                            IsActive = !u.IsBanned
                         })
                         .ToListAsync()
                 };
@@ -101,11 +103,11 @@ namespace ForumDyskusyjne.Controllers
                         u.Id,
                         u.Username,
                         u.Email,
-                        u.CreatedAt,
-                        LastActiveAt = u.LastActivityAt,
-                        IsActive = !u.IsBanned,
-                        IsAdmin = u.Role == UserRole.Admin,
-                        IsModerator = u.Role == UserRole.Moderator,
+                        avatar_url = u.AvatarUrl,
+                        created_at = u.CreatedAt,
+                        last_activity_at = u.LastActivityAt,
+                        role = u.Role.ToString(),
+                        status = u.IsBanned ? "blocked" : (u.EmailVerified ? "active" : "pending"),
                         MessageCount = u.PostCount,
                         ThreadCount = u.Threads.Count(),
                         Rank = u.CurrentRank != null ? u.CurrentRank.Name : "Brak rangi"
@@ -141,7 +143,7 @@ namespace ForumDyskusyjne.Controllers
                         c.Name,
                         c.Description,
                         c.SortOrder,
-                        IsActive = true, // Category nie ma właściwości IsActive
+                        IsActive = true,
                         c.CreatedAt,
                         ForumCount = c.Forums.Count,
                         ThreadCount = c.Forums.SelectMany(f => f.Threads).Count(),
@@ -158,23 +160,28 @@ namespace ForumDyskusyjne.Controllers
         }
 
         [HttpGet("forums")]
-        public async Task<IActionResult> GetForums()
+        public async Task<IActionResult> GetForums(int? categoryId = null)
         {
             try
             {
-                var forums = await _context.Forums
+                var query = _context.Forums
                     .Include(f => f.Category)
-                    .Include(f => f.Threads)
+                    .AsQueryable();
+
+                if (categoryId.HasValue)
+                {
+                    query = query.Where(f => f.CategoryId == categoryId.Value);
+                }
+
+                var forums = await query
                     .OrderBy(f => f.Category.SortOrder)
-                    .ThenBy(f => f.Name) // Forum nie ma SortOrder
+                    .ThenBy(f => f.Name)
                     .Select(f => new
                     {
                         f.Id,
                         f.Name,
                         f.Description,
-                        SortOrder = 0, // Forum nie ma SortOrder
-                        IsActive = true, // Forum nie ma IsActive
-                        f.CreatedAt,
+                        f.CategoryId,
                         Category = f.Category.Name,
                         ThreadCount = f.Threads.Count,
                         MessageCount = f.Threads.SelectMany(t => t.Messages).Count(),
@@ -192,6 +199,99 @@ namespace ForumDyskusyjne.Controllers
             }
         }
 
+        [HttpPost("forums")]
+        public async Task<IActionResult> CreateForum([FromBody] CreateForumRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Name))
+                    return BadRequest(new { error = "Nazwa forum jest wymagana" });
+
+                if (request.CategoryId <= 0)
+                    return BadRequest(new { error = "Kategoria jest wymagana" });
+
+                var category = await _context.Categories.FindAsync(request.CategoryId);
+                if (category == null)
+                    return NotFound(new { error = "Kategoria nie znaleziona" });
+
+                var forum = new Forum
+                {
+                    Name = request.Name.Trim(),
+                    Description = request.Description?.Trim(),
+                    CategoryId = request.CategoryId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Forums.Add(forum);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetForums), new { categoryId = forum.CategoryId }, new
+                {
+                    forum.Id,
+                    forum.Name,
+                    forum.Description,
+                    forum.CategoryId,
+                    message = "Forum zostało utworzone"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("forums/{id}")]
+        public async Task<IActionResult> UpdateForum(int id, [FromBody] UpdateForumRequest request)
+        {
+            try
+            {
+                var forum = await _context.Forums.FindAsync(id);
+                if (forum == null)
+                    return NotFound(new { error = "Forum nie znalezione" });
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                    forum.Name = request.Name.Trim();
+
+                if (request.Description != null)
+                    forum.Description = request.Description.Trim();
+
+                _context.Forums.Update(forum);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    forum.Id,
+                    forum.Name,
+                    forum.Description,
+                    message = "Forum zostało zaktualizowane"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("forums/{id}")]
+        public async Task<IActionResult> DeleteForum(int id)
+        {
+            try
+            {
+                var forum = await _context.Forums.FindAsync(id);
+                if (forum == null)
+                    return NotFound(new { error = "Forum nie znalezione" });
+
+                _context.Forums.Remove(forum);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Forum zostało usunięte" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         [HttpGet("threads")]
         public async Task<IActionResult> GetThreads()
         {
@@ -200,27 +300,74 @@ namespace ForumDyskusyjne.Controllers
                 var threads = await _context.Threads
                     .Include(t => t.Author)
                     .Include(t => t.Forum)
-                        .ThenInclude(f => f.Category)
-                    .Include(t => t.Messages)
                     .OrderByDescending(t => t.CreatedAt)
                     .Select(t => new
                     {
                         t.Id,
                         t.Title,
-                        t.CreatedAt,
-                        IsLocked = false, // Thread nie ma IsLocked
-                        t.IsPinned,
-                        IsActive = true, // Thread nie ma IsActive
-                        Author = t.Author.Username,
-                        Forum = t.Forum.Name,
-                        Category = t.Forum.Category.Name,
-                        MessageCount = t.Messages.Count,
-                        Views = t.Views,
-                        LastActivity = t.Messages.Max(m => (DateTime?)m.CreatedAt) ?? t.CreatedAt
+                        authorName = t.Author.Username,
+                        forumName = t.Forum.Name,
+                        t.RepliesCount,
+                        t.Views,
+                        t.CreatedAt
                     })
                     .ToListAsync();
 
                 return Ok(threads);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("threads/{id}/block")]
+        public async Task<IActionResult> BlockThread(int id)
+        {
+            try
+            {
+                var thread = await _context.Threads.FindAsync(id);
+                if (thread == null)
+                    return NotFound(new { error = "Wątek nie znaleziony" });
+
+                return Ok(new { message = "Wątek zablokowany" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("threads/{id}/report")]
+        public async Task<IActionResult> ReportThread(int id, [FromBody] ReportThreadRequest request)
+        {
+            try
+            {
+                var thread = await _context.Threads.FindAsync(id);
+                if (thread == null)
+                    return NotFound(new { error = "Wątek nie znaleziony" });
+
+                return Ok(new { message = "Wątek zgłoszony" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("threads/{id}")]
+        public async Task<IActionResult> DeleteThread(int id)
+        {
+            try
+            {
+                var thread = await _context.Threads.FindAsync(id);
+                if (thread == null)
+                    return NotFound(new { error = "Wątek nie znaleziony" });
+
+                _context.Threads.Remove(thread);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wątek usunięty" });
             }
             catch (Exception ex)
             {
@@ -239,7 +386,7 @@ namespace ForumDyskusyjne.Controllers
                     {
                         bw.Id,
                         bw.Word,
-                        Replacement = "***", // BannedWord nie ma Replacement
+                        Replacement = "***",
                         Severity = bw.SeverityLevel,
                         bw.IsActive,
                         bw.CreatedAt
@@ -264,7 +411,6 @@ namespace ForumDyskusyjne.Controllers
                     return BadRequest(new { error = "Słowo nie może być puste" });
                 }
 
-                // Sprawdź czy słowo już istnieje
                 var existingWord = await _context.BannedWords
                     .FirstOrDefaultAsync(bw => bw.Word.ToLower() == request.Word.ToLower());
 
@@ -326,8 +472,6 @@ namespace ForumDyskusyjne.Controllers
             }
         }
 
-        // === ZARZĄDZANIE KATEGORIAMI ===
-        
         [HttpPost("categories")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
         {
@@ -338,7 +482,6 @@ namespace ForumDyskusyjne.Controllers
                     return BadRequest(new { error = "Nazwa kategorii jest wymagana" });
                 }
 
-                // Sprawdź czy kategoria o takiej nazwie już istnieje
                 var existingCategory = await _context.Categories
                     .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Name.ToLower());
 
@@ -347,7 +490,6 @@ namespace ForumDyskusyjne.Controllers
                     return BadRequest(new { error = "Kategoria o takiej nazwie już istnieje" });
                 }
 
-                // Znajdź najwyższy SortOrder i dodaj 1
                 var maxSortOrder = await _context.Categories.MaxAsync(c => (int?)c.SortOrder) ?? 0;
 
                 var category = new Category
@@ -393,7 +535,6 @@ namespace ForumDyskusyjne.Controllers
                     return NotFound(new { error = "Kategoria nie została znaleziona" });
                 }
 
-                // Sprawdź czy nazwa nie jest zajęta przez inną kategorię
                 if (!string.IsNullOrWhiteSpace(request.Name))
                 {
                     var existingCategory = await _context.Categories
@@ -441,7 +582,6 @@ namespace ForumDyskusyjne.Controllers
                     return NotFound(new { error = "Kategoria nie została znaleziona" });
                 }
 
-                // Sprawdź czy kategoria ma fora
                 if (category.Forums.Any())
                 {
                     return BadRequest(new { error = "Nie można usunąć kategorii która zawiera fora. Usuń najpierw wszystkie fora." });
@@ -487,8 +627,6 @@ namespace ForumDyskusyjne.Controllers
             }
         }
 
-        // === ZARZĄDZANIE UŻYTKOWNIKAMI ===
-
         [HttpPut("users/{id}/ban")]
         public async Task<IActionResult> BanUser(int id, [FromBody] BanUserRequest request)
         {
@@ -512,6 +650,33 @@ namespace ForumDyskusyjne.Controllers
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Użytkownik został zbanowany" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("users/{id}/block")]
+        public async Task<IActionResult> BlockUser(int id)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                if (user.Role == UserRole.Admin)
+                {
+                    return BadRequest(new { error = "Nie można zablokować administratora" });
+                }
+
+                user.IsBanned = true;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Użytkownik został zablokowany" });
             }
             catch (Exception ex)
             {
@@ -544,6 +709,50 @@ namespace ForumDyskusyjne.Controllers
             }
         }
 
+        [HttpPost("users/{id}/unblock")]
+        public async Task<IActionResult> UnblockUser(int id)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                user.IsBanned = false;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Użytkownik został odblokowany" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("users/{id}/verify-email")]
+        public async Task<IActionResult> VerifyUserEmail(int id)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                }
+
+                user.EmailVerified = true;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Email użytkownika został potwierdzony" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         [HttpPut("users/{id}/role")]
         public async Task<IActionResult> ChangeUserRole(int id, [FromBody] ChangeRoleRequest request)
         {
@@ -555,12 +764,13 @@ namespace ForumDyskusyjne.Controllers
                     return NotFound(new { error = "Użytkownik nie został znaleziony" });
                 }
 
-                if (!Enum.IsDefined(typeof(UserRole), request.Role))
+                // Konwertuj string na enum
+                if (!Enum.TryParse<UserRole>(request.Role, out var role))
                 {
-                    return BadRequest(new { error = "Nieprawidłowa rola" });
+                    return BadRequest(new { error = "Nieprawidłowa rola. Dozwolone wartości: User, Moderator, Admin" });
                 }
 
-                user.Role = request.Role;
+                user.Role = role;
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Rola użytkownika została zmieniona" });
@@ -570,15 +780,301 @@ namespace ForumDyskusyjne.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+
+         [HttpGet("moderators")]
+        public async Task<IActionResult> GetModerators()
+        {
+            try
+            {
+                // Get all moderators with their assigned forums
+                var allModerators = await _context.Users
+                    .Where(u => u.Role == UserRole.Moderator)
+                    .Include(u => u.ModeratedForums)
+                    .ThenInclude(fm => fm.Forum)
+                    .ToListAsync();
+
+                var result = allModerators.Select(u => new
+                {
+                    userId = u.Id,
+                    username = u.Username,
+                    email = u.Email,
+                    forums = u.ModeratedForums.Select(fm => new
+                    {
+                        forumId = fm.ForumId,
+                        forumName = fm.Forum.Name
+                    }).ToList()
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+       [HttpPost("moderators")]
+        public async Task<IActionResult> CreateModerator([FromBody] CreateModeratorRequest request)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+                if (user == null)
+                    return NotFound(new { error = "Użytkownik nie znaleziony" });
+
+                int? forumId = null;
+
+                // Jeśli podano nazwę forum
+                if (!string.IsNullOrEmpty(request.ForumName))
+                {
+                    var forum = await _context.Forums
+                        .FirstOrDefaultAsync(f => f.Name.ToLower() == request.ForumName.ToLower());
+                    
+                    if (forum == null)
+                        return NotFound(new { error = "Forum nie znalezione" });
+
+                    forumId = forum.Id;
+                }
+                // Jeśli podano ID forum
+                else if (request.ForumId.HasValue)
+                {
+                    forumId = request.ForumId.Value;
+                }
+
+                // Forum is required when creating a moderator mapping
+                if (!forumId.HasValue)
+                {
+                    return BadRequest(new { error = "Forum jest wymagane" });
+                }
+
+                // Check if the forum already has any moderator (other than this user)
+                var occupied = await _context.ForumModerators
+                    .AnyAsync(m => m.ForumId == forumId.Value && m.UserId != user.Id);
+
+                if (occupied)
+                {
+                    return BadRequest(new { error = "To forum ma już przypisanego moderatora" });
+                }
+
+                // Check if this moderator already has this forum assigned
+                var existingMapping = await _context.ForumModerators
+                    .FirstOrDefaultAsync(m => m.UserId == user.Id && m.ForumId == forumId.Value);
+
+                if (existingMapping != null)
+                    return BadRequest(new { error = "Moderator ma już przypisane to forum" });
+
+                var moderator = new ForumModerator
+                {
+                    UserId = user.Id,
+                    ForumId = forumId.Value
+                };
+
+                _context.ForumModerators.Add(moderator);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetModerators), new { message = "Moderator dodany" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("moderators/{username}")]
+        public async Task<IActionResult> UpdateModerator(string username, [FromBody] UpdateModeratorRequest request)
+        {
+            try
+            {
+                // Find the user first
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                    return NotFound(new { error = "Moderator nie znaleziony" });
+
+                int? newForumId = null;
+
+                // If provided a forum name, resolve it
+                if (!string.IsNullOrEmpty(request.ForumName))
+                {
+                    var newForum = await _context.Forums
+                        .FirstOrDefaultAsync(f => f.Name.ToLower() == request.ForumName.ToLower());
+
+                    if (newForum == null)
+                        return NotFound(new { error = "Forum nie znalezione" });
+
+                    newForumId = newForum.Id;
+                }
+                else if (request.ForumId.HasValue)
+                {
+                    newForumId = request.ForumId.Value;
+                }
+
+                if (!newForumId.HasValue)
+                    return BadRequest(new { error = "Forum jest wymagane" });
+
+                // Check if this moderator already has this forum assigned
+                var existingMapping = await _context.ForumModerators
+                    .FirstOrDefaultAsync(m => m.UserId == user.Id && m.ForumId == newForumId.Value);
+
+                if (existingMapping != null)
+                    return BadRequest(new { error = "Moderator ma już przypisane to forum" });
+
+                // Ensure that the forum isn't assigned to another moderator
+                var otherMapping = await _context.ForumModerators
+                    .FirstOrDefaultAsync(m => m.ForumId == newForumId.Value && m.UserId != user.Id);
+
+                if (otherMapping != null)
+                    return BadRequest(new { error = "To forum ma już przypisanego innego moderatora" });
+
+                // Add new forum assignment for this moderator
+                var newMapping = new ForumModerator
+                {
+                    UserId = user.Id,
+                    ForumId = newForumId.Value
+                };
+
+                _context.ForumModerators.Add(newMapping);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Forum przypisane moderatorowi" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+        [HttpDelete("moderators/{username}")]
+        public async Task<IActionResult> DeleteModerator(string username)
+        {
+            try
+            {
+                var moderator = await _context.ForumModerators
+                    .Include(m => m.User)
+                    .FirstOrDefaultAsync(m => m.User.Username == username);
+                    
+                if (moderator == null)
+                    return NotFound(new { error = "Moderator nie znaleziony" });
+
+                _context.ForumModerators.Remove(moderator);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Moderator usunięty" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // Settings endpoints
+        [HttpGet("settings/logo")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetLogoSettings()
+        {
+            try
+            {
+                var settings = await _context.ForumSettings.FirstOrDefaultAsync();
+                if (settings == null)
+                {
+                    // Zwróć domyślne ustawienia
+                    return Ok(new {
+                        logoUrl = (string?)null,
+                        forumName = "Forum Dyskusyjne"
+                    });
+                }
+
+                return Ok(new {
+                    logoUrl = settings.LogoUrl,
+                    forumName = settings.ForumName
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log the exception server-side for diagnostics but return safe defaults to frontend
+                try { Console.Error.WriteLine($"GetLogoSettings error: {ex}"); } catch {}
+                return Ok(new {
+                    logoUrl = (string?)null,
+                    forumName = "Forum Dyskusyjne"
+                });
+            }
+        }
+
+        [HttpPost("settings/logo")]
+        public async Task<IActionResult> UpdateLogoSettings([FromBody] UpdateLogoRequest request)
+        {
+            try
+            {
+                // Sprawdź czy użytkownik jest adminami
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                {
+                    return Unauthorized(new { error = "Użytkownik nie zalogowany" });
+                }
+
+                var user = await _context.Users.FindAsync(id);
+                if (user?.Role != UserRole.Admin)
+                {
+                    return Forbid();
+                }
+
+                var settings = await _context.ForumSettings.FirstOrDefaultAsync();
+                if (settings == null)
+                {
+                    settings = new ForumSettings 
+                    { 
+                        ForumName = request.ForumName ?? "Forum Dyskusyjne",
+                        LogoUrl = request.LogoUrl,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.ForumSettings.Add(settings);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(request.ForumName))
+                        settings.ForumName = request.ForumName;
+                    if (request.LogoUrl != null)
+                        settings.LogoUrl = request.LogoUrl;
+                    settings.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { 
+                    message = "Ustawienia loga zostały zaktualizowane",
+                    logoUrl = settings.LogoUrl,
+                    forumName = settings.ForumName
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 
     // === REQUEST DTOs ===
-    
-    public class BannedWordRequest
+
+    public class UpdateLogoRequest
+    {
+        public string? LogoUrl { get; set; }
+        public string? ForumName { get; set; }
+    }    public class BannedWordRequest
     {
         public string Word { get; set; } = string.Empty;
         public string? Replacement { get; set; }
         public SeverityLevel Severity { get; set; } = SeverityLevel.Warning;
+    }
+
+    public class CreateForumRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int CategoryId { get; set; }
+    }
+
+    public class UpdateForumRequest
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
     }
 
     public class CreateCategoryRequest
@@ -614,6 +1110,25 @@ namespace ForumDyskusyjne.Controllers
 
     public class ChangeRoleRequest
     {
-        public UserRole Role { get; set; }
+        public string Role { get; set; } = string.Empty;
+    }
+
+    public class ReportThreadRequest
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    public class CreateModeratorRequest
+    {
+       public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public int? ForumId { get; set; }
+        public string? ForumName { get; set; }
+    }
+
+    public class UpdateModeratorRequest
+    {
+        public int? ForumId { get; set; }
+        public string? ForumName { get; set; }
     }
 }

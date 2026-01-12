@@ -42,8 +42,8 @@
                         <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/banned-words">
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
-                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
+                            <span class="material-symbols-outlined"></span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -137,12 +137,15 @@
         // Banned Words Management
         class BannedWordsManager {
             constructor() {
+                this.refreshInterval = null;
                 this.init();
             }
 
             init() {
                 this.setupEventListeners();
                 this.loadBannedWords();
+                // Auto-refresh every 5 seconds
+                this.refreshInterval = setInterval(() => this.loadBannedWords(), 5000);
             }
 
             setupEventListeners() {
@@ -167,7 +170,17 @@
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    const words = await response.json();
+                    let words = await response.json();
+                    
+                    // Handle API response that might be wrapped in data property
+                    if (words && typeof words === 'object' && 'data' in words) {
+                        words = words.data;
+                    }
+                    
+                    if (!Array.isArray(words)) {
+                        words = [];
+                    }
+                    
                     this.displayWords(words);
                     this.updateWordsCount(words.length);
 
@@ -198,22 +211,19 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        const error = await response.json();
+                        throw new Error(error.message || `HTTP error! status: ${response.status}`);
                     }
 
                     const result = await response.json();
                     
-                    if (result.success) {
-                        this.showMessage(`Słowo "${word}" zostało dodane do listy zakazanych`, 'success');
-                        e.target.reset();
-                        this.loadBannedWords(); // Refresh list
-                    } else {
-                        this.showMessage('Nie udało się dodać słowa', 'error');
-                    }
+                    this.showMessage(`Słowo "${word}" zostało dodane do listy zakazanych`, 'success');
+                    e.target.reset();
+                    this.loadBannedWords(); // Refresh list
 
                 } catch (error) {
                     console.error('Błąd dodawania słowa:', error);
-                    this.showMessage('Wystąpił błąd podczas dodawania słowa', 'error');
+                    this.showMessage(error.message || 'Nie udało się dodać słowa', 'error');
                 }
             }
 
@@ -228,21 +238,18 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        const error = await response.json();
+                        throw new Error(error.message || `HTTP error! status: ${response.status}`);
                     }
 
                     const result = await response.json();
                     
-                    if (result.success) {
-                        this.showMessage(`Słowo "${wordText}" zostało usunięte`, 'success');
-                        this.loadBannedWords(); // Refresh list
-                    } else {
-                        this.showMessage('Nie udało się usunąć słowa', 'error');
-                    }
+                    this.showMessage(`Słowo "${wordText}" zostało usunięte`, 'success');
+                    this.loadBannedWords(); // Refresh list
 
                 } catch (error) {
                     console.error('Błąd usuwania słowa:', error);
-                    this.showMessage('Wystąpił błąd podczas usuwania słowa', 'error');
+                    this.showMessage(error.message || 'Nie udało się usunąć słowa', 'error');
                 }
             }
 
@@ -270,14 +277,20 @@
             createWordElement(word) {
                 const wordElement = document.createElement('span');
                 wordElement.className = 'word-tag flex items-center gap-2 bg-gray-200 dark:bg-[#232f48] text-sm px-3 py-1 rounded-full';
-                wordElement.innerHTML = `
-                    <span class="word-text">${this.escapeHtml(word.word)}</span>
-                    <button class="remove-btn text-gray-500 dark:text-gray-400 hover:text-red-500" 
-                            onclick="bannedWordsManager.removeWord(${word.id}, '${this.escapeHtml(word.word)}')"
-                            title="Usuń słowo">
-                        <span class="material-symbols-outlined !text-base">close</span>
-                    </button>
-                `;
+                
+                const wordText = document.createElement('span');
+                wordText.className = 'word-text';
+                wordText.textContent = word.word;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn text-gray-500 dark:text-gray-400 hover:text-red-500';
+                removeBtn.title = 'Usuń słowo';
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined !text-base">close</span>';
+                removeBtn.addEventListener('click', () => this.removeWord(word.id, word.word));
+                
+                wordElement.appendChild(wordText);
+                wordElement.appendChild(removeBtn);
                 return wordElement;
             }
 
@@ -342,6 +355,12 @@
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            destroy() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                }
             }
         }
 

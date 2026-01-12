@@ -5,6 +5,7 @@ class AdminUsers {
         this.currentPage = 1;
         this.pageSize = 10;
         this.totalUsers = 0;
+        this.allUsers = []; // Cache wszystkich użytkowników
         this.filters = {
             search: '',
             role: '',
@@ -145,6 +146,9 @@ class AdminUsers {
         const tableBody = document.getElementById('users-table-body');
         if (!tableBody) return;
 
+        // Cache użytkowników
+        this.allUsers = users;
+
         if (users.length === 0) {
             tableBody.innerHTML = `
                 <tr>
@@ -190,11 +194,17 @@ class AdminUsers {
                         <button class="action-btn edit-btn" onclick="adminUsers.editUser(${user.id})" title="Edytuj">
                             <span class="material-symbols-outlined !text-base">edit</span>
                         </button>
+                        ${user.status === 'pending' ? `
+                        <button class="action-btn verify-btn" onclick="adminUsers.verifyUserEmail(${user.id})" title="Potwierdź email">
+                            <span class="material-symbols-outlined !text-base">check_circle</span>
+                        </button>
+                        ` : `
                         <button class="action-btn ${user.status === 'blocked' ? 'unblock-btn' : 'block-btn'}" 
                                 onclick="adminUsers.${user.status === 'blocked' ? 'unblockUser' : 'blockUser'}(${user.id})" 
                                 title="${user.status === 'blocked' ? 'Odblokuj' : 'Zablokuj'}">
                             <span class="material-symbols-outlined !text-base">${user.status === 'blocked' ? 'lock_open' : 'block'}</span>
                         </button>
+                        `}
                         <button class="action-btn delete-btn" onclick="adminUsers.deleteUser(${user.id})" title="Usuń">
                             <span class="material-symbols-outlined !text-base">delete</span>
                         </button>
@@ -265,7 +275,7 @@ class AdminUsers {
             'moderator': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
             'user': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
         };
-        return classes[role] || classes['user'];
+        return classes[role?.toLowerCase()] || classes['user'];
     }
 
     getRoleLabel(role) {
@@ -274,7 +284,7 @@ class AdminUsers {
             'moderator': 'Moderator',
             'user': 'Użytkownik'
         };
-        return labels[role] || 'Użytkownik';
+        return labels[role?.toLowerCase()] || 'Użytkownik';
     }
 
     getStatusBadgeClass(status) {
@@ -363,8 +373,131 @@ class AdminUsers {
     }
 
     async editUser(userId) {
-        // Implementation for editing user
-        window.adminPanel.showSuccess('Funkcja edycji użytkownika w przygotowaniu');
+        try {
+            // Pobierz dane użytkownika z cache'owanej listy
+            const userIdNum = parseInt(userId, 10);
+            let user = this.allUsers.find(u => u.id === userIdNum);
+
+            // Jeśli nie ma w cache, pobierz wszystkich użytkowników bez paginacji
+            if (!user) {
+                const response = await fetch(`/api/admin/users?pageSize=10000`);
+                if (!response.ok) {
+                    window.adminPanel.showError('Błąd ładowania danych użytkownika');
+                    return;
+                }
+                const data = await response.json();
+                user = data.users.find(u => u.id === userIdNum);
+            }
+
+            if (!user) {
+                window.adminPanel.showError('Użytkownik nie znaleziony');
+                return;
+            }
+
+            // Pokaż modal edycji
+            const modal = document.createElement('div');
+            modal.id = 'edit-user-modal';
+            modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-[#192231] rounded-lg shadow-lg max-w-md w-full p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Edytuj użytkownika: ${user.username}</h2>
+                        <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('edit-user-modal')?.remove()">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+
+                    <form id="edit-user-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rola</label>
+                            <select id="user-role" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                                <option value="user" ${user.role === 'user' ? 'selected' : ''}>Użytkownik</option>
+                                <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrator</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <p class="text-sm text-blue-800 dark:text-blue-300">
+                                <strong>Aktualna rola:</strong> ${this.getRoleLabel(user.role)}
+                            </p>
+                        </div>
+
+                        <div class="flex gap-2 justify-end">
+                            <button type="button" class="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] transition" onclick="document.getElementById('edit-user-modal')?.remove()">
+                                Anuluj
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition">
+                                Zapisz zmiany
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Obsłuż klik poza modalem
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+
+            // Obsłuż wysłanie formularza
+            document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newRole = document.getElementById('user-role').value;
+
+                if (newRole === user.role) {
+                    window.adminPanel.showInfo('Żaden zmian nie został dokonany');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/users/${userId}/role`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            Role: newRole.charAt(0).toUpperCase() + newRole.slice(1) // Kapitalizuj pierwszą literę
+                        })
+                    });
+
+                    if (response.ok) {
+                        window.adminPanel.showSuccess(`Rola użytkownika zmieniona na: ${this.getRoleLabel(newRole)}`);
+                        modal.remove();
+                        this.loadUsers();
+                    } else {
+                        const error = await response.text();
+                        window.adminPanel.showError(`Błąd: ${error}`);
+                    }
+                } catch (error) {
+                    window.adminPanel.showError('Błąd podczas zmiany roli użytkownika');
+                    console.error('Error:', error);
+                }
+            });
+
+        } catch (error) {
+            window.adminPanel.showError('Błąd podczas otwierania edytora');
+            console.error('Error:', error);
+        }
+    }
+
+    async verifyUserEmail(userId) {
+        if (confirm('Czy na pewno chcesz potwierdzić email tego użytkownika?')) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/verify-email`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    window.adminPanel.showSuccess('Email użytkownika został potwierdzony');
+                    this.loadUsers();
+                } else {
+                    window.adminPanel.showError('Błąd podczas potwierdzania emaila');
+                }
+            } catch (error) {
+                window.adminPanel.showError('Błąd podczas potwierdzania emaila');
+            }
+        }
     }
 
     async blockUser(userId) {

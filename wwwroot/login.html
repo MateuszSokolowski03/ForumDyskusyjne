@@ -29,46 +29,38 @@
 
                 <!-- Login Form -->
                 <div class="login-card rounded-xl border border-gray-200 dark:border-[#232f48] bg-white dark:bg-[#111722] p-6 sm:p-8 shadow-lg">
-                    <form id="loginForm" class="login-form flex flex-col gap-5">
+                    <form id="loginForm" class="login-form flex flex-col gap-5" autocomplete="on" novalidate>
                         <div class="username-field flex flex-col gap-2">
                             <label class="field-label text-sm font-medium text-gray-700 dark:text-gray-300" for="username">Nazwa użytkownika lub e-mail</label>
                             <div class="input-container relative">
-                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">person</span>
-                                <input class="username-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary" 
-                                       id="username" 
-                                       name="username"
-                                       placeholder="wpisz nazwę lub e-mail" 
-                                       type="text" 
-                                       required/>
+                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">person</span>
+                                <input id="username" name="username" type="text" required autocomplete="username"
+                                       class="username-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary"
+                                       placeholder="Nazwa użytkownika lub e-mail" />
                             </div>
                         </div>
                         
                         <div class="password-field flex flex-col gap-2">
                             <label class="field-label text-sm font-medium text-gray-700 dark:text-gray-300" for="password">Hasło</label>
                             <div class="input-container relative">
-                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
-                                <input class="password-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary" 
-                                       id="password" 
-                                       name="password"
-                                       placeholder="wpisz hasło" 
-                                       type="password" 
-                                       required/>
+                                <span class="field-icon material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">lock</span>
+                                <input id="password" name="password" type="password" required autocomplete="current-password"
+                                       class="password-input form-input w-full rounded-lg border border-gray-300 bg-gray-50 dark:border-[#324467] dark:bg-[#232f48] py-2.5 pl-10 pr-4 text-gray-800 dark:text-white focus:border-primary focus:ring-primary"
+                                       placeholder="Twoje hasło" />
                             </div>
                         </div>
                         
                         <div class="form-controls flex flex-wrap items-center justify-between gap-2">
-                            <div class="remember-section flex items-center">
-                                <input class="remember-checkbox form-checkbox h-4 w-4 rounded border-gray-300 bg-gray-50 text-primary focus:ring-primary dark:border-[#324467] dark:bg-[#232f48] dark:checked:bg-primary dark:focus:ring-offset-background-dark" 
-                                       id="remember-me" 
-                                       name="rememberMe"
-                                       type="checkbox"/>
-                                <label class="remember-label ml-2 block text-sm text-gray-600 dark:text-gray-400" for="remember-me">Zapamiętaj mnie</label>
+                            <div class="remember-section flex items-center gap-2">
+                                <input id="remember-me" name="rememberMe" value="on" type="checkbox" autocomplete="off"
+                                       class="remember-checkbox form-checkbox h-4 w-4 rounded border-gray-300 bg-gray-50 text-primary focus:ring-primary dark:border-[#324467] dark:bg-[#232f48]"/>
+                                <label for="remember-me" class="text-sm text-gray-700 dark:text-gray-300">Zapamiętaj mnie</label>
                             </div>
                             <a class="forgot-password-link text-sm font-medium text-primary hover:underline" href="/forgot-password">Zapomniałem hasła?</a>
                         </div>
                         
-                        <button class="login-button flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 px-4 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" 
-                                type="submit">
+                        <button class="login-button flex w-full items-center justify-center overflow-hidden rounded-lg h-11 px-4 bg-primary text-white text-base font-bold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" 
+                                type="submit" aria-label="Zaloguj się">
                             <span class="button-text truncate">Zaloguj się</span>
                         </button>
                     </form>
@@ -85,7 +77,7 @@
                 <!-- Back to Home -->
                 <div class="navigation-section mt-4 text-center">
                     <a class="home-link inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary" href="/">
-                        <span class="back-icon material-symbols-outlined text-sm">arrow_back</span>
+                        <span class="back-icon material-symbols-outlined text-sm" aria-hidden="true">arrow_back</span>
                         <span class="back-text">Powrót do strony głównej</span>
                     </a>
                 </div>

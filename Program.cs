@@ -1,9 +1,58 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 using Npgsql;
+using System.Net;
+using System.Net.Sockets;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
+
+int FindAvailablePort(int startPort, int range = 20)
+{
+    for (int p = startPort; p < startPort + range; p++)
+    {
+        try
+        {
+            var listener = new TcpListener(IPAddress.Loopback, p);
+            listener.Start();
+            listener.Stop();
+            return p;
+        }
+        catch { }
+    }
+    return -1;
+}
+
+int httpPort = 5000;
+int httpsPort = 5001;
+int chosenHttp = FindAvailablePort(httpPort);
+int chosenHttps = FindAvailablePort(httpsPort);
+
+if (chosenHttp == -1) chosenHttp = 0; // let Kestrel pick an ephemeral port if none found
+if (chosenHttps == -1) chosenHttps = 0;
+
+if (chosenHttp != httpPort)
+    Console.WriteLine($"⚠️ Port {httpPort} zajęty — używam portu {chosenHttp}");
+
+// Bezpiecznie skonfiguruj URLe
+var urls = new List<string>();
+if (chosenHttp > 0) urls.Add($"http://localhost:{chosenHttp}");
+if (chosenHttps > 0) urls.Add($"https://localhost:{chosenHttps}");
+if (urls.Count > 0) builder.WebHost.UseUrls(urls.ToArray());
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5000", "https://localhost:5001")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 
 Console.WriteLine("🚀 Forum Dyskusyjne - Aplikacja Web");
 
@@ -18,6 +67,44 @@ builder.Services.AddDbContext<ForumDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 
+// DODANE - Konfiguracja autentykacji
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        options.Cookie.Name = "ForumAuth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;               // działa na http://localhost
+        options.Cookie.SecurePolicy = CookieSecurePolicy.None; // pozwala na http w dev
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+        options.Events = new Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api") ||
+                    ctx.Request.Headers["Accept"].FirstOrDefault()?.Contains("application/json") == true)
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api") ||
+                    ctx.Request.Headers["Accept"].FirstOrDefault()?.Contains("application/json") == true)
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            }
+        };
+    });
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -27,7 +114,11 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = "ForumSession";
 });
 
+
+
+
 var app = builder.Build();
+
 
 try
 {
@@ -54,8 +145,87 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors("AllowFrontend"); 
+// ===== AUTORYZACJA - MUSI BYĆ PO UseRouting() I PRZED UseSession() =====
+app.UseAuthentication();
+app.UseAuthorization();
+
+// ===== MIDDLEWARE DO AKTUALIZACJI OSTATNIEJ AKTYWNOŚCI =====
+app.Use(async (context, next) =>
+{
+    if (context.User?.Identity?.IsAuthenticated == true)
+    {
+        var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            using (var scope = context.RequestServices.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
+                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                
+                if (user != null)
+                {
+                    // Aktualizuj ostatnią aktywność (co 5 minut maksymalnie)
+                    if (user.LastActivityAt == null || (DateTime.UtcNow - user.LastActivityAt.Value).TotalMinutes >= 5)
+                    {
+                        user.LastActivityAt = DateTime.UtcNow;
+                        await db.SaveChangesAsync();
+                        System.Diagnostics.Debug.WriteLine($"📍 [ACTIVITY] Zaktualizowana ostatnia aktywność dla użytkownika {userId}");
+                    }
+                }
+            }
+        }
+    }
+    
+    await next();
+});
+
+// ===== MIDDLEWARE DO SPRAWDZENIA ZABLOKOWANIA UŻYTKOWNIKA =====
+// Musi być ПОСЛЕ UseAuthorization() aby sprawdzić zalogowanego użytkownika
+app.Use(async (context, next) =>
+{
+    if (context.User?.Identity?.IsAuthenticated == true)
+    {
+        var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            using (var scope = context.RequestServices.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
+                var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+                
+                if (user != null && user.IsBanned)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 [BAN] Użytkownik {userId} ({user.Username}) jest zablokowany - wylogowuję");
+                    
+                    // Wyloguj zablokowanego użytkownika
+                    await context.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+                    if (context.Request.Cookies.ContainsKey("user_session"))
+                        context.Response.Cookies.Delete("user_session");
+                    
+                    // Jeśli to żądanie API, zwróć 403
+                    if (context.Request.Path.StartsWithSegments("/api") ||
+                        context.Request.Headers["Accept"].FirstOrDefault()?.Contains("application/json") == true)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { error = "Twoje konto zostało zablokowane" });
+                        return;
+                    }
+                    
+                    // Dla żądań HTML, redirect na login
+                    context.Response.Redirect("/login");
+                    return;
+                }
+            }
+        }
+    }
+    
+    await next();
+});
+
 app.UseSession();
 
+// ===== MAPOWANIE TRAS =====
 app.MapControllers();
 app.MapControllerRoute(
     name: "default",
@@ -145,18 +315,36 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
         Console.WriteLine("✅ Dodano przykładowych użytkowników");
     }
+        app.MapGet("/api/forum/debug", async (ForumDbContext db) =>
+    {
+        try
+        {
+            var categoriesCount = await db.Categories.CountAsync();
+            var forumsCount = await db.Forums.CountAsync();
+            return Results.Ok(new { ok = true, categoriesCount, forumsCount });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(title: "Db error", detail: ex.Message);
+        }
+    });
+
 }
 
+
 Console.WriteLine("🌐 Aplikacja dostępna na:");
-Console.WriteLine("   - http://localhost:5000");
-Console.WriteLine("   - https://localhost:5001");
-Console.WriteLine("📊 Status API: http://localhost:5000/api/status");
-Console.WriteLine("🔐 Login API: http://localhost:5000/api/auth/login");
-Console.WriteLine("🔑 Auth Status API: http://localhost:5000/api/auth/status");
-Console.WriteLine("🚪 Logout API: http://localhost:5000/api/auth/logout");
-Console.WriteLine("📝 Register API: http://localhost:5000/api/auth/register");
-Console.WriteLine("👨‍💼 Admin Panel: http://localhost:5000/admin");
-Console.WriteLine("📂 Forum: http://localhost:5000/forum.html");
-Console.WriteLine("📋 CRUD Forms: http://localhost:5000/Categories (i inne kontrolery)");
+if (chosenHttp != 0)
+    Console.WriteLine($"   - http://localhost:{chosenHttp}");
+if (chosenHttps != 0)
+    Console.WriteLine($"   - https://localhost:{chosenHttps}");
+var baseHttp = chosenHttp != 0 ? $"http://localhost:{chosenHttp}" : "http://localhost";
+Console.WriteLine($"📊 Status API: {baseHttp}/api/status");
+Console.WriteLine($"🔐 Login API: {baseHttp}/api/auth/login");
+Console.WriteLine($"🔑 Auth Status API: {baseHttp}/api/auth/status");
+Console.WriteLine($"🚪 Logout API: {baseHttp}/api/auth/logout");
+Console.WriteLine($"📝 Register API: {baseHttp}/api/auth/register");
+Console.WriteLine($"👨‍💼 Admin Panel: {baseHttp}/admin");
+Console.WriteLine($"📂 Forum: {baseHttp}/forum.html");
+Console.WriteLine($"📋 CRUD Forms: {baseHttp}/Categories (i inne kontrolery)");
 
 app.Run();

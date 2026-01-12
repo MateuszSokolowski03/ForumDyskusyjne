@@ -42,8 +42,8 @@
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
-                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
+                            <span class="material-symbols-outlined"></span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -64,11 +64,12 @@
                                 <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Moderacja treści - zarządzaj wątkami i postami użytkowników.</p>
                             </div>
                             <div class="header-actions flex items-center gap-3">
-                                <select class="filter-select px-3 py-2 border border-gray-300 dark:border-[#232f48] rounded-lg bg-white dark:bg-[#101622] text-gray-900 dark:text-white">
-                                    <option>Wszystkie wątki</option>
-                                    <option>Zgłoszone</option>
-                                    <option>Zablokowane</option>
-                                    <option>Najnowsze</option>
+                                <label for="filter-threads" class="sr-only">Filtruj wątki</label>
+                                <select id="filter-threads" title="Filtruj wątki" aria-label="Filtruj wątki" class="filter-select px-3 py-2 border border-gray-300 dark:border-[#232f48] rounded-lg bg-white dark:bg-[#101622] text-gray-900 dark:text-white">
+                                    <option value="all">Wszystkie wątki</option>
+                                    <option value="reported">Zgłoszone</option>
+                                    <option value="blocked">Zablokowane</option>
+                                    <option value="newest">Najnowsze</option>
                                 </select>
                             </div>
                         </div>
@@ -251,5 +252,177 @@
 
     <script src="../js/main.js"></script>
     <script src="../js/admin.js"></script>
+    <script>
+    let threads = [];
+    let currentPage = 1;
+    const pageSize = 10;
+
+    // ✅ ZAŁADUJ WĄTKI
+    async function loadThreads() {
+        const container = document.querySelector('.threads-section') || document.querySelector('main');
+        try {
+            console.log('📋 Ładowanie wątków...');
+            
+            const res = await fetch('/api/admin/threads', { credentials: 'include' });
+            if (!res.ok) {
+                console.error('❌ Błąd API:', res.status);
+                container.innerHTML = '<p class="text-center text-red-500">Błąd ładowania wątków</p>';
+                return;
+            }
+
+            threads = await res.json();
+            console.log('✅ Załadowano wątków:', threads.length);
+            renderThreads();
+        } catch (error) {
+            console.error('❌ Błąd:', error);
+            container.innerHTML = '<p class="text-center text-red-500">Błąd ładowania wątków</p>';
+        }
+    }
+
+    // ✅ RENDERUJ WĄTKI
+    function renderThreads() {
+        const container = document.querySelector('.threads-card') || document.querySelector('.threads-section');
+        
+        if (!threads || threads.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 py-8">Brak wątków</p>';
+            return;
+        }
+
+        // Paginacja
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedThreads = threads.slice(start, end);
+
+        let html = '<div class="overflow-x-auto"><table class="w-full"><thead class="bg-gray-100 dark:bg-[#232f48]"><tr><th class="px-6 py-3 text-left text-sm font-semibold">Tytuł</th><th class="px-6 py-3 text-left text-sm font-semibold">Autor</th><th class="px-6 py-3 text-left text-sm font-semibold">Forum</th><th class="px-6 py-3 text-left text-sm font-semibold">Wiadomości</th><th class="px-6 py-3 text-left text-sm font-semibold">Widoki</th><th class="px-6 py-3 text-left text-sm font-semibold">Data</th><th class="px-6 py-3 text-center text-sm font-semibold">Akcje</th></tr></thead><tbody>';
+
+        paginatedThreads.forEach(thread => {
+            const createdDate = new Date(thread.createdAt || thread.CreatedAt).toLocaleDateString('pl-PL');
+            html += `
+                <tr class="border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#232f48]">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-xs truncate">${escapeHtml(thread.title || thread.Title || '')}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${escapeHtml(thread.authorName || thread.Author?.username || 'Anonimowo')}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${escapeHtml(thread.forumName || thread.Forum?.name || '')}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${thread.repliesCount || thread.RepliesCount || 0}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${thread.views || thread.Views || 0}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400 text-sm">${createdDate}</td>
+                    <td class="px-6 py-3 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="viewThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors text-sm" title="Wyświetl">
+                                <span class="material-symbols-outlined text-sm">visibility</span>
+                            </button>
+                            <button onclick="reportThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors text-sm" title="Zgłoś">
+                                <span class="material-symbols-outlined text-sm">flag</span>
+                            </button>
+                            <button onclick="deleteThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors text-sm" title="Usuń">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table></div>';
+        
+        // Paginacja
+        const totalPages = Math.ceil(threads.length / pageSize);
+        if (totalPages > 1) {
+            html += `<div class="flex justify-center gap-2 mt-6"><button onclick="previousPage()" class="px-3 py-2 rounded bg-gray-200 dark:bg-[#232f48] hover:bg-gray-300 transition-colors" ${currentPage === 1 ? 'disabled' : ''}>◀ Poprzednia</button>`;
+            html += `<span class="px-3 py-2">Strona ${currentPage} z ${totalPages}</span>`;
+            html += `<button onclick="nextPage()" class="px-3 py-2 rounded bg-gray-200 dark:bg-[#232f48] hover:bg-gray-300 transition-colors" ${currentPage === totalPages ? 'disabled' : ''}>Następna ▶</button></div>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ✅ WYŚWIETL WĄTEK
+    function viewThread(threadId) {
+        window.location.href = `/thread.html?threadId=${threadId}`;
+    }
+
+    
+
+    // ✅ ZGŁOŚ WĄTEK
+    async function reportThread(threadId) {
+        const reason = prompt('Podaj powód zgłoszenia:');
+        if (!reason) return;
+
+        try {
+            const res = await fetch(`/api/admin/threads/${threadId}/report`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+
+            if (!res.ok) {
+                alert('❌ Błąd zgłaszania wątku');
+                return;
+            }
+
+            alert('✅ Wątek zgłoszony');
+        } catch (error) {
+            console.error('❌ Błąd:', error);
+            alert('❌ Błąd połączenia');
+        }
+    }
+
+    // ✅ USUŃ WĄTEK
+    async function deleteThread(threadId) {
+        if (!confirm('Czy na pewno chcesz usunąć ten wątek? Ta operacja jest nieodwracalna.')) return;
+
+        try {
+            const res = await fetch(`/api/admin/threads/${threadId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                alert('❌ Błąd usuwania wątku');
+                return;
+            }
+
+            alert('✅ Wątek usunięty');
+            loadThreads();
+        } catch (error) {
+            console.error('❌ Błąd:', error);
+            alert('❌ Błąd połączenia');
+        }
+    }
+
+    // ✅ PAGINACJA
+    function previousPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderThreads();
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.ceil(threads.length / pageSize);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderThreads();
+        }
+    }
+
+    // Helper - escapuj HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[m]);
+    }
+
+    // ✅ INICJALIZACJA
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicjalizowanie zarządzania wątkami');
+        loadThreads();
+    });
+</script>
 </body>
 </html>
