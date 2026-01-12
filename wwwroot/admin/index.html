@@ -42,8 +42,8 @@
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
-                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
+                            <span class="material-symbols-outlined"></span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -155,7 +155,220 @@
         </div>
     </div>
 
-    <script src="../js/main.js"></script>
+          <script src="../js/main.js"></script>
     <script src="../js/admin.js"></script>
+    <script>
+        let adminStats = {
+            users: 0,
+            threads: 0,
+            messages: 0,
+            categories: 0
+        };
+
+        // Helper - format czasu
+        function formatTime(dateStr) {
+            if (!dateStr) return 'Niedawno';
+            
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return 'Niedawno';
+            
+            const now = new Date();
+            const diff = now - date;
+            
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Teraz';
+            if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minutę' : 'minut'} temu`;
+            if (hours < 24) return `${hours} ${hours === 1 ? 'godzinę' : 'godzin'} temu`;
+            if (days < 7) return `${days} ${days === 1 ? 'dzień' : 'dni'} temu`;
+            
+            return date.toLocaleDateString('pl-PL');
+        }
+
+        // Escapuj HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>"']/g, m => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            })[m]);
+        }
+
+        // Helper - zaktualizuj wartość statystyki
+        function updateStatValue(index, value) {
+            const statValues = document.querySelectorAll('.stat-value');
+            if (statValues[index]) {
+                statValues[index].textContent = value.toLocaleString('pl-PL');
+            }
+        }
+
+        // Załaduj ostatnią aktywność
+        async function loadRecentActivity() {
+            const activityList = document.querySelector('.activity-list');
+            if (!activityList) {
+                console.warn('⚠️ Brak elementu .activity-list');
+                return;
+            }
+            
+            try {
+                console.log('📝 Ładowanie ostatniej aktywności...');
+
+                const activities = [];
+
+                // Pobierz ostatnich użytkowników
+                try {
+                    const usersRes = await fetch('/api/status', { credentials: 'include' });
+                    if (usersRes.ok) {
+                        const data = await usersRes.json();
+                        const recentUsers = data.recentUsers || [];
+                        
+                        recentUsers.slice(0, 3).forEach(user => {
+                            activities.push({
+                                icon: 'person_add',
+                                color: 'blue',
+                                text: `Nowy użytkownik <strong>${escapeHtml(user.username || 'Użytkownik')}</strong> zarejestrował się`,
+                                time: formatTime(user.createdAt),
+                                timestamp: new Date(user.createdAt || Date.now()).getTime()
+                            });
+                        });
+                        console.log('✅ Użytkownicy załadowani');
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Błąd pobierania użytkowników:', e.message);
+                }
+
+                                                // Pobierz ostatnie wątki
+                try {
+                    const threadsRes = await fetch('/api/forum', { credentials: 'include' });
+                    if (threadsRes.ok) {
+                        const data = await threadsRes.json();
+                        const threads = Array.isArray(data) ? data : data.threads || [];
+                        
+                        threads
+                            .sort((a, b) => new Date(b.createdAt || b.CreatedAt || 0) - new Date(a.createdAt || a.CreatedAt || 0))
+                            .slice(0, 3)
+                            .forEach(thread => {
+                                activities.push({
+                                    icon: 'add_comment',
+                                    color: 'green',
+                                    text: `Nowy wątek <strong>"${escapeHtml(thread.title || thread.Title || 'Bez tytułu')}"</strong>`,
+                                    time: formatTime(thread.createdAt || thread.CreatedAt),
+                                    timestamp: new Date(thread.createdAt || thread.CreatedAt || Date.now()).getTime()
+                                });
+                            });
+                        console.log('✅ Wątki załadowane z /api/forum');
+                    } else {
+                        console.warn('⚠️ GET /api/forum - status:', threadsRes.status);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Błąd pobierania wątków z /api/forum:', e.message);
+                }
+
+                // Pobierz ostatnie posty (messages) z /api/forum/{id}/messages
+                try {
+                    const messagesRes = await fetch('/api/messages/all', { credentials: 'include' });
+                    if (messagesRes.ok) {
+                        const messages = await messagesRes.json();
+                        const recentMessages = Array.isArray(messages) ? messages : [];
+                        
+                        recentMessages
+                            .sort((a, b) => new Date(b.createdAt || b.CreatedAt || 0) - new Date(a.createdAt || a.CreatedAt || 0))
+                            .slice(0, 5)
+                            .forEach(msg => {
+                                const content = (msg.content || msg.Content || 'Brak treści').substring(0, 50);
+                                activities.push({
+                                    icon: 'chat',
+                                    color: 'purple',
+                                    text: `Nowy post od <strong>${escapeHtml(msg.authorName || msg.AuthorName || 'Użytkownik')}</strong>: <em>"${escapeHtml(content)}..."</em>`,
+                                    time: formatTime(msg.createdAt || msg.CreatedAt),
+                                    timestamp: new Date(msg.createdAt || msg.CreatedAt || Date.now()).getTime()
+                                });
+                            });
+                        console.log('✅ Posty załadowane z /api/messages/all');
+                    } else {
+                        console.warn('⚠️ GET /api/messages/all - status:', messagesRes.status);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Błąd pobierania postów z /api/messages/all:', e.message);
+                }
+                
+
+                
+
+                // Sortuj aktywności po czasie (najnowsze najpierw)
+                activities.sort((a, b) => b.timestamp - a.timestamp);
+
+                // Wyświetl aktywności
+                if (activities.length === 0) {
+                    activityList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Brak ostatniej aktywności</p>';
+                    console.log('⚠️ Brak aktywności do wyświetlenia');
+                    return;
+                }
+
+                activityList.innerHTML = activities.slice(0, 10).map(activity => `
+                    <div class="activity-item flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#101622] rounded-lg border-l-4 border-${activity.color}-500">
+                        <div class="activity-icon p-2 bg-${activity.color}-100 dark:bg-${activity.color}-900/30 rounded-lg flex-shrink-0">
+                            <span class="material-symbols-outlined text-${activity.color}-600 dark:text-${activity.color}-400 !text-xl">${activity.icon}</span>
+                        </div>
+                        <div class="activity-content flex-1 min-w-0">
+                            <p class="activity-text text-gray-800 dark:text-gray-200">${activity.text}</p>
+                            <p class="activity-time text-sm text-gray-500 dark:text-gray-400 mt-1">${activity.time}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                console.log(`✅ Załadowano ${activities.length} aktywności`);
+            } catch (error) {
+                console.error('❌ Błąd ładowania aktywności:', error);
+                activityList.innerHTML = '<p class="text-center text-red-500">Błąd ładowania aktywności</p>';
+            }
+        }
+
+        // Załaduj statystyki
+        async function loadAdminStats() {
+            try {
+                console.log('📊 Ładowanie statystyk admin...');
+
+                // Pobierz dane ze statusu
+                const statusRes = await fetch('/api/status', { credentials: 'include' });
+                if (statusRes.ok) {
+                    const data = await statusRes.json();
+                    
+                    adminStats.users = data.stats?.totalUsers || 0;
+                    adminStats.threads = data.stats?.totalThreads || 0;
+                    adminStats.messages = data.stats?.totalMessages || 0;
+                    adminStats.categories = data.stats?.totalCategories || 0;
+
+                    updateStatValue(0, adminStats.users);
+                    updateStatValue(1, adminStats.threads);
+                    updateStatValue(2, adminStats.messages);
+                    updateStatValue(3, adminStats.categories);
+
+                    console.log('✅ Wszystkie statystyki załadowane:', adminStats);
+                } else {
+                    console.warn('⚠️ GET /api/status - status:', statusRes.status);
+                }
+
+                // Załaduj ostatnią aktywność
+                await loadRecentActivity();
+            } catch (error) {
+                console.error('❌ Błąd ładowania statystyk:', error);
+            }
+        }
+
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicjalizowanie admin dashboard');
+            loadAdminStats();
+            
+            // Odśwież co 30 sekund
+            setInterval(loadAdminStats, 30000);
+        });
+    </script>
 </body>
 </html>

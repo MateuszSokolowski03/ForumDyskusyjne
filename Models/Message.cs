@@ -28,6 +28,10 @@ public class Message
     
     [Column("edited_at")]
     public DateTime? EditedAt { get; set; }
+
+    [NotMapped]
+    [Column("edited_by")]
+    public int? EditedBy { get; set; }
     
     // Navigation properties
     [ForeignKey("ThreadId")]

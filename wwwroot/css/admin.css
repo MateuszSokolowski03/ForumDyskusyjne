@@ -289,6 +289,15 @@
     background-color: #059669;
 }
 
+.verify-btn {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.verify-btn:hover {
+    background-color: #d97706;
+}
+
 .delete-btn {
     background-color: #6b7280;
     color: white;

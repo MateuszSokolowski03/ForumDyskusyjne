@@ -42,8 +42,8 @@
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/settings">
-                            <span class="material-symbols-outlined">settings</span>Ustawienia Zaawansowane
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
+                            <span class="material-symbols-outlined"></span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -63,10 +63,7 @@
                                 <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Moderatorzy</h2>
                                 <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj moderatorami forum.</p>
                             </div>
-                            <button class="add-btn bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                                <span class="material-symbols-outlined !text-xl">person_add</span>
-                                Dodaj Moderatora
-                            </button>
+                            <!-- Add button removed: moderators are managed elsewhere -->
                         </div>
                     </header>
 
@@ -82,77 +79,15 @@
                                 </div>
                             </div>
                             
-                            <div class="moderators-table">
-                                <div class="table-header grid grid-cols-5 gap-4 p-4 bg-gray-50 dark:bg-[#101622] text-sm font-medium text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#232f48]">
-                                    <div>Moderator</div>
-                                    <div>Email</div>
-                                    <div>Kategorie</div>
-                                    <div>Status</div>
-                                    <div>Akcje</div>
-                                </div>
-                                
-                                <div class="moderator-row grid grid-cols-5 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors">
-                                    <div class="moderator-info flex items-center gap-3">
-                                        <div class="avatar w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-primary !text-xl">shield_person</span>
-                                        </div>
-                                        <div>
-                                            <p class="moderator-name font-medium text-gray-900 dark:text-white">ModeratorXYZ</p>
-                                            <p class="moderator-role text-sm text-gray-500 dark:text-gray-400">Moderator</p>
-                                        </div>
-                                    </div>
-                                    <div class="moderator-email text-gray-700 dark:text-gray-300">moderator@forum.pl</div>
-                                    <div class="moderator-categories">
-                                        <span class="category-tag bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full text-xs">Ogólne</span>
-                                    </div>
-                                    <div class="moderator-status">
-                                        <span class="status-badge bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded-full text-xs">Aktywny</span>
-                                    </div>
-                                    <div class="moderator-actions flex items-center gap-2">
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined !text-xl">edit</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined !text-xl">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="moderator-row grid grid-cols-5 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors">
-                                    <div class="moderator-info flex items-center gap-3">
-                                        <div class="avatar w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-primary !text-xl">shield_person</span>
-                                        </div>
-                                        <div>
-                                            <p class="moderator-name font-medium text-gray-900 dark:text-white">AdminForum</p>
-                                            <p class="moderator-role text-sm text-gray-500 dark:text-gray-400">Super Moderator</p>
-                                        </div>
-                                    </div>
-                                    <div class="moderator-email text-gray-700 dark:text-gray-300">admin@forum.pl</div>
-                                    <div class="moderator-categories">
-                                        <span class="category-tag bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 px-2 py-1 rounded-full text-xs mr-1">Wszystkie</span>
-                                    </div>
-                                    <div class="moderator-status">
-                                        <span class="status-badge bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded-full text-xs">Aktywny</span>
-                                    </div>
-                                    <div class="moderator-actions flex items-center gap-2">
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined !text-xl">edit</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined !text-xl">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="moderators-table"></div>
                             
                             <!-- Pagination -->
                             <div class="table-footer p-4 border-t border-gray-200 dark:border-[#232f48] flex items-center justify-between">
                                 <p class="pagination-info text-sm text-gray-600 dark:text-gray-400">Pokazano 2 z 2 moderatorów</p>
                                 <div class="pagination-controls flex items-center gap-2">
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622] disabled:opacity-50" disabled>Poprzednia</button>
+                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622] disabled:opacity-50" disabled>←</button>
                                     <span class="pagination-current px-3 py-1 bg-primary text-white rounded">1</span>
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622] disabled:opacity-50" disabled>Następna</button>
+                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622] disabled:opacity-50" disabled>→</button>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +97,376 @@
         </div>
     </div>
 
-    <script src="../js/main.js"></script>
-    <script src="../js/admin.js"></script>
+   <script src="../js/main.js"></script>
+<script src="../js/admin.js"></script>
+<script>
+    let moderators = [];
+    let forums = [];
+    let threads = [];
+    let editingModeratorId = null;
+
+    // ✅ ZAŁADUJ MODERATORÓW I FORA
+    async function loadModerators() {
+        try {
+            console.log('🛡️ Ładowanie moderatorów...');
+            
+            const res = await fetch('/api/admin/moderators', { credentials: 'include' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            
+            moderators = await res.json();
+            console.log('✅ Załadowano moderatorów:', moderators);
+            renderModerators();
+        } catch (error) {
+            console.error('❌ Błąd ładowania moderatorów:', error);
+        }
+    }
+
+    async function loadForums() {
+        try {
+            const res = await fetch('/api/admin/forums', { credentials: 'include' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            
+            forums = await res.json();
+            console.log('✅ Załadowano fora:', forums);
+        } catch (error) {
+            console.error('❌ Błąd ładowania forów:', error);
+        }
+    }
+
+    // ✅ RENDERUJ MODERATORÓW
+    function renderModerators() {
+        const container = document.querySelector('.moderators-table') || document.querySelector('main');
+        
+        if (!moderators || moderators.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 py-8 p-6">Brak moderatorów</p>';
+            return;
+        }
+
+        let html = '<div class="table-header grid grid-cols-5 gap-4 p-4 bg-gray-50 dark:bg-[#101622] text-sm font-medium text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#232f48]"><div>Moderator</div><div>Email</div><div>Fora</div><div>Status</div><div>Akcje</div></div>';
+
+        moderators.forEach((mod, idx) => {
+            const forumsHtml = (mod.forums && mod.forums.length > 0)
+                ? mod.forums.map(f => {
+                    const name = escapeHtml(f.forumName || f.forum || '');
+                    const fid = f.forumId || f.forumId || '';
+                    const userEsc = escapeHtml(mod.username || '');
+                    return `<span class="category-tag bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full text-xs inline-flex items-center gap-2">${name}<button data-username="${userEsc}" data-forumid="${fid}" class="remove-assignment-btn ml-2 p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded" title="Usuń przypisanie"><span class="material-symbols-outlined !text-sm">close</span></button></span>`;
+                }).join(' ') : '<span class="text-sm text-gray-500">Brak przypisania</span>';
+            const statusClass = 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+            const statusText = 'Aktywny';
+            const displayName = escapeHtml(mod.username || '');
+            const displayEmail = escapeHtml(mod.email || '');
+            const modKey = (mod.username || '').replace(/'/g, "\\'");
+
+            html += `
+                <div class="moderator-row grid grid-cols-5 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors items-center" data-idx="${idx}">
+                    <div class="moderator-info flex items-center gap-3">
+                        <div class="avatar w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary !text-xl">shield_person</span>
+                        </div>
+                        <div>
+                            <p class="moderator-name font-medium text-gray-900 dark:text-white">${displayName}</p>
+                            <p class="moderator-role text-sm text-gray-500 dark:text-gray-400">Moderator</p>
+                        </div>
+                    </div>
+                    <div class="moderator-email text-gray-700 dark:text-gray-300">${displayEmail}</div>
+                    <div class="moderator-forums">
+                        ${forumsHtml}
+                    </div>
+                    <div class="moderator-status">
+                        <span class="status-badge ${statusClass} px-2 py-1 rounded-full text-xs">${statusText}</span>
+                    </div>
+                    <div class="moderator-actions flex items-center gap-2">
+                        <button data-username="${escapeHtml(mod.username || '')}" class="action-add-forum action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Dodaj forum">
+                            <span class="material-symbols-outlined !text-xl">add</span>
+                        </button>
+                        <button onclick="removeModerator('${modKey}')" class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Usuń">
+                            <span class="material-symbols-outlined !text-xl">delete</span>
+                        </button>
+                        <button onclick="showModeratorThreads(${idx})" class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Pokaż wątki">
+                            <span class="material-symbols-outlined !text-xl">list</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="moderator-threads-${idx}" class="moderator-threads hidden p-4 bg-gray-50 dark:bg-[#08121b] border-b border-gray-200 dark:border-[#232f48]"></div>
+            `;
+        });
+
+        document.querySelector('.moderators-table').innerHTML = html;
+
+        // Attach click listeners to add-forum buttons (avoid inline onclick escaping issues)
+        document.querySelectorAll('.action-add-forum').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const username = btn.dataset.username;
+                editModerator(username);
+            });
+        });
+
+        // Attach listeners to remove-assignment buttons
+        document.querySelectorAll('.remove-assignment-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const username = btn.dataset.username;
+                const forumId = btn.dataset.forumid;
+                if (!username || !forumId) return;
+                if (!confirm('Czy na pewno chcesz usunąć przypisanie moderatora do tego forum?')) return;
+                try {
+                    const res = await fetch(`/api/admin/moderators/${encodeURIComponent(username)}?forumId=${encodeURIComponent(forumId)}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert('❌ Błąd: ' + (err.error || 'Nieznany błąd'));
+                        return;
+                    }
+
+                    alert('✅ Przypisanie usunięte');
+                    loadModerators();
+                } catch (error) {
+                    console.error('❌ Błąd usuwania przypisania:', error);
+                    alert('❌ Błąd połączenia');
+                }
+            });
+        });
+    }
+
+    // ✅ ZAŁADUJ WĄTKI (cache)
+    async function loadThreads() {
+        if (threads && threads.length) return;
+        try {
+            const res = await fetch('/api/admin/threads', { credentials: 'include' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            threads = await res.json();
+            console.log('✅ Załadowano wątki:', threads.length);
+        } catch (error) {
+            console.error('❌ Błąd ładowania wątków:', error);
+            threads = [];
+        }
+    }
+
+    // ✅ POKAŻ / UKRYJ WĄTKI PRZYDZIELONE DO MODERATORA
+    async function showModeratorThreads(idx) {
+        const panel = document.getElementById(`moderator-threads-${idx}`);
+        if (!panel) return;
+
+        // toggle
+        if (!panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+            panel.innerHTML = '';
+            return;
+        }
+
+        // ensure threads are loaded
+        await loadThreads();
+
+        const mod = moderators[idx];
+        if (!mod || !mod.forums || mod.forums.length === 0) {
+            panel.innerHTML = '<p class="text-sm text-gray-500">Brak forów przypisanych do tego moderatora</p>';
+            panel.classList.remove('hidden');
+            return;
+        }
+
+        let matched = [];
+        mod.forums.forEach(forum => {
+            const forumThreads = threads.filter(t => (t.forumName || t.forum || '').toLowerCase() === forum.forumName.toLowerCase());
+            matched = matched.concat(forumThreads);
+        });
+
+        if (!matched.length) {
+            panel.innerHTML = '<p class="text-sm text-gray-500">Brak wątków przypisanych do forów tego moderatora</p>';
+            panel.classList.remove('hidden');
+            return;
+        }
+
+        panel.innerHTML = '<ul class="space-y-2">' + matched.map(t => `<li class="p-2 bg-white dark:bg-[#0b1b27] border border-gray-200 dark:border-[#233041] rounded"><a class="font-medium text-primary" href="/thread.html?id=${t.Id || t.id}" onclick="event.preventDefault(); window.open('/thread.html?id=${t.Id || t.id}','_blank');">${escapeHtml(t.Title || t.title)}</a><div class="text-xs text-gray-500 mt-1">Autor: ${escapeHtml(t.authorName || t.authorName || '')} • Forum: ${escapeHtml(t.forumName || t.forum || '')}</div></li>`).join('') + '</ul>';
+        panel.classList.remove('hidden');
+    }
+
+    // ✅ OTWÓRZ MODAL DODAWANIA MODERATORA
+    function openAddModeratorModal() {
+        const modal = document.getElementById('moderatorModal');
+        if (!modal) {
+            console.error('❌ Modal #moderatorModal nie znaleziony');
+            return;
+        }
+
+        editingModeratorId = null;
+        document.getElementById('moderatorForm').reset();
+        document.getElementById('moderatorTitle').textContent = 'Dodaj nowego moderatora';
+        document.getElementById('moderatorModal').classList.remove('hidden');
+        loadForumsDropdown();
+        
+        console.log('📋 Otwarto modal dodawania moderatora');
+    }
+
+    // ✅ EDYTUJ MODERATORA
+    function editModerator(moderatorUsername) {
+        const moderator = moderators.find(m => (m.username || m.Username) === moderatorUsername);
+        if (!moderator) return;
+
+        editingModeratorId = moderatorUsername;
+        const usernameEl = document.getElementById('moderatorUsername');
+        if (usernameEl) usernameEl.value = moderator.username || moderator.Username || '';
+        const emailEl = document.getElementById('moderatorEmail');
+        if (emailEl) emailEl.value = moderator.email || moderator.Email || '';
+        document.getElementById('moderatorForum').value = '';
+        document.getElementById('moderatorTitle').textContent = 'Dodaj forum do moderatora';
+        document.getElementById('moderatorModal').classList.remove('hidden');
+        loadForumsDropdown();
+        
+        console.log('✏️ Dodanie forum do moderatora:', moderatorUsername);
+    }
+
+    // ✅ ZAŁADUJ LISTĘ FORÓW DO DROPDOWN
+    function loadForumsDropdown() {
+        const dropdown = document.getElementById('moderatorForum');
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '<option value="">-- Brak przypisania --</option>';
+        
+        forums.forEach(forum => {
+            dropdown.innerHTML += `<option value="${forum.id || forum.Id}">${escapeHtml(forum.name || forum.Name)}</option>`;
+        });
+    }
+
+    // ✅ ZAMKNIJ MODAL
+    function closeModeratorModal() {
+        document.getElementById('moderatorModal').classList.add('hidden');
+        editingModeratorId = null;
+    }
+
+    // ✅ ZAPISZ MODERATORA
+    function saveModerator() {
+        if (editingModeratorId) {
+            editModerator_API();
+        }
+    }
+
+    // ✅ EDYTUJ MODERATORA W API
+    async function editModerator_API() {
+        const username = editingModeratorId;
+        const forumId = document.getElementById('moderatorForum').value;
+
+        if (!username) {
+            alert('❌ Brak nazwy użytkownika');
+            return;
+        }
+
+        if (!forumId) {
+            alert('❌ Wybierz forum');
+            return;
+        }
+
+        const data = {
+            forumId: parseInt(forumId)
+        };
+
+        try {
+            console.log('📤 Wysyłam PUT do /api/admin/moderators/' + username, data);
+            const res = await fetch(`/api/admin/moderators/${username}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            console.log('📥 Odpowiedź:', res.status);
+            if (!res.ok) {
+                const error = await res.json();
+                alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
+                return;
+            }
+
+            alert('✅ Forum przypisane moderatorowi');
+            closeModeratorModal();
+            loadModerators();
+        } catch (error) {
+            console.error('❌ Błąd:', error);
+            alert('❌ Błąd połączenia: ' + error.message);
+        }
+    }
+
+    // ✅ USUŃ MODERATORA
+    async function removeModerator(moderatorUsername) {
+        if (!confirm('Czy na pewno chcesz usunąć tego moderatora?')) return;
+
+        try {
+            const res = await fetch(`/api/admin/moderators/${encodeURIComponent(moderatorUsername)}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
+                return;
+            }
+
+            alert('✅ Moderator usunięty');
+            loadModerators();
+        } catch (error) {
+            console.error('❌ Błąd:', error);
+            alert('❌ Błąd połączenia');
+        }
+    }
+
+    // Helper - escapuj HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[m]);
+    }
+
+    // ✅ INICJALIZACJA
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicjalizowanie zarządzania moderatorami');
+
+        // load data
+        loadForums();
+        loadThreads();
+        loadModerators();
+    });
+</script>
+
+<!-- Modal dla moderatorów -->
+<div id="moderatorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#192231] rounded-lg p-8 max-w-md w-full border border-gray-200 dark:border-[#232f48]">
+        <h2 id="moderatorTitle" class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dodaj moderatora</h2>
+        
+        <form id="moderatorForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nazwa użytkownika</label>
+                <input type="text" id="moderatorUsername" placeholder="np. ModeratorXYZ" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" disabled>
+            </div>
+
+            <div>
+                <label for="moderatorForum" class="block mb-1 text-sm text-gray-700 dark:text-gray-300">
+                    Forum do przypisania:
+                </label>
+
+                <select id="moderatorForum" name="moderatorForum"
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">-- Wybierz forum --</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="saveModerator()" class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-semibold transition-colors">
+                    Dodaj forum
+                </button>
+                <button type="button" onclick="closeModeratorModal()" class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition-colors">
+                    Anuluj
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

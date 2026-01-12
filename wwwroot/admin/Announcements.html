@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodaj Ogłoszenie - Panel Administracyjny</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/users">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/categories">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/threads">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/moderators">
+                            <span class="material-symbols-outlined">shield_person</span>Moderatorzy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/banned-words">
+                            <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
+                        </a></li>
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/Announcements">
+                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                        <span class="material-symbols-outlined">logout</span>Wyloguj
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8 flex items-center justify-between">
+                        <div>
+                            <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Ogłoszenia</h2>
+                            <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj ogłoszeniami forum</p>
+                        </div>
+                        <button id="addAnnouncementBtn" class="flex items-center gap-2 rounded-lg bg-primary h-10 px-6 text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined">add_circle</span>
+                            Dodaj ogłoszenie
+                        </button>
+                    </header>
+
+                    <!-- Announcements List Section -->
+                    <div class="announcements-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
+                        <!-- Loading State -->
+                        <div id="loadingState" class="loading-state text-center py-8">
+                            <div class="loading-spinner inline-block w-8 h-8 border-4 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                            <p class="loading-text text-gray-500 dark:text-gray-400 mt-2">Ładowanie ogłoszeń...</p>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="errorState" class="error-state hidden text-center py-8">
+                            <div class="error-icon text-red-500 mb-2">
+                                <span class="material-symbols-outlined !text-6xl">error</span>
+                            </div>
+                            <p class="error-text text-red-600 dark:text-red-400 mb-4">Nie udało się załadować ogłoszeń</p>
+                            <button id="retryBtn" class="retry-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
+                                Spróbuj ponownie
+                            </button>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="emptyState" class="empty-state hidden text-center py-8">
+                            <div class="empty-icon text-gray-400 dark:text-gray-500 mb-2">
+                                <span class="material-symbols-outlined !text-6xl">announcement</span>
+                            </div>
+                            <p class="empty-text text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>
+                        </div>
+
+                        <!-- Announcements List -->
+                        <div id="announcementsList" class="announcements-list hidden space-y-4">
+                            <!-- Announcements will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Announcement Modal -->
+    <div id="addAnnouncementModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#192231] rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white dark:bg-[#192231] border-b border-gray-200 dark:border-[#232f48] p-6 flex items-center justify-between">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Dodaj Ogłoszenie</h3>
+                <button id="closeModalBtn" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <form id="announcementForm" class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Tytuł ogłoszenia
+                        </label>
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            required
+                            maxlength="200"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-[#232f48] rounded-lg bg-white dark:bg-[#111722] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Wpisz tytuł ogłoszenia"
+                        >
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maksymalnie 200 znaków</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div>
+                        <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Treść ogłoszenia
+                        </label>
+                        <textarea 
+                            id="content" 
+                            name="content" 
+                            required
+                            rows="6"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-[#232f48] rounded-lg bg-white dark:bg-[#111722] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            placeholder="Wpisz treść ogłoszenia"
+                        ></textarea>
+                    </div>
+
+                    <!-- Active Status -->
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="isActive" 
+                            name="isActive" 
+                            checked
+                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        >
+                        <label for="isActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Ogłoszenie aktywne
+                        </label>
+                    </div>
+
+                    <!-- Expiration Date -->
+                    <div>
+                        <label for="expiresAt" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Data wygaśnięcia (opcjonalnie)
+                        </label>
+                        <input 
+                            type="datetime-local" 
+                            id="expiresAt" 
+                            name="expiresAt"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-[#232f48] rounded-lg bg-white dark:bg-[#111722] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ogłoszenie będzie automatycznie ukryte po tej dacie</p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-4 pt-4">
+                        <button 
+                            type="submit" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        >
+                            <span class="material-symbols-outlined inline mr-2" style="font-size: 18px;">check</span>
+                            Dodaj ogłoszenie
+                        </button>
+                        <button 
+                            type="reset" 
+                            class="flex-1 bg-gray-300 dark:bg-[#232f48] hover:bg-gray-400 dark:hover:bg-[#2a3a5a] text-gray-900 dark:text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        >
+                            <span class="material-symbols-outlined inline mr-2" style="font-size: 18px;">close</span>
+                            Wyczyść
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Success Message -->
+                <div id="successMessage" class="hidden mt-6 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 rounded-lg">
+                    <p class="text-green-800 dark:text-green-200 flex items-center">
+                        <span class="material-symbols-outlined mr-2">check_circle</span>
+                        Ogłoszenie zostało dodane pomyślnie!
+                    </p>
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage" class="hidden mt-6 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg">
+                    <p id="errorText" class="text-red-800 dark:text-red-200 flex items-center">
+                        <span class="material-symbols-outlined mr-2">error</span>
+                        <span id="errorContent"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/main.js"></script>
+    <script defer>
+        class AnnouncementsManager {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadAnnouncements();
+            }
+
+            setupEventListeners() {
+                const addBtn = document.getElementById('addAnnouncementBtn');
+                const closeBtn = document.getElementById('closeModalBtn');
+                const modal = document.getElementById('addAnnouncementModal');
+                const form = document.getElementById('announcementForm');
+                const retryBtn = document.getElementById('retryBtn');
+
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => this.openModal());
+                }
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => this.closeModal());
+                }
+
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) this.closeModal();
+                    });
+                }
+
+                if (form) {
+                    form.addEventListener('submit', (e) => this.handleAddAnnouncement(e));
+                }
+
+                if (retryBtn) {
+                    retryBtn.addEventListener('click', () => this.loadAnnouncements());
+                }
+            }
+
+            openModal() {
+                const modal = document.getElementById('addAnnouncementModal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            closeModal() {
+                const modal = document.getElementById('addAnnouncementModal');
+                if (modal) modal.classList.add('hidden');
+                document.getElementById('announcementForm').reset();
+                document.getElementById('successMessage').classList.add('hidden');
+                document.getElementById('errorMessage').classList.add('hidden');
+            }
+
+            async loadAnnouncements() {
+                this.showLoading();
+
+                try {
+                    const response = await fetch('/api/announcements/all', { credentials: 'include', headers: { 'Accept': 'application/json' } });
+                    
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            console.warn('Brak uprawnień do pobrania ogłoszeń (401/403)');
+                            this.showError();
+                            this.showToast('Brak uprawnień — zaloguj się jako administrator', 'error');
+                            return;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    let announcements = await response.json();
+                    
+                    // Handle API response that might be wrapped in data property
+                    if (announcements && typeof announcements === 'object' && 'data' in announcements) {
+                        announcements = announcements.data;
+                    }
+                    
+                    if (!Array.isArray(announcements)) {
+                        announcements = [];
+                    }
+                    
+                    this.displayAnnouncements(announcements);
+
+                } catch (error) {
+                    console.error('Błąd ładowania ogłoszeń:', error);
+                    this.showError();
+                }
+            }
+
+            async handleAddAnnouncement(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('title').value.trim();
+                const content = document.getElementById('content').value.trim();
+                const isActive = document.getElementById('isActive').checked;
+                const expiresAt = document.getElementById('expiresAt').value;
+
+                if (!title || !content) {
+                    this.showFormError('Tytuł i treść są wymagane!');
+                    return;
+                }
+
+                try {
+                    const announcementData = {
+                        title,
+                        content,
+                        isActive,
+                        ExpiresAt: expiresAt ? new Date(expiresAt).toISOString() : null
+                    };
+
+                    const response = await fetch('/api/announcements', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(announcementData)
+                    });
+
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            errorMessage = 'Brak uprawnień — zaloguj się jako administrator';
+                        } else {
+                            try {
+                                const errorData = await response.json();
+                                errorMessage = errorData.error || errorData.message || errorMessage;
+                            } catch (parseError) {
+                                console.log('Could not parse error response as JSON');
+                            }
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    const result = await response.json();
+                    
+                    this.showFormSuccess('Ogłoszenie zostało dodane pomyślnie!');
+                    document.getElementById('announcementForm').reset();
+                    setTimeout(() => {
+                        this.closeModal();
+                        this.loadAnnouncements();
+                    }, 1500);
+
+                } catch (error) {
+                    console.error('Błąd dodawania ogłoszenia:', error);
+                    this.showFormError(error.message || 'Nie udało się dodać ogłoszenia');
+                }
+            }
+
+            async deleteAnnouncement(announcementId, title) {
+                if (!confirm(`Czy na pewno chcesz usunąć ogłoszenie "${title}"?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/announcements/${announcementId}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            errorMessage = 'Brak uprawnień — zaloguj się jako administrator';
+                        } else {
+                            try {
+                                const errorData = await response.json();
+                                errorMessage = errorData.error || errorData.message || errorMessage;
+                            } catch (parseError) {
+                                console.log('Could not parse error response as JSON');
+                            }
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    this.showToast(`Ogłoszenie "${title}" zostało usunięte`, 'success');
+                    this.loadAnnouncements();
+
+                } catch (error) {
+                    console.error('Błąd usuwania ogłoszenia:', error);
+                    this.showToast(error.message || 'Nie udało się usunąć ogłoszenia', 'error');
+                }
+            }
+
+            displayAnnouncements(announcements) {
+                const container = document.getElementById('announcementsList');
+                const listSection = document.getElementById('announcementsList').parentElement;
+                const emptyState = document.getElementById('emptyState');
+
+                if (!announcements || announcements.length === 0) {
+                    this.showEmpty();
+                    return;
+                }
+
+                container.innerHTML = '';
+                
+                announcements.forEach(announcement => {
+                    const announcementElement = this.createAnnouncementElement(announcement);
+                    container.appendChild(announcementElement);
+                });
+
+                this.hideAllStates();
+                container.classList.remove('hidden');
+            }
+
+            createAnnouncementElement(announcement) {
+                const div = document.createElement('div');
+                div.className = 'announcement-card p-4 border border-gray-300 dark:border-[#232f48] rounded-lg bg-gray-50 dark:bg-[#101622]';
+                
+                const title = document.createElement('h3');
+                title.className = 'text-lg font-semibold text-gray-900 dark:text-white mb-2';
+                title.textContent = announcement.title;
+                
+                const content = document.createElement('p');
+                content.className = 'text-gray-700 dark:text-gray-300 mb-3';
+                content.textContent = announcement.content;
+                
+                const footer = document.createElement('div');
+                footer.className = 'flex items-center justify-between text-sm text-gray-500 dark:text-gray-400';
+                
+                const status = document.createElement('span');
+                const statusClass = announcement.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                status.className = statusClass;
+                status.textContent = announcement.isActive ? '✓ Aktywne' : '✗ Nieaktywne';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors';
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>';
+                deleteBtn.addEventListener('click', () => this.deleteAnnouncement(announcement.id, announcement.title));
+                
+                footer.appendChild(status);
+                footer.appendChild(deleteBtn);
+                
+                div.appendChild(title);
+                div.appendChild(content);
+                div.appendChild(footer);
+                
+                return div;
+            }
+
+            showLoading() {
+                this.hideAllStates();
+                document.getElementById('loadingState').classList.remove('hidden');
+            }
+
+            showError() {
+                this.hideAllStates();
+                document.getElementById('errorState').classList.remove('hidden');
+            }
+
+            showEmpty() {
+                this.hideAllStates();
+                document.getElementById('emptyState').classList.remove('hidden');
+            }
+
+            hideAllStates() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.add('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('announcementsList').classList.add('hidden');
+            }
+
+            showFormSuccess(message) {
+                const successMsg = document.getElementById('successMessage');
+                const errorMsg = document.getElementById('errorMessage');
+                if (errorMsg) errorMsg.classList.add('hidden');
+                if (successMsg) successMsg.classList.remove('hidden');
+            }
+
+            showFormError(message) {
+                const errorMsg = document.getElementById('errorMessage');
+                const errorContent = document.getElementById('errorContent');
+                const successMsg = document.getElementById('successMessage');
+                if (successMsg) successMsg.classList.add('hidden');
+                if (errorContent) errorContent.textContent = message;
+                if (errorMsg) errorMsg.classList.remove('hidden');
+            }
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('messageContainer') || this.createMessageContainer();
+                const toast = document.createElement('div');
+                
+                const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+                
+                toast.className = `${bgColor} text-white px-4 py-2 rounded-lg shadow-lg mb-2 opacity-0 transform translate-x-full transition-all duration-300`;
+                toast.textContent = message;
+
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('opacity-0', 'translate-x-full');
+                }, 100);
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-x-full');
+                    setTimeout(() => {
+                        if (container.contains(toast)) {
+                            container.removeChild(toast);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            createMessageContainer() {
+                const container = document.createElement('div');
+                container.id = 'messageContainer';
+                container.className = 'fixed top-4 right-4 z-50';
+                document.body.appendChild(container);
+                return container;
+            }
+        }
+
+        // Initialize announcements manager
+        let announcementsManager;
+        document.addEventListener('DOMContentLoaded', function() {
+            announcementsManager = new AnnouncementsManager();
+        });
+    </script>
+</body>
+</html>

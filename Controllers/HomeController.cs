@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ForumDyskusyjne.Controllers
@@ -5,30 +6,50 @@ namespace ForumDyskusyjne.Controllers
     [Route("")]
     public class HomeController : Controller
     {
+         [AllowAnonymous]
         [HttpGet("")]
         public IActionResult Index()
         {
             return Redirect("/index.html");
         }
-
+        
+         [AllowAnonymous]
         [HttpGet("login")]
         public IActionResult Login()
         {
             return Redirect("/login.html");
         }
-        
+        [AllowAnonymous]    
         [HttpGet("register")]
         public IActionResult Register()
         {
             return Redirect("/register.html");
         }
-
+        [AllowAnonymous]
         [HttpGet("forum")]
-        public IActionResult Forum()
+        public async Task<IActionResult> Forum()
         {
-            return Redirect("/forum.html");
+            // Sprawdź czy użytkownik jest zalogowany
+            if (HttpContext.Request.Cookies.ContainsKey("user_session"))
+            {
+                var sessionValue = HttpContext.Request.Cookies["user_session"];
+                if (!string.IsNullOrEmpty(sessionValue))
+                {
+                    // Zalogowany - zwróć forum.html z sesją
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "forum.html");
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        Response.ContentType = "text/html";
+                        await Response.SendFileAsync(filePath);
+                        return new EmptyResult();
+                    }
+                }
+            }
+            
+            // Nie zalogowany - redirect na login
+            return Redirect("/login");
         }
-        
+        [AllowAnonymous]
         [HttpGet("admin")]
         public async Task<IActionResult> Admin()
         {
@@ -41,7 +62,7 @@ namespace ForumDyskusyjne.Controllers
             }
             return NotFound();
         }
-        
+        [AllowAnonymous]
         [HttpGet("admin/{page}")]
         public async Task<IActionResult> AdminPage(string page)
         {
@@ -59,35 +80,29 @@ namespace ForumDyskusyjne.Controllers
             }
             return NotFound($"Admin page '{page}' not found");
         }
-
+        [AllowAnonymous]
         [HttpGet("admin/users")]
         public IActionResult AdminUsers()
         {
             return Redirect("/admin/users.html");
         }
-
+        [AllowAnonymous]
         [HttpGet("admin/categories")]
         public IActionResult AdminCategories()
         {
             return Redirect("/admin/categories.html");
         }
-
+        [AllowAnonymous]
         [HttpGet("admin/threads")]
         public IActionResult AdminThreads()
         {
             return Redirect("/admin/threads.html");
         }
-
+        [AllowAnonymous]
         [HttpGet("admin/banned-words")]
         public IActionResult AdminBannedWords()
         {
             return Redirect("/admin/banned-words.html");
-        }
-
-        [HttpGet("admin/settings")]
-        public IActionResult AdminSettings()
-        {
-            return Redirect("/admin/settings.html");
         }
     }
 }

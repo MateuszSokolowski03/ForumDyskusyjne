@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
+using System.Collections.Generic;
 
 namespace ForumDyskusyjne.Controllers;
 
@@ -24,86 +28,68 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        Console.WriteLine($"🔐 Próba logowania: {request.Username}");
-        
         try
         {
-            // Podstawowa walidacja
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-            {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                 return BadRequest(new { message = "Nazwa użytkownika i hasło są wymagane" });
-            }
-            
-            // Sprawdzenie użytkownika w bazie danych
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-            
-            var query = "SELECT id, username, password_hash, role, avatar_url, last_activity_at FROM \"user\" WHERE username = @username";
-            using var command = new NpgsqlCommand(query, connection);
-            command.Parameters.AddWithValue("@username", request.Username);
-            
-            using var reader = await command.ExecuteReaderAsync();
-            
-            if (await reader.ReadAsync())
-            {
-                var userId = reader.GetInt32(0); // id
-                var storedUsername = reader.GetString(1); // username
-                var passwordHash = reader.GetString(2); // password_hash
-                var userRole = reader.GetString(3); // role
-                var avatarUrl = reader.IsDBNull(4) ? null : reader.GetString(4); // avatar_url
-                var lastActivity = reader.IsDBNull(5) ? (DateTime?)null : reader.GetDateTime(5); // last_activity_at
-                
-                // TODO: Implementacja właściwego hashowania hasła (BCrypt)
-                // Na razie porównanie prostego tekstu (NIEBEZPIECZNE w produkcji!)
-                if (passwordHash == request.Password)
-                {
-                    Console.WriteLine($"✅ Logowanie udane dla: {storedUsername} (ID: {userId}, Rola: {userRole})");
-                    
-                    // Aktualizuj ostatnią aktywność
-                    await reader.CloseAsync();
-                    var updateQuery = "UPDATE \"user\" SET last_activity_at = @now WHERE id = @userId";
-                    using var updateCommand = new NpgsqlCommand(updateQuery, connection);
-                    updateCommand.Parameters.AddWithValue("@now", DateTime.Now);
-                    updateCommand.Parameters.AddWithValue("@userId", userId);
-                    await updateCommand.ExecuteNonQueryAsync();
-                    
-                    // Ustaw cookie sesji (w produkcji użyj JWT lub bezpieczniejszej sesji)
-                    var sessionData = $"{userId}|{storedUsername}|{userRole}|{avatarUrl ?? ""}";
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = false, // Pozwól JavaScript na odczyt cookie dla auth UI
-                        SameSite = SameSiteMode.Lax,
-                        Expires = request.RememberMe ? DateTime.Now.AddDays(30) : DateTime.Now.AddHours(8)
-                    };
-                    HttpContext.Response.Cookies.Append("user_session", sessionData, cookieOptions);
-                    
-                    return Ok(new { 
-                        success = true, 
-                        message = "Logowanie udane",
-                        user = new { 
-                            id = userId,
-                            username = storedUsername,
-                            role = userRole,
-                            avatar = avatarUrl
-                        }
-                    });
-                }
-                else
-                {
-                    Console.WriteLine("❌ Nieprawidłowe hasło");
-                    return Unauthorized(new { message = "Nieprawidłowe dane logowania" });
-                }
-            }
-            else
-            {
-                Console.WriteLine($"❌ Użytkownik '{request.Username}' nie został znaleziony");
+
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Username);
+
+            if (user == null)
                 return Unauthorized(new { message = "Nieprawidłowe dane logowania" });
-            }
+
+            if (user.IsBanned)
+                return Unauthorized(new { message = "Konto zostało zablokowane" });
+
+            if (user.PasswordHash != request.Password)
+                return Unauthorized(new { message = "Nieprawidłowe dane logowania" });
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var props = new AuthenticationProperties
+            {
+                IsPersistent = request.RememberMe,
+                AllowRefresh = true
+            };
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
+
+            var sessionVal = $"{user.Id}|{user.Username}|{user.Role}|{user.AvatarUrl ?? ""}";
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = false,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = request.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null
+            };
+            Response.Cookies.Append("user_session", sessionVal, cookieOptions);
+
+            return Ok(new
+            {
+                user = new
+                {
+                    id = user.Id,
+                    username = user.Username,
+                    email = user.Email,
+                    role = user.Role,
+                    avatar = user.AvatarUrl
+                }
+            });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Błąd podczas logowania: {ex.Message}");
-            return Problem($"Błąd serwera: {ex.Message}");
+            return StatusCode(500, new { error = ex.Message });
         }
     }
 
@@ -114,33 +100,21 @@ public class AuthController : ControllerBase
         
         try
         {
-            // Walidacja podstawowa
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
-            {
                 return BadRequest(new { message = "Wszystkie pola są wymagane" });
-            }
             
             if (request.Username.Length < 3)
-            {
                 return BadRequest(new { message = "Nazwa użytkownika musi mieć co najmniej 3 znaki" });
-            }
             
             if (request.Password.Length < 6)
-            {
                 return BadRequest(new { message = "Hasło musi mieć co najmniej 6 znaków" });
-            }
             
             if (request.Password != request.ConfirmPassword)
-            {
                 return BadRequest(new { message = "Hasła nie są identyczne" });
-            }
             
             if (!request.Terms)
-            {
                 return BadRequest(new { message = "Musisz zaakceptować regulamin" });
-            }
             
-            // Sprawdź czy użytkownik już istnieje
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
             
@@ -151,11 +125,8 @@ public class AuthController : ControllerBase
             
             var existingCount = (long)(await checkCommand.ExecuteScalarAsync() ?? 0L);
             if (existingCount > 0)
-            {
                 return BadRequest(new { message = "Użytkownik z tą nazwą lub e-mailem już istnieje" });
-            }
             
-            // Utwórz nowego użytkownika
             var insertQuery = @"
                 INSERT INTO ""user"" (username, email, password_hash, role, email_verified, is_banned, login_attempts, post_count, auto_logout_minutes, messages_per_page, threads_per_page, created_at, last_activity_at) 
                 VALUES (@username, @email, @passwordHash, @role, @emailVerified, @isBanned, @loginAttempts, @postCount, @autoLogout, @messagesPerPage, @threadsPerPage, @createdAt, @lastActivity) 
@@ -164,7 +135,7 @@ public class AuthController : ControllerBase
             using var insertCommand = new NpgsqlCommand(insertQuery, connection);
             insertCommand.Parameters.AddWithValue("@username", request.Username);
             insertCommand.Parameters.AddWithValue("@email", request.Email);
-            insertCommand.Parameters.AddWithValue("@passwordHash", request.Password); // TODO: Hash password properly
+            insertCommand.Parameters.AddWithValue("@passwordHash", request.Password);
             insertCommand.Parameters.AddWithValue("@role", "User");
             insertCommand.Parameters.AddWithValue("@emailVerified", false);
             insertCommand.Parameters.AddWithValue("@isBanned", false);
@@ -194,233 +165,68 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Błąd podczas rejestracji: {ex.Message}");
-            return Problem($"Błąd serwera: {ex.Message}");
+            return StatusCode(500, new { error = ex.Message });
         }
     }
 
     [HttpGet("status")]
-    public IActionResult Status()
+    public async Task<IActionResult> Status()
     {
-        try
+        if (User?.Identity?.IsAuthenticated == true)
         {
-            Console.WriteLine($"🔍 Sprawdzanie statusu uwierzytelniania - cookies count: {HttpContext.Request.Cookies.Count}");
-            
-            // TODO: Sprawdź sesję/token z cookies
-            // Na razie zwracamy przykładowe dane jeśli jest ustawiony cookie
-            if (HttpContext.Request.Cookies.ContainsKey("user_session"))
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var name = User.Identity?.Name ?? User.FindFirst(ClaimTypes.Name)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            // Sprawdź czy użytkownik nie jest zablokowany
+            if (int.TryParse(idClaim, out var uid))
             {
-                var sessionValue = HttpContext.Request.Cookies["user_session"];
-                Console.WriteLine($"🍪 Znaleziono cookie user_session: {sessionValue}");
-                
-                // W rzeczywistej aplikacji tutaj sprawdzilibyśmy sesję w bazie
-                // Na razie dekodujemy podstawowe informacje z cookie
-                if (!string.IsNullOrEmpty(sessionValue))
+                var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == uid);
+                if (user?.IsBanned == true)
                 {
-                    try
-                    {
-                        // Podstawowa deserializacja (w produkcji użyj JWT lub sesji w bazie)
-                        var parts = sessionValue.Split('|');
-                        Console.WriteLine($"🔍 Parts count: {parts.Length}, Parts: {string.Join(", ", parts)}");
-                        if (parts.Length >= 2)
-                        {
-                            var userData = new {
-                                id = int.Parse(parts[0]),
-                                username = parts[1],
-                                role = parts.Length > 2 ? parts[2] : "User",
-                                avatar = parts.Length > 3 && !string.IsNullOrEmpty(parts[3]) ? parts[3] : null
-                            };
-                            Console.WriteLine($"✅ Zwracam dane użytkownika: {userData.username}");
-                            return Ok(userData);
-                        }
-                    }
-                    catch
-                    {
-                        // Cookie nieprawidłowy, usuń go
-                        HttpContext.Response.Cookies.Delete("user_session");
-                    }
+                    // Użytkownik jest zablokowany - zwróć 403
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Twoje konto zostało zablokowane" });
                 }
             }
-            
-            Console.WriteLine("❌ Brak cookie user_session lub jest pusty");
-            return Unauthorized(new { message = "Not authenticated" });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Błąd sprawdzania statusu uwierzytelniania: {ex.Message}");
-            return Problem($"Błąd serwera: {ex.Message}");
-        }
-    }
 
-    [HttpPost("logout")]
-    public IActionResult Logout()
-    {
-        try
-        {
-            // Usuń cookie sesji
-            HttpContext.Response.Cookies.Delete("user_session");
-            
-            Console.WriteLine("🚪 Użytkownik wylogowany");
-            return Ok(new { success = true, message = "Wylogowano pomyślnie" });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Błąd podczas wylogowania: {ex.Message}");
-            return Problem($"Błąd serwera: {ex.Message}");
-        }
-    }
-
-    [HttpGet("profile/{userId}")]
-    public async Task<IActionResult> GetProfile(int userId)
-    {
-        try
-        {
-            var user = await _context.Users
-                .Include(u => u.CurrentRank)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null)
+            // Dla moderatorów, dołącz listę przypisanych forum
+            List<int>? moderatedForumIds = null;
+            if (int.TryParse(idClaim, out var uid2) && role == UserRole.Moderator.ToString())
             {
-                return NotFound(new { error = "Użytkownik nie został znaleziony" });
+                moderatedForumIds = await _context.ForumModerators
+                    .Where(fm => fm.UserId == uid2)
+                    .Select(fm => fm.ForumId)
+                    .ToListAsync();
+                
+                System.Diagnostics.Debug.WriteLine($"🔍 [AUTH] Moderator {uid2} has forums: {string.Join(", ", moderatedForumIds ?? new List<int>())}");
             }
+
+            System.Diagnostics.Debug.WriteLine($"🔍 [AUTH] Status returned - role: {role}, moderatedForumIds: {(moderatedForumIds != null ? string.Join(", ", moderatedForumIds) : "null")}");
 
             return Ok(new
             {
-                user.Id,
-                user.Username,
-                user.Email,
-                user.Bio,
-                user.AvatarUrl,
-                user.CreatedAt,
-                user.LastActivityAt,
-                user.PostCount,
-                ThreadCount = user.Threads.Count(),
-                Rank = user.CurrentRank?.Name ?? "Użytkownik",
-                Settings = new
-                {
-                    user.AutoLogoutMinutes,
-                    user.MessagesPerPage,
-                    user.ThreadsPerPage
-                }
+                id = idClaim,
+                username = name,
+                email = email,
+                role = role,
+                moderatedForumIds = moderatedForumIds
             });
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
+
+        return Unauthorized(new { message = "Brak zalogowanego użytkownika" });
     }
 
-    [HttpPut("profile")]
-    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
     {
-        try
-        {
-            var user = await _context.Users.FindAsync(request.UserId);
-            if (user == null)
-            {
-                return NotFound(new { error = "Użytkownik nie został znaleziony" });
-            }
-
-            // Aktualizuj profil
-            if (!string.IsNullOrWhiteSpace(request.Bio))
-            {
-                user.Bio = request.Bio.Trim();
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.AvatarUrl))
-            {
-                user.AvatarUrl = request.AvatarUrl.Trim();
-            }
-
-            // Aktualizuj ustawienia
-            if (request.AutoLogoutMinutes.HasValue && request.AutoLogoutMinutes > 0)
-            {
-                user.AutoLogoutMinutes = request.AutoLogoutMinutes.Value;
-            }
-
-            if (request.MessagesPerPage.HasValue && request.MessagesPerPage > 0)
-            {
-                user.MessagesPerPage = request.MessagesPerPage.Value;
-            }
-
-            if (request.ThreadsPerPage.HasValue && request.ThreadsPerPage > 0)
-            {
-                user.ThreadsPerPage = request.ThreadsPerPage.Value;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Profil został zaktualizowany" });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
-    }
-
-    [HttpPut("password")]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(request.CurrentPassword) || 
-                string.IsNullOrWhiteSpace(request.NewPassword))
-            {
-                return BadRequest(new { error = "Aktualne i nowe hasło są wymagane" });
-            }
-
-            if (request.NewPassword != request.ConfirmPassword)
-            {
-                return BadRequest(new { error = "Nowe hasło i potwierdzenie muszą być identyczne" });
-            }
-
-            if (request.NewPassword.Length < 6)
-            {
-                return BadRequest(new { error = "Nowe hasło musi mieć co najmniej 6 znaków" });
-            }
-
-            var user = await _context.Users.FindAsync(request.UserId);
-            if (user == null)
-            {
-                return NotFound(new { error = "Użytkownik nie został znaleziony" });
-            }
-
-            // Sprawdź aktualne hasło (w prawdziwej aplikacji używamy BCrypt)
-            if (user.PasswordHash != request.CurrentPassword)
-            {
-                return BadRequest(new { error = "Aktualne hasło jest nieprawidłowe" });
-            }
-
-            // Ustaw nowe hasło (w prawdziwej aplikacji używamy BCrypt)
-            user.PasswordHash = request.NewPassword;
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Hasło zostało zmienione" });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        if (Request.Cookies.ContainsKey("user_session"))
+            Response.Cookies.Delete("user_session");
+        return Ok(new { message = "Wylogowano" });
     }
 }
 
-// DTOs dla żądań
+// DTOs
 public record LoginRequest(string Username, string Password, bool RememberMe);
 public record RegisterRequest(string Username, string Email, string Password, string ConfirmPassword, bool Terms);
-
-public class UpdateProfileRequest
-{
-    public int UserId { get; set; }
-    public string? Bio { get; set; }
-    public string? AvatarUrl { get; set; }
-    public int? AutoLogoutMinutes { get; set; }
-    public int? MessagesPerPage { get; set; }
-    public int? ThreadsPerPage { get; set; }
-}
-
-public class ChangePasswordRequest
-{
-    public int UserId { get; set; }
-    public string CurrentPassword { get; set; } = string.Empty;
-    public string NewPassword { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
