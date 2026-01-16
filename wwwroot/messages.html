@@ -292,7 +292,7 @@
 
     function startChatWithUser(userId, username) {
         document.getElementById('new-chat-modal').remove();
-        selectChat(userId, username);
+        selectChat(null, userId, username);
     }
 
     async function fetchJson(url, opts = {}) {
@@ -546,9 +546,21 @@
 }
     
     document.getElementById('search-chats').addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = allChats.filter(c => c.username.toLowerCase().includes(query));
-        renderChats(filtered);
+        const query = e.target.value.toLowerCase().trim();
+        
+        if (!query) {
+            renderChats(allChats);
+            return;
+        }
+        
+        const filtered = allChats.filter(c => c.username && c.username.toLowerCase().includes(query));
+        
+        if (filtered.length === 0) {
+            const container = document.getElementById('conversations-list');
+            container.innerHTML = '<div class="p-6 text-center text-gray-500 dark:text-gray-400"><p>Brak wyników</p><p class="text-sm mt-2">Spróbuj innego zapytania</p></div>';
+        } else {
+            renderChats(filtered);
+        }
     });
 
     document.getElementById('new-chat-btn').addEventListener('click', showNewChatModal);
@@ -573,9 +585,11 @@
 
         if (res.ok) {
             input.value = '';
+            await loadChats(); // Odśwież listę konwersacji
             await loadMessages(selectedContactId);
         } else {
-            alert('Błąd podczas wysyłania wiadomości');
+            console.error('Błąd wysyłania wiadomości:', res);
+            alert('Błąd podczas wysyłania wiadomości: ' + (res.json?.error || res.status));
         }
     });
 

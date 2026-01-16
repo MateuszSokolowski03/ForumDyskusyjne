@@ -52,23 +52,41 @@ namespace ForumDyskusyjne.Controllers
             {
                 var senderId = GetCurrentUserId();
 
+                Console.WriteLine($"SendMessage called - SenderId: {senderId}, Request: {System.Text.Json.JsonSerializer.Serialize(request)}");
+
                 if (request == null)
+                {
+                    Console.WriteLine("ERROR: Request is null");
                     return BadRequest(new { error = "Brak danych żądania" });
+                }
 
                 if (string.IsNullOrWhiteSpace(request.Content))
+                {
+                    Console.WriteLine($"ERROR: Content is empty. Content='{request.Content}'");
                     return BadRequest(new { error = "Treść wiadomości jest wymagana" });
+                }
 
                 int? recipientId = request.RecipientId > 0 ? request.RecipientId : (int?)null;
+                Console.WriteLine($"RecipientId from request: {request.RecipientId}, Parsed: {recipientId}");
+                Console.WriteLine($"RecipientUsername from request: '{request.RecipientUsername}'");
+                
                 if (recipientId == null)
                 {
                     if (string.IsNullOrWhiteSpace(request.RecipientUsername))
+                    {
+                        Console.WriteLine($"ERROR: Both RecipientId and RecipientUsername are missing");
                         return BadRequest(new { error = "RecipientId lub RecipientUsername wymagane" });
+                    }
 
                     var recipient = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.RecipientUsername);
                     if (recipient == null)
+                    {
+                        Console.WriteLine($"ERROR: Recipient not found for username: {request.RecipientUsername}");
                         return NotFound(new { error = "Odbiorca nie znaleziony" });
+                    }
 
                     recipientId = recipient.Id;
+                    Console.WriteLine($"Found recipient ID: {recipientId}");
                 }
 
                 if (recipientId == senderId)

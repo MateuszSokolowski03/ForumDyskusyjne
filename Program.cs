@@ -65,7 +65,12 @@ Console.WriteLine($"Connection string loaded: {!string.IsNullOrEmpty(connectionS
 builder.Services.AddDbContext<ForumDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 // DODANE - Konfiguracja autentykacji
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

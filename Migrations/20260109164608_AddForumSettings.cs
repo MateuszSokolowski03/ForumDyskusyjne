@@ -12,10 +12,6 @@ namespace ForumDyskusyjne.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "edited_by",
-                table: "message");
-
             migrationBuilder.CreateTable(
                 name: "forum_settings",
                 columns: table => new
@@ -37,12 +33,6 @@ namespace ForumDyskusyjne.Migrations
         {
             migrationBuilder.DropTable(
                 name: "forum_settings");
-
-            migrationBuilder.AddColumn<int>(
-                name: "edited_by",
-                table: "message",
-                type: "integer",
-                nullable: true);
         }
     }
 }
