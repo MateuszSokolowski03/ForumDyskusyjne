@@ -499,16 +499,6 @@ function setupAvatarDelegation() {
         // Kliknięcie w przycisk avatara
         const btn = e.target.closest('.js-avatar-btn, #avatar-btn');
         if (btn) {
-            // If pointerdown already toggled the menu very recently, ignore this click
-            try {
-                const last = parseInt(btn.dataset._justToggled || '0', 10);
-                if (last && Date.now() - last < 500) {
-                    // clear the flag and skip toggling to avoid double-toggle
-                    delete btn.dataset._justToggled;
-                    return;
-                }
-            } catch (e) {}
-
             e.stopPropagation();
             e.preventDefault();
             const wrapper = btn.closest('div');
@@ -534,6 +524,8 @@ function setupAvatarDelegation() {
 }
 
 // Additionally listen on pointerdown with capture to catch interactions earlier
+// DISABLED: This was causing issues where menu closes immediately
+/*
 function setupAvatarDelegationCapture() {
     document.addEventListener('pointerdown', function(e) {
         const btn = e.target.closest('.js-avatar-btn, #avatar-btn');
@@ -555,9 +547,10 @@ function setupAvatarDelegationCapture() {
         }
     }, { capture: true });
 }
+*/
 
 // Ensure the capture-based delegation is installed once
-try { setupAvatarDelegationCapture(); } catch (e) { /* ignore */ }
+// try { setupAvatarDelegationCapture(); } catch (e) { /* ignore */ }
 
 // Dodatkowe zabezpieczenie: podłącz bezpośrednio listenery do istniejących przycisków avatara
 function ensureAvatarButtons() {

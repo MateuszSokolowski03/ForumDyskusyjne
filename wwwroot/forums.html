@@ -462,12 +462,15 @@
                                 const user = await userResponse.json();
                                 const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
                                 if (avatarBtn) {
-                                    avatarBtn.style.backgroundImage = user.avatarUrl ? `url(${user.avatarUrl})` : '';
                                     if (user.avatarUrl) {
+                                        avatarBtn.style.backgroundImage = `url(${user.avatarUrl})`;
                                         avatarBtn.style.backgroundSize = 'cover';
                                         avatarBtn.style.backgroundPosition = 'center';
+                                        avatarBtn.textContent = '';
+                                    } else {
+                                        avatarBtn.style.backgroundImage = '';
+                                        avatarBtn.textContent = (user.username || 'U').charAt(0).toUpperCase();
                                     }
-                                    avatarBtn.textContent = '';
                                 }
                                 const headerName = authContainer.querySelector('#header-username');
                                 if (headerName && user.username) headerName.textContent = user.username;

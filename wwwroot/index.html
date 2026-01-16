@@ -19,10 +19,7 @@
                     <div class="flex items-center gap-4">
                             <div id="logo-container" class="flex items-center gap-3">
                             <div class="text-primary flex items-center">
-                                <svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"></path>
-                                </svg>
-                                <span class="material-symbols-outlined text-2xl ml-2 hidden sm:inline">forum</span>
+                                <span class="material-symbols-outlined text-2xl hidden sm:inline">forum</span>
                             </div>
                             <h1 class="text-xl font-bold text-gray-900 dark:text-white">
                                 Forum Dyskusyjne
@@ -455,9 +452,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         } else {
             // Not logged in - show login/register buttons
             authContainer.innerHTML = `
-                <div class="flex space-x-3">
-                    <a href="/login.html" class="text-sm text-gray-700 dark:text-gray-300 hover:underline">Logowanie</a>
-                    <a href="/register.html" class="text-sm text-primary hover:underline font-medium">Rejestracja</a>
+                <div class="flex space-x-4">
+                    <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">
+                        Logowanie
+                    </a>
+                    <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">
+                        Rejestracja
+                    </a>
                 </div>
             `;
         }
@@ -508,12 +509,15 @@ function initUpdatersIndex() {
                         const user = await userResponse.json();
                         const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
                         if (avatarBtn) {
-                            avatarBtn.style.backgroundImage = user.avatarUrl ? `url(${user.avatarUrl})` : '';
                             if (user.avatarUrl) {
+                                avatarBtn.style.backgroundImage = `url(${user.avatarUrl})`;
                                 avatarBtn.style.backgroundSize = 'cover';
                                 avatarBtn.style.backgroundPosition = 'center';
+                                avatarBtn.textContent = '';
+                            } else {
+                                avatarBtn.style.backgroundImage = '';
+                                avatarBtn.textContent = (user.username || 'U').charAt(0).toUpperCase();
                             }
-                            avatarBtn.textContent = '';
                         }
                         const headerName = authContainer.querySelector('#header-username');
                         if (headerName && user.username) headerName.textContent = user.username;

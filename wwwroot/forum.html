@@ -28,10 +28,7 @@
                     <div class="flex items-center gap-4">
                         <div id="logo-container" class="flex items-center gap-3">
                             <div class="text-primary flex items-center">
-                                <svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"></path>
-                                </svg>
-                                <span class="material-symbols-outlined text-2xl ml-2 hidden sm:inline">forum</span>
+                                <span class="material-symbols-outlined text-2xl hidden sm:inline">forum</span>
                             </div>
                             <h1 class="text-xl font-bold text-gray-900 dark:text-white">
                                 Forum Dyskusyjne
@@ -732,12 +729,15 @@
                                 const userInitial = (user.username || 'U').charAt(0).toUpperCase();
                                 const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
                                 if (avatarBtn) {
-                                    avatarBtn.style.backgroundImage = user.avatarUrl ? `url(${user.avatarUrl})` : '';
                                     if (user.avatarUrl) {
+                                        avatarBtn.style.backgroundImage = `url(${user.avatarUrl})`;
                                         avatarBtn.style.backgroundSize = 'cover';
                                         avatarBtn.style.backgroundPosition = 'center';
+                                        avatarBtn.textContent = '';
+                                    } else {
+                                        avatarBtn.style.backgroundImage = '';
+                                        avatarBtn.textContent = userInitial;
                                     }
-                                    avatarBtn.textContent = '';
                                 }
                                 const headerName = authContainer.querySelector('#header-username');
                                 if (headerName && user.username) headerName.textContent = user.username;
