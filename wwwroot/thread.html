@@ -305,108 +305,59 @@
                                         ${escapeHtml(msg.content || msg.Content || '')}
                                     </div>
                                         ${msg.isEdited || msg.IsEdited ? '<p class="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">Edytowano</p>' : ''}
-                                        ${(function(){
-                                            try {
-                                                const currentUserId = currentUser && (currentUser.id || currentUser.user?.id || currentUser.userId) ? parseInt(currentUser.id || currentUser.user?.id || currentUser.userId) : null;
-                                                const currentRole = currentUser && (currentUser.role || currentUser.user?.role) ? (currentUser.role || currentUser.user?.role) : null;
-                                                const moderatedForumIds = currentUser && currentUser.moderatedForumIds ? currentUser.moderatedForumIds : (currentUser && currentUser.user && currentUser.user.moderatedForumIds ? currentUser.user.moderatedForumIds : null);
-                                                const forumId = thread.forumId || thread.ForumId || (thread.forum && thread.forum.id) || (thread.Forum && thread.Forum.Id);
-                                                const fid = Number(forumId);
-                                                const moderatedIdsNormalized = Array.isArray(moderatedForumIds) ? moderatedForumIds.map(x => Number(x)) : [];
-                                                
-                                                console.debug('🔍 Moderation Debug:', {
-                                                    userId: currentUserId,
-                                                    role: currentRole,
-                                                    moderatedForumIds: moderatedForumIds,
-                                                    moderatedIdsNormalized: moderatedIdsNormalized,
-                                                    forumId: fid,
-                                                    messageId: msg.id || msg.Id,
-                                                    authorId: msg.author && (msg.author.Id || msg.author.id),
-                                                    threadForumIdRaw: forumId
-                                                });
-                                                
-                                                const isAuthor = currentUserId && msg.author && ( (msg.author.Id && parseInt(msg.author.Id) === currentUserId) || (msg.author.id && parseInt(msg.author.id) === currentUserId) );
-                                                const isAdmin = currentRole === 'Admin';
-                                                const isModeratorForForum = currentRole === 'Moderator' && moderatedIdsNormalized.includes(fid);
-                                                
-                                                console.debug('🔍 Permission Check:', {
-                                                    isAuthor: isAuthor,
-                                                    isAdmin: isAdmin,
-                                                    isModeratorForForum: isModeratorForForum,
-                                                    result: isModeratorForForum
-                                                });
-                                                
-                                                // ONLY moderators assigned to forum can edit/delete
-                                                if (isModeratorForForum) {
-                                                    return `<div class="mt-3 flex gap-2">
-                                                        <button class="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 edit-message-btn" data-message-id="${msg.id || msg.Id}">Edytuj</button>
-                                                        <button class="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 delete-message-btn" data-message-id="${msg.id || msg.Id}">Usuń</button>
-                                                    </div>`;
-                                                }
-                                            } catch(e) { 
-                                                console.error('❌ Error in delete button rendering:', e);
-                                                return ''; 
-                                            }
-                                            return '';
-                                        })()}
+                                        ${renderModeratorButtons(currentUser, msg, thread)}
+                                    </div>
                                 </div>
-                            </div>
-                        </article>
-                    `;
+                            </article>`;
                 });
             }
 
             content.innerHTML = html;
+        }
 
-            // Podłącz handlery dla przycisków Edytuj
-            document.querySelectorAll('.edit-message-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = btn.dataset.messageId;
-                    const messageEl = btn.closest('article');
-                    const currentContent = messageEl.querySelector('.message-body')?.textContent?.trim() || '';
-                    
-                    const newContent = prompt('Edytuj wiadomość:', currentContent);
-                    if (newContent === null || newContent.trim() === '') return;
-                    
-                    try {
-                        const res = await fetch(`/api/forum/messages/${id}`, { 
-                            method: 'PUT',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: newContent })
-                        });
-                        if (res.ok) {
-                            // odśwież wątek
-                            await loadThread(currentThreadId);
-                        } else {
-                            const err = await res.json();
-                            alert('❌ Błąd: ' + (err.error || err.message || 'Nie udało się edytować wiadomości'));
-                        }
-                    } catch (err) {
-                        alert('❌ Błąd: ' + (err.message || err));
-                    }
+        function renderModeratorButtons(currentUser, msg, thread) {
+            try {
+                const currentUserId = currentUser && (currentUser.id || currentUser.user?.id || currentUser.userId) ? parseInt(currentUser.id || currentUser.user?.id || currentUser.userId) : null;
+                const currentRole = currentUser && (currentUser.role || currentUser.user?.role) ? (currentUser.role || currentUser.user?.role) : null;
+                const moderatedForumIds = currentUser && currentUser.moderatedForumIds ? currentUser.moderatedForumIds : (currentUser && currentUser.user && currentUser.user.moderatedForumIds ? currentUser.user.moderatedForumIds : null);
+                const forumId = thread.forumId || thread.ForumId || (thread.forum && thread.forum.id) || (thread.Forum && thread.Forum.Id);
+                const fid = Number(forumId);
+                const moderatedIdsNormalized = Array.isArray(moderatedForumIds) ? moderatedForumIds.map(x => Number(x)) : [];
+                
+                console.debug('🔍 Moderation Debug:', {
+                    userId: currentUserId,
+                    role: currentRole,
+                    moderatedForumIds: moderatedForumIds,
+                    moderatedIdsNormalized: moderatedIdsNormalized,
+                    forumId: fid,
+                    messageId: msg.id || msg.Id,
+                    authorId: msg.author && (msg.author.Id || msg.author.id),
+                    threadForumIdRaw: forumId
                 });
-            });
-
-            // Podłącz handlery dla przycisków Usuń
-            document.querySelectorAll('.delete-message-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = btn.dataset.messageId;
-                    if (!confirm('Czy na pewno chcesz usunąć tę wiadomość?')) return;
-                    try {
-                        const res = await fetch(`/api/forum/messages/${id}?userId=0`, { method: 'DELETE', credentials: 'include' });
-                        if (res.ok) {
-                            // odśwież wątek
-                            await loadThread(currentThreadId);
-                        } else {
-                            const err = await res.json();
-                            alert('❌ Błąd: ' + (err.error || err.message || 'Nie udało się usunąć wiadomości'));
-                        }
-                    } catch (err) {
-                        alert('❌ Błąd: ' + (err.message || err));
-                    }
+                
+                const isAuthor = currentUserId && msg.author && ( (msg.author.Id && parseInt(msg.author.Id) === currentUserId) || (msg.author.id && parseInt(msg.author.id) === currentUserId) );
+                const isAdmin = currentRole === 'Admin';
+                const isModeratorForForum = currentRole === 'Moderator' && moderatedIdsNormalized.includes(fid);
+                
+                console.debug('🔍 Permission Check:', {
+                    isAuthor: isAuthor,
+                    isAdmin: isAdmin,
+                    isModeratorForForum: isModeratorForForum,
+                    result: isModeratorForForum
                 });
-            });
+                
+                // ONLY moderators assigned to forum can edit/delete
+                if (isModeratorForForum) {
+                    return `<div class="mt-3 flex gap-2">
+                        <button class="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 edit-message-btn" data-message-id="${msg.id || msg.Id}">Edytuj</button>
+                        <button class="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 delete-message-btn" data-message-id="${msg.id || msg.Id}">Usuń</button>
+                    </div>`;
+                }
+            } catch(e) { 
+                console.error('❌ Error in delete button rendering:', e);
+                return ''; 
+            }
+            return '';
         }
 
         function showLoginButtons() {

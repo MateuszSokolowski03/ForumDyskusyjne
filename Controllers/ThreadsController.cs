@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization; // Add this line
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
@@ -235,6 +236,51 @@ namespace ForumDyskusyjne
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        // DELETE: api/forum/thread/{id}
+        [HttpDelete]
+        [Route("/api/forum/thread/{id}")]
+        [Authorize] // Only authenticated users can delete threads
+        public async Task<IActionResult> DeleteThreadApi(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+            {
+                return StatusCode(401, new { error = "Użytkownik nie jest zalogowany." }); // Unauthorized
+            }
+
+            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            var thread = await _context.Threads
+                                     .Include(t => t.Messages) // Include messages to check for existence
+                                     .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (thread == null)
+            {
+                return StatusCode(404, new { error = "Wątek nie został znaleziony." }); // Not Found
+            }
+
+            // Authorization check
+            bool isAuthor = thread.AuthorId == currentUserId;
+            bool isAdmin = currentUserRole == UserRole.Admin.ToString();
+            bool isModerator = currentUserRole == UserRole.Moderator.ToString();
+
+            if (!isAuthor && !isAdmin && !isModerator)
+            {
+                return StatusCode(403, new { error = "Nie masz uprawnień do usunięcia tego wątku." }); // Forbidden
+            }
+
+            // Business logic: Prevent deletion if thread has messages (comments)
+            if (thread.Messages != null && thread.Messages.Any())
+            {
+                return StatusCode(400, new { error = "Nie można usunąć wątku posiadającego wiadomości." }); // Bad Request
+            }
+            
+            _context.Threads.Remove(thread);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // 204 No Content for successful deletion
         }
 
         private bool ThreadExists(int id)

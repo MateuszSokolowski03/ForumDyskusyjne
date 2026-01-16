@@ -84,6 +84,11 @@
                     <p class="text-red-600 dark:text-red-400">❌ Błąd ładowania wątków</p>
                     <a href="forum.html" class="text-primary hover:underline mt-4 inline-block">← Powrót do kategorii</a>
                 </div>
+
+                <!-- Pagination controls -->
+                <div id="pagination-container" class="flex justify-between items-center mt-8">
+                    <!-- Pagination will be rendered here by JavaScript -->
+                </div>
             </div>
         </main>
 
@@ -129,9 +134,9 @@
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
                     </div>
                 </div>
             </div>
@@ -141,285 +146,454 @@
     <!-- Scripts -->
     <script src="js/main.js"></script>
     <script>
-        let currentUser = null;
-        let currentForumId = null;
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Inicjalizacja forum...');
-            
-            const params = new URLSearchParams(window.location.search);
-            currentForumId = params.get('forumId');
-
-            if (!currentForumId) {
-                console.error('❌ Brak forumId w URL');
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.remove('hidden');
-                return;
+        class ForumsPage {
+            constructor() {
+                this.currentUser = null;
+                this.currentForumId = null;
+                this.currentPage = 1;
+                this.pageSize = 10; // Default page size
+                this.totalThreads = 0;
+                this.filters = {
+                    search: ''
+                };
+                this.searchTimeout = null;
+                this.init();
             }
 
-            try {
-                const statusResponse = await fetch('/api/auth/status', { credentials: 'include' });
+            init() {
+                document.addEventListener('DOMContentLoaded', async () => this.onDOMContentLoaded());
+                document.getElementById('new-thread-btn-top').addEventListener('click', () => this.openThreadModal());
+                document.getElementById('close-modal').addEventListener('click', () => this.closeThreadModal());
+                document.getElementById('cancel-modal').addEventListener('click', () => this.closeThreadModal());
+                document.getElementById('new-thread-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'new-thread-modal') this.closeThreadModal();
+                });
+                document.getElementById('create-thread-btn').addEventListener('click', async () => this.createThread());
+
+                // Setup search input listener
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        this.filters.search = e.target.value;
+                        this.debounceSearch();
+                    });
+                }
+            }
+
+            async onDOMContentLoaded() {
+                console.log('🚀 Inicjalizacja forum...');
                 
-                if (!statusResponse.ok) {
-                    console.log('❌ Brak autentykacji');
-                    showLoginButtons();
+                const params = new URLSearchParams(window.location.search);
+                this.currentForumId = params.get('forumId');
+
+                if (!this.currentForumId) {
+                    console.error('❌ Brak forumId w URL');
                     document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('error').classList.remove('hidden');
                     return;
                 }
-                
-                currentUser = await statusResponse.json();
-                console.log('✅ Zalogowany:', currentUser.username);
-                showUserAvatar(currentUser);
-                
-                await loadForumThreads(parseInt(currentForumId, 10));
-                
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                showLoginButtons();
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.remove('hidden');
-            }
 
-            setupSearch();
-            document.getElementById('new-thread-btn-top').addEventListener('click', openThreadModal);
-        });
+                try {
+                    const statusResponse = await fetch('/api/auth/status', { credentials: 'include' });
+                    if (statusResponse.status === 401) {
+                        console.log('ℹ️ Użytkownik niezalogowany (status: 401) - ładowanie forum jako gość');
+                        this.currentUser = null;
+                    } else if (statusResponse.ok) {
+                        this.currentUser = await statusResponse.json();
+                        console.log('✅ Zalogowany:', this.currentUser.username);
+                        this.showUserAvatar(this.currentUser);
+                    } else {
+                        console.log('❌ Brak autentykacji');
+                        this.showLoginButtons();
+                        document.getElementById('loading').classList.add('hidden');
+                        return;
+                    }
 
-        async function loadForumThreads(forumId) {
-            console.log(`📋 Ładowanie wątków dla forum ${forumId}`);
-            try {
-                const response = await fetch(`/api/forum/forum/${forumId}`, { credentials: 'include' });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    await this.loadForumThreads(parseInt(this.currentForumId, 10));
+                } catch (error) {
+                    console.error('❌ Błąd:', error);
+                    this.showLoginButtons();
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('error').classList.remove('hidden');
                 }
-                
-                const data = await response.json();
-                console.log('📋 Dane forum:', data);
-                
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.add('hidden');
-                document.getElementById('content').classList.remove('hidden');
-                
-                renderForumThreads(data);
-                
-            } catch (error) {
-                console.error('❌ Błąd ładowania:', error);
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.remove('hidden');
-                document.getElementById('content').classList.add('hidden');
-            }
-        }
 
-        function renderForumThreads(data) {
-            const forum = data.forum || data.Forum;
-            const threads = (data.threads || data.Threads || []);
-
-            if (!forum) {
-                console.error('❌ Brak danych forum');
-                document.getElementById('error').classList.remove('hidden');
-                return;
+                this.setupSearch();
             }
 
-            document.getElementById('forum-title').textContent = escapeHtml(forum.name || '');
-            document.getElementById('forum-description').textContent = escapeHtml(forum.description || '');
-
-            const content = document.getElementById('content');
-
-            if (!Array.isArray(threads) || threads.length === 0) {
-                content.innerHTML = `
-                    <div class="text-center py-8 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-gray-700">
-                        <p class="text-gray-500 dark:text-gray-400">Brak wątków w tym forum</p>
-                        <p class="text-sm text-gray-400 mt-2">Bądź pierwszy i utwórz nowy wątek!</p>
-                    </div>
-                `;
-                return;
+            debounceSearch() {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.currentPage = 1; // Reset to first page on new search
+                    this.loadForumThreads(parseInt(this.currentForumId, 10));
+                }, 500);
             }
 
-            let html = '';
-            threads.forEach(thread => {
-                const threadDate = new Date(thread.createdAt || thread.CreatedAt).toLocaleDateString('pl-PL', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+            async loadForumThreads(forumId) {
+                console.log(`📋 Ładowanie wątków dla forum ${forumId}, strona: ${this.currentPage}, wyszukiwanie: ${this.filters.search}`);
+                try {
+                    document.getElementById('loading').classList.remove('hidden');
+                    document.getElementById('content').classList.add('hidden');
+                    document.getElementById('error').classList.add('hidden');
 
-                html += `
-                    <a href="thread.html?threadId=${thread.id || thread.Id}" class="block bg-white dark:bg-[#192231] p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-primary dark:hover:border-primary transition-all">
-                        <div class="flex justify-between items-start gap-4">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 hover:text-primary transition-colors">${escapeHtml(thread.title || thread.Title || '')}</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                    <span class="font-medium">Autor:</span> ${escapeHtml((thread.author?.username || thread.authorName || thread.Author?.Username || 'Anonimowo'))}
-                                </p>
-                                <div class="flex flex-wrap gap-6 text-sm">
-                                    <span class="text-gray-500 dark:text-gray-400">💬 ${thread.repliesCount || thread.ReplyCount || thread.RepliesCount || 0} odpowiedzi</span>
-                                    <span class="text-gray-500 dark:text-gray-400">👁️ ${thread.views || thread.Views || 0} wyświetleń</span>
+                    const params = new URLSearchParams({
+                        page: this.currentPage,
+                        pageSize: this.pageSize,
+                        search: this.filters.search
+                    });
+
+                    const response = await fetch(`/api/forum/forum/${forumId}?${params}`, { credentials: 'include' });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('📋 Dane forum:', data);
+                    
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('content').classList.remove('hidden');
+                    
+                    this.renderForumThreads(data);
+                    this.updatePagination(data.totalThreads);
+                    
+                } catch (error) {
+                    console.error('❌ Błąd ładowania:', error);
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('error').classList.remove('hidden');
+                    document.getElementById('content').classList.add('hidden');
+                }
+            }
+
+            renderForumThreads(data) {
+                const forum = data.forum || data.Forum;
+                const threads = (data.threads || data.Threads || []);
+
+                if (!forum) {
+                    console.error('❌ Brak danych forum');
+                    document.getElementById('error').classList.remove('hidden');
+                    return;
+                }
+
+                document.getElementById('forum-title').textContent = this.escapeHtml(forum.name || '');
+                document.getElementById('forum-description').textContent = this.escapeHtml(forum.description || '');
+
+                const content = document.getElementById('content');
+
+                if (!Array.isArray(threads) || threads.length === 0) {
+                    content.innerHTML = `
+                        <div class="text-center py-8 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-gray-700">
+                            <p class="text-gray-500 dark:text-gray-400">Brak wątków w tym forum</p>
+                            <p class="text-sm text-gray-400 mt-2">Bądź pierwszy i utwórz nowy wątek!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                threads.forEach(thread => {
+                    const threadDate = new Date(thread.createdAt || thread.CreatedAt).toLocaleDateString('pl-PL', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // Check for authorization for delete button
+                    const currentUserId = this.currentUser && (this.currentUser.id || this.currentUser.user?.id || this.currentUser.userId) ? parseInt(this.currentUser.id || this.currentUser.user?.id || this.currentUser.userId) : null;
+                    const currentRole = this.currentUser && (this.currentUser.role || this.currentUser.user?.role) ? (this.currentUser.role || this.currentUser.user?.role) : null;
+                    const moderatedForumIds = this.currentUser && this.currentUser.moderatedForumIds ? this.currentUser.moderatedForumIds : (this.currentUser && this.currentUser.user && this.currentUser.user.moderatedForumIds ? this.currentUser.user.moderatedForumIds : null);
+                    const forumId = thread.forumId || thread.ForumId || (thread.forum && thread.forum.id) || (thread.Forum && thread.Forum.Id);
+                    const fid = Number(forumId);
+                    const moderatedIdsNormalized = Array.isArray(moderatedForumIds) ? moderatedForumIds.map(x => Number(x)) : [];
+                    
+                    const isAdmin = currentRole === 'Admin';
+                    const isModeratorForForum = currentRole === 'Moderator' && moderatedIdsNormalized.includes(fid);
+                    const canDelete = isAdmin || isModeratorForForum;
+
+                    const deleteButtonHtml = canDelete ? `
+                        <button class="delete-thread-btn text-red-500 hover:text-red-700 ml-2" title="Usuń wątek" data-thread-id="${thread.id || thread.Id}">
+                            <span class="material-symbols-outlined text-base">delete</span>
+                        </button>` : '';
+
+                    html += `
+                        <div class="block bg-white dark:bg-[#192231] p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-primary dark:hover:border-primary transition-all">
+                            <div class="flex justify-between items-start gap-4">
+                                <a href="thread.html?threadId=${thread.id || thread.Id}" class="flex-1">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 hover:text-primary transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">visibility</span>${this.escapeHtml(thread.title || thread.Title || '')}
+                                    </h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                        <span class="font-medium">Autor:</span> ${this.escapeHtml((thread.author?.username || thread.authorName || thread.Author?.Username || 'Anonimowo'))}
+                                    </p>
+                                    <div class="flex flex-wrap gap-6 text-sm">
+                                        <span class="text-gray-500 dark:text-gray-400">💬 ${thread.repliesCount || thread.ReplyCount || thread.RepliesCount || 0} odpowiedzi</span>
+                                        <span class="text-gray-500 dark:text-gray-400">👁️ ${thread.views || thread.Views || 0} wyświetlenia</span>
+                                    </div>
+                                </a>
+                                <div class="text-right ml-4 flex items-center">
+                                    <p class="text-xs text-gray-400">${threadDate}</p>
+                                    ${deleteButtonHtml}
                                 </div>
                             </div>
-                            <div class="text-right ml-4">
-                                <p class="text-xs text-gray-400">${threadDate}</p>
-                            </div>
                         </div>
-                    </a>
-                `;
-            });
+                    `;
+                });
 
-            content.innerHTML = html;
-        }
+                content.innerHTML = html;
 
-        function showLoginButtons() {
-            const authContainer = document.getElementById('auth-container');
-            authContainer.innerHTML = `
-                <div class="flex space-x-4">
-                    <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">
-                        Logowanie
-                    </a>
-                    <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">
-                        Rejestracja
-                    </a>
-                </div>
-            `;
-        }
+                // Add event listeners for delete buttons
+                document.querySelectorAll('.delete-thread-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault(); // Prevent navigating to thread.html
+                        const threadId = event.currentTarget.dataset.threadId;
+                        this.deleteThread(threadId);
+                    });
+                });
+            }
 
-        function showUserAvatar(userData) {
-            const authContainer = document.getElementById('auth-container');
-            const userInitial = userData.username.charAt(0).toUpperCase();
-            
-            authContainer.innerHTML = `
-                <div class="relative flex items-center gap-3">
-                    <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 transition-all flex items-center justify-center text-lg cursor-pointer" aria-label="Avatar"></button>
-                    <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${userData.username}</span>
-
-                    <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white">${userData.username}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${userData.email || 'Brak e-maila'}</p>
-                        </div>
-
-                        <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
-                        </a>
-
-                        <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
-                        </a>
-
-                        <hr class="my-1 border-gray-200 dark:border-gray-700">
-
-                        <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            const logoutBtn = document.querySelector('#logout-btn');
-            logoutBtn?.addEventListener('click', async () => {
-                try {
-                    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-                    window.location.href = '/login.html';
-                } catch (error) {
-                    console.error('❌ Błąd wylogowania:', error);
+            updatePagination(total) {
+                this.totalThreads = total;
+                const totalPages = Math.ceil(total / this.pageSize);
+                
+                const paginationContainer = document.getElementById('pagination-container');
+                if (!paginationContainer) {
+                    const mainContent = document.querySelector('main .max-w-7xl');
+                    const newPaginationContainer = document.createElement('div');
+                    newPaginationContainer.id = 'pagination-container';
+                    newPaginationContainer.className = 'flex justify-between items-center mt-8';
+                    mainContent.appendChild(newPaginationContainer);
                 }
-            });
-        }
 
-        function setupSearch() {
-            const searchToggle = document.getElementById('search-toggle');
-            const searchContainer = document.getElementById('search-container');
-            const searchInput = document.getElementById('search-input');
-            const searchClose = document.getElementById('search-close');
+                document.getElementById('pagination-container').innerHTML = `
+                    <button id="prev-page" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors" ${this.currentPage <= 1 ? 'disabled' : ''}>Poprzednia</button>
+                    <div id="pagination-numbers" class="flex space-x-2">
+                        ${this.generatePageNumbers(totalPages)}
+                    </div>
+                    <button id="next-page" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors" ${this.currentPage >= totalPages ? 'disabled' : ''}>Następna</button>
+                `;
 
-            if (searchToggle && searchContainer) {
-                searchToggle.addEventListener('click', () => {
-                    searchContainer.classList.remove('hidden');
-                    searchContainer.classList.add('flex');
-                    searchInput.focus();
+                document.getElementById('prev-page').addEventListener('click', () => {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.loadForumThreads(parseInt(this.currentForumId, 10));
+                    }
                 });
 
-                searchClose.addEventListener('click', () => {
-                    searchContainer.classList.add('hidden');
-                    searchContainer.classList.remove('flex');
-                    searchInput.value = '';
-                });
-
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && !searchContainer.classList.contains('hidden')) {
-                        searchContainer.classList.add('hidden');
-                        searchContainer.classList.remove('flex');
+                document.getElementById('next-page').addEventListener('click', () => {
+                    if (this.currentPage < totalPages) {
+                        this.currentPage++;
+                        this.loadForumThreads(parseInt(this.currentForumId, 10));
                     }
                 });
             }
-        }
 
-        function openThreadModal() {
-            if (!currentUser) {
-                alert('⚠️ Musisz być zalogowany aby utworzyć wątek');
-                return;
-            }
-            document.getElementById('new-thread-modal').classList.remove('hidden');
-            document.getElementById('new-thread-modal').classList.add('flex');
-            document.getElementById('thread-title').focus();
-        }
+            generatePageNumbers(totalPages) {
+                const buttons = [];
+                const maxButtons = 5;
+                let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
+                let endPage = Math.min(totalPages, startPage + maxButtons - 1);
 
-        function closeThreadModal() {
-            document.getElementById('new-thread-modal').classList.add('hidden');
-            document.getElementById('new-thread-modal').classList.remove('flex');
-            document.getElementById('thread-title').value = '';
-            document.getElementById('thread-content').value = '';
-        }
-
-        document.getElementById('close-modal').addEventListener('click', closeThreadModal);
-        document.getElementById('cancel-modal').addEventListener('click', closeThreadModal);
-
-        document.getElementById('new-thread-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'new-thread-modal') closeThreadModal();
-        });
-
-        document.getElementById('create-thread-btn').addEventListener('click', async () => {
-            const title = document.getElementById('thread-title').value.trim();
-            const content = document.getElementById('thread-content').value.trim();
-
-            if (!title) { alert('⚠️ Wpisz tytuł'); return; }
-            if (!content) { alert('⚠️ Wpisz treść'); return; }
-            if (title.length < 3) { alert('⚠️ Tytuł musi mieć co najmniej 3 znaki'); return; }
-            if (content.length < 10) { alert('⚠️ Treść musi mieć co najmniej 10 znaków'); return; }
-
-            try {
-                const response = await fetch('/api/forum/thread', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        title: title,
-                        content: content,
-                        forumId: currentForumId
-                    })
-                });
-
-                if (response.ok) {
-                    alert('✅ Wątek został utworzony!');
-                    closeThreadModal();
-                    location.reload();
-                } else {
-                    const error = await response.json();
-                    const errMsg = error.error || error.message || (error.bannedWords ? ('Wątek zawiera zakazane słowa: ' + (Array.isArray(error.bannedWords) ? error.bannedWords.join(', ') : error.bannedWords)) : 'Nie udało się utworzyć wątku');
-                    alert('❌ Błąd: ' + errMsg);
+                if (endPage - startPage + 1 < maxButtons) {
+                    startPage = Math.max(1, endPage - maxButtons + 1);
                 }
-            } catch (error) {
-                alert('❌ Błąd: ' + error.message);
-            }
-        });
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return String(text).replace(/[&<>"']/g, m => map[m]);
+                for (let i = startPage; i <= endPage; i++) {
+                    buttons.push(`
+                        <button class="pagination-number px-3 py-1 rounded ${i === this.currentPage ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}" 
+                                onclick="window.forumsPage.goToPage(${i})" 
+                                ${i === this.currentPage ? 'aria-current="page"' : ''}>
+                            ${i}
+                        </button>
+                    `);
+                }
+                return buttons.join('');
+            }
+
+            goToPage(page) {
+                this.currentPage = page;
+                this.loadForumThreads(parseInt(this.currentForumId, 10));
+            }
+
+            async deleteThread(threadId) {
+                if (!confirm('Czy na pewno chcesz usunąć ten wątek i wszystkie jego wiadomości? Ta operacja jest nieodwracalna.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/forum/thread/${threadId}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        alert('✅ Wątek został usunięty!');
+                        window.location.href = '/forum.html'; // Redirect to main forum page
+                    } else if (response.status === 403) {
+                        alert('❌ Nie masz uprawnień do usunięcia tego wątku.');
+                    } else {
+                        const errorData = await response.json();
+                        alert('❌ Błąd podczas usuwania wątku: ' + (errorData.error || response.statusText));
+                    }
+                } catch (error) {
+                    console.error('❌ Błąd podczas usuwania wątku:', error);
+                    alert('❌ Wystąpił błąd podczas komunikacji z serwerem.');
+                }
+            }
+
+            showLoginButtons() {
+                const authContainer = document.getElementById('auth-container');
+                authContainer.innerHTML = `
+                    <div class="flex space-x-4">
+                        <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">
+                            Logowanie
+                        </a>
+                        <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">
+                            Rejestracja
+                        </a>
+                    </div>
+                `;
+            }
+
+            showUserAvatar(userData) {
+                const authContainer = document.getElementById('auth-container');
+                const userInitial = (userData.username || 'U').charAt(0).toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div class="relative flex items-center gap-3">
+                        <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 transition-all flex items-center justify-center text-lg cursor-pointer" aria-label="Avatar"></button>
+                        <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${userData.username}</span>
+
+                        <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">${userData.username}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${userData.email || 'Brak e-maila'}</p>
+                            </div>
+
+                            <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
+                            </a>
+
+                            <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
+                            </a>
+
+                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                const logoutBtn = document.querySelector('#logout-btn');
+                logoutBtn?.addEventListener('click', async () => {
+                    try {
+                        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                        window.location.href = '/login.html';
+                    } catch (error) {
+                        console.error('❌ Błąd wylogowania:', error);
+                    }
+                });
+            }
+
+            setupSearch() {
+                const searchToggle = document.getElementById('search-toggle');
+                const searchContainer = document.getElementById('search-container');
+                const searchInput = document.getElementById('search-input');
+                const searchClose = document.getElementById('search-close');
+
+                if (searchToggle && searchContainer) {
+                    searchToggle.addEventListener('click', () => {
+                        searchContainer.classList.remove('hidden');
+                        searchContainer.classList.add('flex');
+                        searchInput.focus();
+                    });
+
+                    searchClose.addEventListener('click', () => {
+                        searchContainer.classList.add('hidden');
+                        searchContainer.classList.remove('flex');
+                        searchInput.value = '';
+                    });
+
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && !searchContainer.classList.contains('hidden')) {
+                            searchContainer.classList.add('hidden');
+                            searchContainer.classList.remove('flex');
+                        }
+                    });
+                }
+            }
+
+            openThreadModal() {
+                if (!this.currentUser) {
+                    alert('⚠️ Musisz być zalogowany aby utworzyć wątek');
+                    return;
+                }
+                document.getElementById('new-thread-modal').classList.remove('hidden');
+                document.getElementById('new-thread-modal').classList.add('flex');
+                document.getElementById('thread-title').focus();
+            }
+
+            closeThreadModal() {
+                document.getElementById('new-thread-modal').classList.add('hidden');
+                document.getElementById('new-thread-modal').classList.remove('flex');
+                document.getElementById('thread-title').value = '';
+                document.getElementById('thread-content').value = '';
+            }
+
+            async createThread() {
+                const title = document.getElementById('thread-title').value.trim();
+                const content = document.getElementById('thread-content').value.trim();
+
+                if (!title) { alert('⚠️ Wpisz tytuł'); return; }
+                if (!content) { alert('⚠️ Wpisz treść'); return; }
+                if (title.length < 3) { alert('⚠️ Tytuł musi mieć co najmniej 3 znaki'); return; }
+                if (content.length < 10) { alert('⚠️ Treść musi mieć co najmniej 10 znaków'); return; }
+
+                try {
+                    const response = await fetch('/api/forum/thread', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            title: title,
+                            content: content,
+                            forumId: this.currentForumId
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('✅ Wątek został utworzony!');
+                        this.closeThreadModal();
+                        this.loadForumThreads(parseInt(this.currentForumId, 10)); // Reload threads after creation
+                    } else {
+                        const error = await response.json();
+                        const errMsg = error.error || error.message || (error.bannedWords ? ('Wątek zawiera zakazane słowa: ' + (Array.isArray(error.bannedWords) ? error.bannedWords.join(', ') : error.bannedWords)) : 'Nie udało się utworzyć wątku');
+                        alert('❌ Błąd: ' + errMsg);
+                    }
+                } catch (error) {
+                    alert('❌ Błąd: ' + error.message);
+                }
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return String(text).replace(/[&<>"']/g, m => map[m]);
+            }
         }
 
-        // Logo and Avatar updater
+        // Global instance for access from onclick attributes
+        window.forumsPage = new ForumsPage();
+
+
+
+        // Logo and Avatar updater functions
         function initUpdaters() {
             const logoContainer = document.getElementById('logo-container');
             const authContainer = document.getElementById('auth-container');
@@ -482,8 +656,8 @@
                 }
             }
 
-            updateLogo();
-            updateAvatar();
+            updateLogo(); // Initial call
+            updateAvatar(); // Initial call
             // Refresh every 30 seconds
             setInterval(() => {
                 updateLogo();

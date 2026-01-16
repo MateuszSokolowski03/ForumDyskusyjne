@@ -29,7 +29,7 @@
 
                     <!-- Navigation -->
                     <nav class="hidden md:flex items-center gap-6">
-                        <a href="/" class="nav-item nav-item--active" title="Strona główna">
+                        <a href="/" class="nav-item" title="Strona główna">
                             🏠
                         </a>
                         <a href="forum.html" class="nav-item" title="Kategorie">
@@ -126,9 +126,9 @@
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
                     </div>
                 </div>
             </div>
@@ -431,6 +431,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Set avatar image if available
             const avatarBtnEl = document.querySelector('.js-avatar-btn, #avatar-btn');
+            const avatarMenuEl = document.querySelector('.js-avatar-menu, #avatar-menu');
             if (avatarBtnEl) {
                 if (user.avatarUrl) {
                     avatarBtnEl.style.backgroundImage = `url(${user.avatarUrl})`;
@@ -439,6 +440,21 @@ document.addEventListener('DOMContentLoaded', async function () {
                 } else {
                     avatarBtnEl.textContent = '';
                 }
+                // Direct dropdown handler (forum.html style)
+                avatarBtnEl.addEventListener('click', function(e) {
+                    if (avatarMenuEl) avatarMenuEl.classList.toggle('hidden');
+                    e.stopPropagation();
+                });
+                document.addEventListener('click', function(e) {
+                    if (avatarMenuEl && !avatarBtnEl.contains(e.target) && !avatarMenuEl.contains(e.target)) {
+                        avatarMenuEl.classList.add('hidden');
+                    }
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && avatarMenuEl) {
+                        avatarMenuEl.classList.add('hidden');
+                    }
+                });
             }
 
             // Logout handler

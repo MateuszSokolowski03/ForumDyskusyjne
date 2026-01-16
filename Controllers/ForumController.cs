@@ -119,7 +119,7 @@ namespace ForumDyskusyjne.Controllers
         }
         [AllowAnonymous]
         [HttpGet("forum/{forumId}")]
-        public async Task<IActionResult> GetForum(int forumId, int page = 1, int pageSize = 20)
+        public async Task<IActionResult> GetForum(int forumId, int page = 1, int pageSize = 20, string? search = null)
         {
             try
             {
@@ -132,15 +132,23 @@ namespace ForumDyskusyjne.Controllers
                     return NotFound(new { error = "Forum nie zostało znalezione" });
                 }
 
-                var totalThreads = await _context.Threads
-                    .Where(t => t.ForumId == forumId)
-                    .CountAsync();
+                var threadsQuery = _context.Threads
+                    .Where(t => t.ForumId == forumId);
 
-                var threads = await _context.Threads
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    threadsQuery = threadsQuery.Where(t => 
+                        t.Title.Contains(search) || 
+                        t.Messages.Any(m => m.Content.Contains(search))
+                    );
+                }
+
+                var totalThreads = await threadsQuery.CountAsync();
+
+                var threads = await threadsQuery
                     .Include(t => t.Author)
                     .Include(t => t.Messages.OrderByDescending(m => m.CreatedAt).Take(1))
                         .ThenInclude(m => m.Author)
-                    .Where(t => t.ForumId == forumId)
                     .OrderByDescending(t => t.IsPinned)
                     .ThenByDescending(t => t.Messages.Max(m => (DateTime?)m.CreatedAt) ?? t.CreatedAt)
                     .Skip((page - 1) * pageSize)
@@ -674,6 +682,25 @@ namespace ForumDyskusyjne.Controllers
                     return NotFound(new { error = "Wiadomość nie została znaleziona" });
                 }
 
+                // Check if this is the first message of the thread
+                var firstMessageInThread = await _context.Messages
+                    .Where(m => m.ThreadId == message.ThreadId)
+                    .OrderBy(m => m.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (firstMessageInThread != null && firstMessageInThread.Id == message.Id)
+                {
+                    // If it's the first message, delete the entire thread
+                    System.Diagnostics.Debug.WriteLine($"🗑️ [DELETE] Message {id} is the first message in thread {message.ThreadId}. Deleting entire thread.");
+                    var threadDeletionResult = await DeleteThreadInternal(message.ThreadId) as OkObjectResult;
+                    if (threadDeletionResult != null)
+                    {
+                        var responseValue = threadDeletionResult.Value as dynamic;
+                        return Ok(new { message = responseValue.message, isThreadDeleted = true });
+                    }
+                    return StatusCode(500, new { error = "Failed to delete thread after deleting first message." });
+                }
+
                 // Sprawdź, kto wykonuje akcję
                 int currentUserId;
                 try
@@ -687,31 +714,38 @@ namespace ForumDyskusyjne.Controllers
 
                 System.Diagnostics.Debug.WriteLine($"🗑️ [DELETE] Attempting to delete message {id}, author: {message.AuthorId}, requester: {currentUserId}, forum: {message.Thread.ForumId}");
 
-                // Autoryzacja: autor może usuwać swoją wiadomość; poza tym tylko moderatorzy przypisani do forum lub admin mogą usuwać
+
                 var currentUser = await _context.Users.FindAsync(currentUserId);
                 if (currentUser == null)
                     return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
 
                 System.Diagnostics.Debug.WriteLine($"🗑️ [DELETE] Current user role: {currentUser.Role}");
 
-                // Autoryzacja: TYLKO moderator przypisany do forum może usuwać wiadomości
-                if (currentUser.Role != UserRole.Moderator)
+                // Autor wiadomości może usunąć swoją wiadomość
+                if (message.AuthorId == currentUserId)
                 {
-                    System.Diagnostics.Debug.WriteLine($"❌ [DELETE] User {currentUserId} is not moderator");
+                    System.Diagnostics.Debug.WriteLine($"✅ [DELETE] Author is deleting own message");
+                }
+                // Moderator przypisany do forum może usunąć wiadomość
+                else if (currentUser.Role == UserRole.Moderator)
+                {
+                    var isModeratorForForum = await _context.ForumModerators
+                        .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == message.Thread.ForumId);
+
+                    System.Diagnostics.Debug.WriteLine($"🔍 [DELETE] Moderator {currentUserId} forum check: isModeratorForForum={isModeratorForForum}, requiredForumId={message.Thread.ForumId}");
+
+                    if (!isModeratorForForum)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [DELETE] Moderator not assigned to forum {message.Thread.ForumId}");
+                        return Forbid();
+                    }
+                    System.Diagnostics.Debug.WriteLine($"✅ [DELETE] Moderator assigned to forum");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [DELETE] User {currentUserId} is not authorized to delete this message");
                     return Forbid();
                 }
-
-                var isModeratorForForum = await _context.ForumModerators
-                    .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == message.Thread.ForumId);
-
-                System.Diagnostics.Debug.WriteLine($"🔍 [DELETE] Moderator {currentUserId} forum check: isModeratorForForum={isModeratorForForum}, requiredForumId={message.Thread.ForumId}");
-
-                if (!isModeratorForForum)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [DELETE] Moderator not assigned to forum {message.Thread.ForumId}");
-                    return Forbid();
-                }
-                System.Diagnostics.Debug.WriteLine($"✅ [DELETE] Moderator assigned to forum");
 
                 _context.Messages.Remove(message);
                 
@@ -724,12 +758,73 @@ namespace ForumDyskusyjne.Controllers
                 await _context.SaveChangesAsync();
 
                 System.Diagnostics.Debug.WriteLine($"✅ [DELETE] Message {id} deleted successfully");
-                return Ok(new { message = "Wiadomość została usunięta" });
+                return Ok(new { message = "Wiadomość została usunięta", isThreadDeleted = false });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ [DELETE] Error: {ex.Message}");
 
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+        [HttpDelete("thread/{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteThread(int id)
+        {
+            return await DeleteThreadInternal(id);
+        }
+
+        private async Task<IActionResult> DeleteThreadInternal(int id)
+        {
+            try
+            {
+                var thread = await _context.Threads
+                    .Include(t => t.Forum)
+                    .FirstOrDefaultAsync(t => t.Id == id);
+
+                if (thread == null)
+                {
+                    return NotFound(new { error = "Wątek nie został znaleziony" });
+                }
+
+                int currentUserId;
+                try
+                {
+                    currentUserId = GetCurrentUserId();
+                }
+                catch
+                {
+                    return Unauthorized(new { error = "Użytkownik nie jest zalogowany" });
+                }
+
+                var currentUser = await _context.Users.FindAsync(currentUserId);
+                if (currentUser == null)
+                    return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
+
+                // Sprawdź, czy użytkownik jest administratorem lub moderatorem przypisanym do forum wątku
+                bool isAuthorized = currentUser.Role == UserRole.Admin;
+                if (currentUser.Role == UserRole.Moderator)
+                {
+                    isAuthorized = await _context.ForumModerators
+                        .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == thread.ForumId);
+                }
+
+                if (!isAuthorized)
+                {
+                    return Forbid(); // Użytkownik nie ma uprawnień
+                }
+
+                // Usuń wszystkie wiadomości powiązane z wątkiem
+                var messages = await _context.Messages.Where(m => m.ThreadId == id).ToListAsync();
+                _context.Messages.RemoveRange(messages);
+
+                _context.Threads.Remove(thread);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wątek i powiązane wiadomości zostały usunięte" });
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(500, new { error = ex.Message });
             }
         }

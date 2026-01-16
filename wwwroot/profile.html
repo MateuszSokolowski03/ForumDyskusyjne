@@ -94,10 +94,6 @@
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Posty</p>
                             </div>
                             <div>
-                                <p id="register-date" class="text-2xl font-bold text-gray-900 dark:text-white">-</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">Data rejestracji</p>
-                            </div>
-                            <div>
                                 <p id="user-email" class="text-2xl font-bold text-gray-900 dark:text-white">-</p>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
                             </div>
@@ -165,6 +161,13 @@
                             Panel Administracyjny
                         </a>
                     </div>
+                    <!-- Moderator Panel Button -->
+                    <div id="moderator-section" class="hidden">
+                        <a href="/mod/overview.html" class="flex items-center gap-3 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors justify-center">
+                            <span class="material-symbols-outlined">shield_person</span>
+                            Panel Moderatora
+                        </a>
+                    </div>
 
                     <!-- User Info Card -->
                     <div class="bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] p-6">
@@ -198,9 +201,9 @@
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                 <div class="flex gap-6 text-sm">
-                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
-                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
-                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                    <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
                 </div>
             </div>
         </div>
@@ -263,7 +266,7 @@
 
             console.log(`📊 Ładowanie stats dla user ID: ${currentUser.id}`);
             
-            const res = await fetch(`/api/users/${currentUser.id}`, { 
+            const res = await fetch(`/api/users/profile/${currentUser.id}`, { 
                 credentials: 'include' 
             });
 
@@ -291,13 +294,7 @@
             // Zaktualizuj licznik postów
             const postCountEl = document.getElementById('post-count');
             if (postCountEl) {
-                postCountEl.textContent = user.postCount || 0;
-            }
-
-            // Zaktualizuj datę rejestracji
-            const registerDateEl = document.getElementById('register-date');
-            if (registerDateEl && user.createdAt) {
-                registerDateEl.textContent = new Date(user.createdAt).toLocaleDateString('pl-PL');
+                postCountEl.textContent = user.postCount || 0; // dynamicznie z API, już poprawnie liczone
             }
 
             // Zaktualizuj email
@@ -400,20 +397,30 @@
     }
 
     // Usuń post
-    async function deletePost(postId) {
-        if (!confirm('Czy na pewno chcesz usunąć ten post?')) return;
+    async function deletePost(threadId) {
+        if (!confirm('Czy na pewno chcesz usunąć ten wątek? Ta operacja jest nieodwracalna.')) return;
 
         try {
-            const res = await fetch(`/api/forum/${postId}`, { 
+            const res = await fetch(`/api/forum/thread/${threadId}`, {
                 method: 'DELETE',
-                credentials: 'include' 
+                credentials: 'include'
             });
             
             if (res.ok) {
-                alert('✅ Post został usunięty');
-                loadUserPosts();
+                alert('✅ Wątek został usunięty');
+                loadUserPosts(); // Reload user's posts
             } else {
-                alert('❌ Błąd usuwania postu');
+                let errorMessage = res.statusText;
+                try {
+                    const errorJson = await res.json();
+                    if (errorJson.error) {
+                        errorMessage = errorJson.error;
+                    }
+                } catch (jsonError) {
+                    // If parsing as JSON fails, use statusText or a generic message
+                    console.warn('Failed to parse error response as JSON:', jsonError);
+                }
+                alert('❌ Błąd usuwania wątku: ' + errorMessage);
             }
         } catch (error) {
             console.error('❌ Błąd:', error);
@@ -422,8 +429,8 @@
     }
 
     // Edytuj post
-    function editPost(postId) {
-        window.location.href = `/create-thread.html?edit=${postId}`;
+    function editPost(threadId) { // Renamed postId to threadId for clarity
+        window.location.href = `/create-thread.html?threadId=${threadId}`;
     }
 
     // Zmień hasło
@@ -536,6 +543,11 @@
                 if (isAdmin) {
                     document.getElementById('admin-section').classList.remove('hidden');
                 }
+                // Moderator
+                const isModerator = user && (user.role === 'Moderator' || user.role === 'MODERATOR' || user.isModerator === true);
+                if (isModerator) {
+                    document.getElementById('moderator-section').classList.remove('hidden');
+                }
             }
         } catch (error) {
             console.error('Error checking admin status:', error);
@@ -584,8 +596,129 @@
     }
 
     // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+                // Logo and Avatar updater
+                function updateAvatar() {
+                    const authContainer = document.getElementById('auth-container');
+                    if (!authContainer) return;
+                    fetch('/api/auth/status', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).then(statusResponse => {
+                        if (!statusResponse.ok) return;
+                        return statusResponse.json();
+                    }).then(currentUser => {
+                        if (currentUser && currentUser.id) {
+                            fetch(`/api/users/${currentUser.id}`, { credentials: 'include' })
+                                .then(userResponse => userResponse.ok ? userResponse.json() : null)
+                                .then(user => {
+                                    const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
+                                    if (avatarBtn) {
+                                        if (user && user.avatarUrl) {
+                                            avatarBtn.style.backgroundImage = `url(${user.avatarUrl})`;
+                                            avatarBtn.style.backgroundSize = 'cover';
+                                            avatarBtn.style.backgroundPosition = 'center';
+                                            avatarBtn.textContent = '';
+                                        } else {
+                                            avatarBtn.style.backgroundImage = '';
+                                            avatarBtn.textContent = (user && user.username ? user.username : 'U').charAt(0).toUpperCase();
+                                        }
+                                    }
+                                    const headerName = authContainer.querySelector('#header-username');
+                                    if (headerName && user && user.username) headerName.textContent = user.username;
+                                    try { if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown(); } catch(_){}
+                                });
+                        }
+                    });
+                }
+
+                // Listen for avatar change events from profile page
+                window.addEventListener('userAvatarChanged', (event) => {
+                    console.log('Avatar changed event received for user:', event.detail.userId);
+                    updateAvatar();
+                });
+
+                // Also listen for cross-tab updates via localStorage
+                window.addEventListener('storage', (event) => {
+                    if (event.key === 'userAvatarChanged' && event.newValue) {
+                        try {
+                            const data = JSON.parse(event.newValue);
+                            console.log('Avatar changed (cross-tab) for user:', data.userId);
+                            updateAvatar();
+                        } catch (e) {
+                            console.warn('Error parsing storage event:', e);
+                        }
+                    }
+                });
+
+                // Odświeżaj avatar co 30 sekund
+                setInterval(updateAvatar, 30000);
         console.log('🚀 Inicjalizowanie profilu');
+        // Avatar & username in header
+        try {
+            const res = await fetch('/api/auth/status', { credentials: 'include' });
+            const user = res.ok ? await res.json() : null;
+            const authContainer = document.getElementById('auth-container');
+            if (user && authContainer) {
+                authContainer.innerHTML = `
+                    <div class="relative flex items-center gap-3">
+                        <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 font-semibold flex items-center justify-center cursor-pointer" aria-label="Avatar"></button>
+                        <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${user.username}</span>
+                        <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">${user.username}</p>
+                                <p class="text-xs text-gray-500">${user.email || ''}</p>
+                            </div>
+                            <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
+                            </a>
+                            <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
+                            </a>
+                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
+                            </button>
+                        </div>
+                    </div>
+                `;
+                // Set avatar image if available
+                const avatarBtnEl = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
+                const avatarMenuEl = authContainer.querySelector('.js-avatar-menu, #avatar-menu');
+                // Ensure dropdown works (main.js) - z opóźnieniem
+                setTimeout(() => {
+                    if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown();
+                }, 50);
+                // Natychmiast ustaw avatar (obrazek lub inicjał)
+                updateAvatar();
+                // Direct dropdown handler
+                if (avatarBtnEl) {
+                    avatarBtnEl.addEventListener('click', function(e) {
+                        if (avatarMenuEl) avatarMenuEl.classList.toggle('hidden');
+                        e.stopPropagation();
+                    });
+                    document.addEventListener('click', function(e) {
+                        if (avatarMenuEl && !avatarBtnEl.contains(e.target) && !avatarMenuEl.contains(e.target)) {
+                            avatarMenuEl.classList.add('hidden');
+                        }
+                    });
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape' && avatarMenuEl) {
+                            avatarMenuEl.classList.add('hidden');
+                        }
+                    });
+                }
+                // Logout handler
+                const logoutBtnEl = document.querySelector('#logout-btn');
+                if (logoutBtnEl) {
+                    logoutBtnEl.addEventListener('click', async () => {
+                        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                        window.location.href = '/';
+                    });
+                }
+            }
+        } catch (e) { console.warn('header avatar error', e); }
         loadUserProfile();
     });
 </script>

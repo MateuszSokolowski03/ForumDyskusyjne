@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html class="dark" lang="pl">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Użytkownicy - Panel Moderatora</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="../js/tailwind-config.js" defer></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0" aria-label="Sidebar nawigacja">
+                <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
+                    <div class="admin-icon size-8 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined !text-4xl">shield_person</span>
+                    </div>
+                    <h1 class="admin-title text-xl font-bold text-gray-900 dark:text-white">Moderator Panel</h1>
+                </div>
+                <nav class="sidebar-nav p-4 flex-grow" aria-label="Menu moderatora">
+                    <ul class="nav-list space-y-2">
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="overview.html" title="Przegląd">
+                            <span class="material-symbols-outlined">dashboard</span>Przegląd
+                        </a></li>
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="users.html" title="Użytkownicy">
+                            <span class="material-symbols-outlined">group</span>Użytkownicy
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="forums.html" title="Kategorie i Fora">
+                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        </a></li>
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="threads.html" title="Wątki i wiadomości">
+                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        </a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
+                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/" title="Wyloguj">
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto" role="main">
+                <div class="content-wrapper max-w-7xl mx-auto">
+                    <header class="page-header mb-8 w-full">
+                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Użytkownicy w Twoich Forach</h2>
+                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj użytkownikami, którzy pisali posty na forach, które moderujesz.</p>
+                    </header>
+
+                    <!-- Filters -->
+                    <section class="filters-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] mb-8 w-full" aria-labelledby="filters-heading">
+                        <h3 id="filters-heading" class="sr-only">Filtry listy użytkowników</h3>
+                        <div class="filter-group">
+                            <label for="search-users" class="filter-label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Wyszukaj</label>
+                            <input type="text" id="search-users" name="search-users" class="form-input w-full rounded-lg border-gray-300 dark:border-[#232f48] bg-white dark:bg-[#101622] text-gray-800 dark:text-white" placeholder="Nazwa użytkownika lub email..." aria-label="Szukaj użytkownika">
+                        </div>
+                    </section>
+
+                    <!-- Users Table -->
+                    <section class="users-table-section bg-white dark:bg-[#192231] rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] overflow-hidden w-full" aria-labelledby="users-table-heading">
+                        <h3 id="users-table-heading" class="sr-only">Tabela użytkowników</h3>
+                        <div class="table-wrapper overflow-x-auto">
+                            <table class="admin-table w-full" role="table" aria-label="Lista użytkowników">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="p-4 text-left">Użytkownik</th>
+                                        <th scope="col" class="p-4 text-left">Email</th>
+                                        <th scope="col" class="p-4 text-left">Status</th>
+                                        <th scope="col" class="p-4 text-center">Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Rows will be injected by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="pagination-section p-4 border-t border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4" aria-label="Paginacja tabeli użytkowników">
+                            <div class="pagination-info text-sm text-gray-500 dark:text-gray-400" id="pagination-info"></div>
+                            <div class="pagination-controls flex gap-2" role="navigation">
+                                <button class="pagination-btn btn-secondary" id="prev-page" type="button" aria-label="Poprzednia strona" title="Poprzednia strona" disabled>
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <div class="pagination-numbers flex gap-1" id="pagination-numbers"></div>
+                                <button class="pagination-btn btn-secondary" id="next-page" type="button" aria-label="Następna strona" title="Następna strona">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/main.js" defer></script>
+    <script src="../js/auth.js" defer></script>
+    <script src="../js/mod-users.js" defer></script>
+</body>
+</html>

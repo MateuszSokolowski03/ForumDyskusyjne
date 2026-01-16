@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace ForumDyskusyjne.Controllers
 {
-    [Route("api/admin")]
-    [ApiController]
-    public class AdminController : ControllerBase
+        [Route("api/admin")]
+        [ApiController]
+        [Authorize(Roles = "Admin")]
+        public class AdminController : ControllerBase
     {
         private readonly ForumDbContext _context;
 
@@ -103,7 +104,7 @@ namespace ForumDyskusyjne.Controllers
                         u.Id,
                         u.Username,
                         u.Email,
-                        avatar_url = u.AvatarUrl,
+                        AvatarUrl = u.AvatarUrl,
                         created_at = u.CreatedAt,
                         last_activity_at = u.LastActivityAt,
                         role = u.Role.ToString(),

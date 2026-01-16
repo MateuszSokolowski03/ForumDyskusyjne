@@ -63,17 +63,21 @@ namespace ForumDyskusyjne.Controllers
                 if (user == null)
                     return NotFound(new { error = "Użytkownik nie znaleziony" });
 
-                return Ok(new
-                {
-                    user.Id,
-                    user.Username,
-                    user.Email,
-                    user.Bio,
-                    user.AvatarUrl,
-                    user.CreatedAt,
-                    user.PostCount,
-                    currentRank = user.CurrentRank?.Name
-                });
+                    // Liczba postów liczona dynamicznie
+                    int actualPostCount = await _context.Messages.CountAsync(m => m.AuthorId == user.Id);
+
+                    return Ok(new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.Email,
+                        user.Bio,
+                        user.AvatarUrl,
+                        user.CreatedAt,
+                        user.LastActivityAt,
+                        postCount = actualPostCount,
+                        currentRank = user.CurrentRank?.Name
+                    });
             }
             catch (Exception ex)
             {

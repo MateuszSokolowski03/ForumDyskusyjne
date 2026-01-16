@@ -307,6 +307,18 @@
     background-color: #4b5563;
 }
 
+.action-btn:disabled,
+.action-btn[disabled] {
+    background-color: #9ca3af; /* gray-400 */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.action-btn:disabled:hover,
+.action-btn[disabled]:hover {
+    background-color: #9ca3af; /* gray-400 */
+}
+
 /* Pagination */
 .pagination-btn {
     display: inline-flex;

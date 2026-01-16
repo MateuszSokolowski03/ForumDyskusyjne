@@ -21,7 +21,6 @@
                         <div class="flex items-center gap-3">
                             <div class="text-primary flex items-center">
                                 <svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"></path>
                                 </svg>
                                 <span class="material-symbols-outlined text-2xl ml-2 hidden sm:inline">forum</span>
                             </div>
@@ -33,7 +32,7 @@
 
                     <!-- Navigation -->
                     <nav class="hidden md:flex items-center gap-6">
-                        <a href="/" class="nav-item nav-item--active" title="Strona główna">
+                        <a href="/" class="nav-item" title="Strona główna">
                             🏠
                         </a>
                         <a href="forum.html" class="nav-item" title="Kategorie">
@@ -79,7 +78,7 @@
         <!-- MAIN CONTENT -->
             <!-- MAIN CONTENT -->
         <main class="max-w-4xl mx-auto p-6">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">📜 Regulamin Forum Dyskusyjnego</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">📜 Regulamin</h1>
 
             <section class="mb-6">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">1. Postanowienia ogólne</h2>
@@ -146,9 +145,9 @@
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
                     </div>
                 </div>
             </div>
@@ -156,5 +155,78 @@
     </div>
 
     <script src="js/main.js"></script>
+    <script>
+    // Dynamic user avatar and menu (ENGLISH)
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            const res = await fetch('/api/auth/status', { credentials: 'include' });
+            const user = res.ok ? await res.json() : null;
+            const authContainer = document.getElementById('auth-container');
+            if (user && authContainer) {
+                authContainer.innerHTML = `
+                    <div class="relative flex items-center gap-3">
+                        <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 font-semibold flex items-center justify-center cursor-pointer" aria-label="Avatar"></button>
+                        <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${user.username}</span>
+                        <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">${user.username}</p>
+                                <p class="text-xs text-gray-500">${user.email || ''}</p>
+                            </div>
+                            <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">person</span>My Profile
+                            </a>
+                            <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Messages
+                            </a>
+                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Log out
+                            </button>
+                        </div>
+                    </div>
+                `;
+                            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">📜 Rules</h1>
+                const avatarBtnEl = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
+                const avatarMenuEl = authContainer.querySelector('.js-avatar-menu, #avatar-menu');
+                setTimeout(() => {
+                    if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown();
+                }, 50);
+                if (avatarBtnEl) {
+                    if (user.avatarUrl) {
+                        avatarBtnEl.style.backgroundImage = `url(${user.avatarUrl})`;
+                        avatarBtnEl.style.backgroundSize = 'cover';
+                        avatarBtnEl.style.backgroundPosition = 'center';
+                        avatarBtnEl.textContent = '';
+                    } else {
+                        const initial = (user.username || user.name || 'U').charAt(0).toUpperCase();
+                        avatarBtnEl.style.backgroundImage = '';
+                        avatarBtnEl.textContent = initial;
+                    }
+                    avatarBtnEl.addEventListener('click', function(e) {
+                        if (avatarMenuEl) avatarMenuEl.classList.toggle('hidden');
+                        e.stopPropagation();
+                    });
+                    document.addEventListener('click', function(e) {
+                        if (avatarMenuEl && !avatarBtnEl.contains(e.target) && !avatarMenuEl.contains(e.target)) {
+                            avatarMenuEl.classList.add('hidden');
+                        }
+                    });
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape' && avatarMenuEl) {
+                            avatarMenuEl.classList.add('hidden');
+                        }
+                    });
+                }
+                const logoutBtnEl = document.querySelector('#logout-btn');
+                if (logoutBtnEl) {
+                    logoutBtnEl.addEventListener('click', async () => {
+                        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                        window.location.href = '/';
+                    });
+                }
+            }
+        } catch (e) { console.warn('header avatar error', e); }
+    });
+    </script>
 </body>
 </html>

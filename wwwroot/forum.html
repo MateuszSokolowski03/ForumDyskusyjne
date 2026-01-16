@@ -161,9 +161,9 @@
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Regulamin.html">Regulamin</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Polityka.html">Polityka Prywatności</a>
-                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="Kontakt.html">Kontakt</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
                     </div>
                 </div>
             </div>
@@ -184,28 +184,28 @@
                 const statusResponse = await fetch('/api/auth/status', {
                     credentials: 'include'
                 });
-                
-                if (!statusResponse.ok) {
+                if (statusResponse.status === 401) {
+                    console.log('ℹ️ Użytkownik niezalogowany (status: 401) - ładowanie forum jako gość');
+                    currentUser = null;
+                } else if (statusResponse.ok) {
+                    currentUser = await statusResponse.json();
+                    console.log('✅ Zalogowany:', currentUser.username);
+                    showUserAvatar(currentUser);
+                } else {
                     console.log('❌ Brak autentykacji - wyświetlanie przycisków logowania');
                     showLoginButtons();
                     document.getElementById('loading').classList.add('hidden');
                     return;
                 }
-                
-                    currentUser = await statusResponse.json();
-                    console.log('✅ Zalogowany:', currentUser.username);
 
-                    // Pokaż avatar
-                    showUserAvatar(currentUser);
-
-                    // Sprawdź, czy w URL jest forumId — jeśli tak, załaduj wątki, inaczej kategorie
-                    const params = new URLSearchParams(window.location.search);
-                    currentForumId = params.get('forumId');
-                    if (currentForumId) {
-                        await loadForumThreads(parseInt(currentForumId, 10));
-                    } else {
-                        await loadForumCategories();
-                    }
+                // Sprawdź, czy w URL jest forumId — jeśli tak, załaduj wątki, inaczej kategorie
+                const params = new URLSearchParams(window.location.search);
+                currentForumId = params.get('forumId');
+                if (currentForumId) {
+                    await loadForumThreads(parseInt(currentForumId, 10));
+                } else {
+                    await loadForumCategories();
+                }
                 
             } catch (error) {
                 console.error('❌ Błąd autoryzacji:', error);

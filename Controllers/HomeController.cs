@@ -80,29 +80,6 @@ namespace ForumDyskusyjne.Controllers
             }
             return NotFound($"Admin page '{page}' not found");
         }
-        [AllowAnonymous]
-        [HttpGet("admin/users")]
-        public IActionResult AdminUsers()
-        {
-            return Redirect("/admin/users.html");
-        }
-        [AllowAnonymous]
-        [HttpGet("admin/categories")]
-        public IActionResult AdminCategories()
-        {
-            return Redirect("/admin/categories.html");
-        }
-        [AllowAnonymous]
-        [HttpGet("admin/threads")]
-        public IActionResult AdminThreads()
-        {
-            return Redirect("/admin/threads.html");
-        }
-        [AllowAnonymous]
-        [HttpGet("admin/banned-words")]
-        public IActionResult AdminBannedWords()
-        {
-            return Redirect("/admin/banned-words.html");
-        }
+
     }
 }

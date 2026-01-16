@@ -80,8 +80,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;               // działa na http://localhost
         options.Cookie.SecurePolicy = CookieSecurePolicy.None; // pozwala na http w dev
-        options.LoginPath = "/login";
+        options.LoginPath = "/login.html";
         options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/access-denied.html"; // Strona braku dostępu
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         options.Events = new Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationEvents
@@ -148,12 +149,44 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowFrontend"); 
-// ===== AUTORYZACJA - MUSI BYĆ PO UseRouting() I PRZED UseSession() =====
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Middleware do ochrony folderu /admin
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/admin"))
+    {
+        if (!context.User.IsInRole("Admin"))
+        {
+            context.Response.Redirect("/access-denied.html");
+            return;
+        }
+    }
+    await next.Invoke();
+});
+
+// Middleware do ochrony folderu /mod
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/mod"))
+    {
+        if (!context.User.IsInRole("Moderator") && !context.User.IsInRole("Admin"))
+        {
+            context.Response.Redirect("/access-denied.html");
+            return;
+        }
+    }
+    await next.Invoke();
+});
+
+app.UseStaticFiles();
+
+// ===== AUTORYZACJA - MUSI BYĆ PO UseRouting() I PRZED UseSession() =====
+
 
 // ===== MIDDLEWARE DO AKTUALIZACJI OSTATNIEJ AKTYWNOŚCI =====
 app.Use(async (context, next) =>

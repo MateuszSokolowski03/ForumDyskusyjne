@@ -13,9 +13,9 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
-        <div class="admin-wrapper flex flex-col md:flex-row w-full h-full">
+        <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
             <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
@@ -250,6 +250,7 @@
         </div>
     </div>
 
+    <script src="../js/auth.js"></script>
     <script src="../js/main.js"></script>
     <script src="../js/admin.js"></script>
     <script>
@@ -310,9 +311,6 @@
                             <button onclick="viewThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors text-sm" title="Wyświetl">
                                 <span class="material-symbols-outlined text-sm">visibility</span>
                             </button>
-                            <button onclick="reportThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors text-sm" title="Zgłoś">
-                                <span class="material-symbols-outlined text-sm">flag</span>
-                            </button>
                             <button onclick="deleteThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors text-sm" title="Usuń">
                                 <span class="material-symbols-outlined text-sm">delete</span>
                             </button>
@@ -343,29 +341,7 @@
     
 
     // ✅ ZGŁOŚ WĄTEK
-    async function reportThread(threadId) {
-        const reason = prompt('Podaj powód zgłoszenia:');
-        if (!reason) return;
-
-        try {
-            const res = await fetch(`/api/admin/threads/${threadId}/report`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-
-            if (!res.ok) {
-                alert('❌ Błąd zgłaszania wątku');
-                return;
-            }
-
-            alert('✅ Wątek zgłoszony');
-        } catch (error) {
-            console.error('❌ Błąd:', error);
-            alert('❌ Błąd połączenia');
-        }
-    }
+    // ...existing code...
 
     // ✅ USUŃ WĄTEK
     async function deleteThread(threadId) {

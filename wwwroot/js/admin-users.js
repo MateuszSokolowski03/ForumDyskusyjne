@@ -160,13 +160,20 @@ class AdminUsers {
             return;
         }
 
-        tableBody.innerHTML = users.map(user => `
+        const currentUser = window.auth.getUser();
+
+        tableBody.innerHTML = users.map(user => {
+            const isCurrentUser = currentUser && user.id === currentUser.id;
+            const isAdmin = user.role.toLowerCase() === 'admin';
+            const canBlock = !isCurrentUser && !isAdmin;
+
+            return `
             <tr class="hover:bg-gray-50 dark:hover:bg-[#192231]">
                 <td class="user-info">
                     <div class="flex items-center gap-3">
                         <div class="user-avatar w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                            ${user.avatar_url ? 
-                                `<img src="${user.avatar_url}" alt="${user.username}" class="w-full h-full rounded-full object-cover">` :
+                            ${user.avatarUrl ? 
+                                `<img src="${user.avatarUrl}" alt="${user.username}" class="w-full h-full rounded-full object-cover">` :
                                 `<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">person</span>`
                             }
                         </div>
@@ -201,17 +208,18 @@ class AdminUsers {
                         ` : `
                         <button class="action-btn ${user.status === 'blocked' ? 'unblock-btn' : 'block-btn'}" 
                                 onclick="adminUsers.${user.status === 'blocked' ? 'unblockUser' : 'blockUser'}(${user.id})" 
-                                title="${user.status === 'blocked' ? 'Odblokuj' : 'Zablokuj'}">
+                                title="${user.status === 'blocked' ? 'Odblokuj' : 'Zablokuj'}"
+                                ${!canBlock ? 'disabled' : ''}>
                             <span class="material-symbols-outlined !text-base">${user.status === 'blocked' ? 'lock_open' : 'block'}</span>
                         </button>
                         `}
-                        <button class="action-btn delete-btn" onclick="adminUsers.deleteUser(${user.id})" title="Usuń">
+                        <button class="action-btn delete-btn" onclick="adminUsers.deleteUser(${user.id})" title="Usuń" ${isCurrentUser ? 'disabled' : ''}>
                             <span class="material-symbols-outlined !text-base">delete</span>
                         </button>
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     updatePagination(total) {
