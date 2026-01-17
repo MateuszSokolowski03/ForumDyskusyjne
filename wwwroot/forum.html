@@ -102,7 +102,7 @@
         <footer class="mt-auto border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-wrap items-center justify-between gap-4">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2026 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
                         <a class="text-gray-500 hover:text-primary dark:text-gray-400 transition-colors" href="rules.html">Regulamin</a>
                         <a class="text-gray-500 hover:text-primary dark:text-gray-400 transition-colors" href="privacy.html">Polityka Prywatności</a>
@@ -123,7 +123,6 @@
             currentForumId = params.get('forumId');
 
             // 2. ZAWSZE pobierz kategorie, aby wypełnić select w modalu "Nowy wątek"
-            // Dzięki temu dropdown będzie miał opcje, nawet jak jesteśmy wewnątrz konkretnego forum
             let categoriesData = [];
             try {
                 categoriesData = await fetchCategories();
@@ -137,7 +136,7 @@
                 // Jesteśmy w konkretnym forum - ładujemy wątki
                 await loadForumThreads(parseInt(currentForumId, 10));
             } else {
-                // Jesteśmy na głównej stronie forum - wyświetlamy kategorie (używając pobranych wcześniej danych)
+                // Jesteśmy na głównej stronie forum - wyświetlamy kategorie
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('content').classList.remove('hidden');
                 renderCategories(categoriesData);
@@ -145,19 +144,16 @@
 
             // 4. Obsługa przycisku
             document.getElementById('new-thread-btn-top').addEventListener('click', () => {
-                // Przekazujemy aktualne ID, żeby modal wiedział co zaznaczyć
                 openThreadModal(currentForumId);
             });
         });
 
-        // Nowa funkcja pomocnicza do pobierania danych
         async function fetchCategories() {
             const response = await fetch('/api/forum/categories', { credentials: 'include' });
             if (!response.ok) throw new Error('Network error');
             return await response.json();
         }
 
-        // Ta funkcja już nie pobiera danych, tylko je renderuje
         function renderCategories(categories) {
             const content = document.getElementById('content');
             if (!Array.isArray(categories) || categories.length === 0) {
@@ -216,35 +212,93 @@
             }
         }
 
+        // --- ZMODYFIKOWANA FUNKCJA RENDEROWANIA Z PAGINACJĄ ---
         function renderForumThreads(data) {
             const content = document.getElementById('content');
             const forum = data.Forum || data.forum || {};
-            const threads = data.Threads || data.threads || [];
+            const allThreads = data.Threads || data.threads || [];
 
+            // KONFIGURACJA PAGINACJI
+            const LIMIT = 5; // Liczba wątków na stronę
+            const params = new URLSearchParams(window.location.search);
+            const currentPage = parseInt(params.get('page')) || 1;
+            const forumId = params.get('forumId');
+
+            const totalThreads = allThreads.length;
+            const totalPages = Math.ceil(totalThreads / LIMIT);
+
+            // Obliczanie wycinka tablicy
+            const startIndex = (currentPage - 1) * LIMIT;
+            const endIndex = startIndex + LIMIT;
+            const threadsToShow = allThreads.slice(startIndex, endIndex);
+
+            // Generowanie HTML listy wątków
+            let threadsHtml = '';
+            if (threadsToShow.length === 0) {
+                threadsHtml = '<p class="text-center text-gray-500 py-8">Brak wątków na tej stronie.</p>';
+            } else {
+                threadsHtml = threadsToShow.map(thread => `
+                    <a href="thread.html?threadId=${thread.id}" class="block bg-white dark:bg-[#192231] p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${escapeHtml(thread.title || '')}</h3>
+                                <p class="text-sm text-gray-500 mb-3">Autor: ${escapeHtml(thread.author?.username || thread.authorName || 'Anonim')}</p>
+                                <div class="flex gap-6 text-sm text-gray-400">
+                                    <span>💬 ${thread.repliesCount || 0}</span>
+                                    <span>👁️ ${thread.views || 0}</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-400">${new Date(thread.createdAt).toLocaleDateString('pl-PL')}</span>
+                        </div>
+                    </a>
+                `).join('');
+            }
+
+            // Generowanie HTML nawigacji (paginacji)
+            let paginationHtml = '';
+            if (totalPages > 1) {
+                const prevDisabled = currentPage <= 1;
+                const nextDisabled = currentPage >= totalPages;
+
+                const prevLink = prevDisabled ? '#' : `?forumId=${forumId}&page=${currentPage - 1}`;
+                const nextLink = nextDisabled ? '#' : `?forumId=${forumId}&page=${currentPage + 1}`;
+
+                const btnClass = "px-4 py-2 rounded-lg text-sm font-medium transition-colors border";
+                const activeBtnClass = "bg-white dark:bg-[#192231] text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#232f48]";
+                const disabledBtnClass = "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-transparent cursor-not-allowed";
+
+                paginationHtml = `
+                    <div class="flex justify-center items-center gap-4 mt-8">
+                        <a href="${prevLink}" class="${btnClass} ${prevDisabled ? disabledBtnClass : activeBtnClass} flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">arrow_back</span> Poprzednia
+                        </a>
+                        
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                            Strona <span class="font-bold text-gray-900 dark:text-white">${currentPage}</span> z ${totalPages}
+                        </span>
+
+                        <a href="${nextLink}" class="${btnClass} ${nextDisabled ? disabledBtnClass : activeBtnClass} flex items-center gap-2">
+                            Następna <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Składanie całości
             content.innerHTML = `
                 <div class="mb-6 flex items-center gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${escapeHtml(forum.name || 'Forum')}</h2>
+                        ${totalPages > 1 ? `<p class="text-sm text-gray-500 mt-1">Wyświetlanie ${startIndex + 1}-${Math.min(endIndex, totalThreads)} z ${totalThreads} wątków</p>` : ''}
                     </div>
                 </div>
                 <div class="space-y-4">
-                    ${threads.length === 0 ? '<p class="text-center text-gray-500 py-8">Brak wątków w tym forum.</p>' : threads.map(thread => `
-                        <a href="thread.html?threadId=${thread.id}" class="block bg-white dark:bg-[#192231] p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${escapeHtml(thread.title || '')}</h3>
-                                    <p class="text-sm text-gray-500 mb-3">Autor: ${escapeHtml(thread.author?.username || thread.authorName || 'Anonim')}</p>
-                                    <div class="flex gap-6 text-sm text-gray-400">
-                                        <span>💬 ${thread.repliesCount || 0}</span>
-                                        <span>👁️ ${thread.views || 0}</span>
-                                    </div>
-                                </div>
-                                <span class="text-xs text-gray-400">${new Date(thread.createdAt).toLocaleDateString('pl-PL')}</span>
-                            </div>
-                        </a>
-                    `).join('')}
-                </div>`;
+                    ${threadsHtml}
+                </div>
+                ${paginationHtml}
+            `;
         }
+        // --- KONIEC MODYFIKACJI ---
 
         function populateForumSelect(categories) {
             const select = document.getElementById('thread-forum');
@@ -263,17 +317,12 @@
             const modal = document.getElementById('new-thread-modal');
             const select = document.getElementById('thread-forum');
             
-            // Otwórz modal
             modal.classList.replace('hidden', 'flex');
 
-            // Jeśli mamy forumId (np. z URL), ustawiamy je w selectcie
             if (forumId) {
                 select.value = forumId;
-                // Opcjonalnie: Zablokuj zmianę, jeśli chcesz wymusić to forum
-                // select.disabled = true; 
             } else {
                 select.value = "";
-                // select.disabled = false;
             }
         }
 

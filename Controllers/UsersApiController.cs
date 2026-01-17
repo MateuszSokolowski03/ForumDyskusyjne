@@ -23,7 +23,7 @@ namespace ForumDyskusyjne.Controllers
             _context = context;
         }
 
-        // GET: api/users - pobranie listy wszystkich użytkowników
+// GET: api/users - pobranie listy wszystkich użytkowników
         [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
@@ -31,13 +31,21 @@ namespace ForumDyskusyjne.Controllers
             try
             {
                 var users = await _context.Users
+                    .Include(u => u.CurrentRank) // WAŻNE: Dołączamy rangę
                     .Select(u => new
                     {
                         u.Id,
                         u.Username,
                         u.Email,
                         u.AvatarUrl,
-                        u.CreatedAt
+                        u.CreatedAt,
+                        u.LastActivityAt,
+                        // Konwersja Enuma na string dla Frontend-u
+                        Role = u.Role.ToString(), 
+                        IsBanned = u.IsBanned,
+                        // Pobieramy nazwę rangi lub domyślną
+                        CurrentRank = u.CurrentRank != null ? u.CurrentRank.Name : "Brak",
+                        CurrentRankId = u.CurrentRankId // Potrzebne do edycji
                     })
                     .ToListAsync();
 
@@ -63,21 +71,71 @@ namespace ForumDyskusyjne.Controllers
                 if (user == null)
                     return NotFound(new { error = "Użytkownik nie znaleziony" });
 
-                    // Liczba postów liczona dynamicznie
+                // ============================================================
+                // 🔄 AUTOMATYCZNA AKTUALIZACJA RANGI (WERSJA BEZ ZMIAN W MODELU)
+                // ============================================================
+
+                // 1. Sprawdzamy, czy ranga jest "chroniona" (Admin/Mod) po nazwie
+                // Dzięki temu nie musisz dodawać pola CanBeSetManually do UserRank.cs
+                bool isProtectedRank = user.CurrentRank != null && 
+                                      (user.CurrentRank.Name == "Administrator" || 
+                                       user.CurrentRank.Name == "Moderator");
+
+                if (!isProtectedRank)
+                {
+                    // 2. Liczymy faktyczną ilość postów (Wiadomości)
                     int actualPostCount = await _context.Messages.CountAsync(m => m.AuthorId == user.Id);
 
-                    return Ok(new
+                    // 3. Pobieramy wszystkie rangi z bazy
+                    var allRanks = await _context.UserRanks
+                        .OrderBy(r => r.MinMessages)
+                        .ToListAsync();
+
+                    // 4. Filtrujemy tylko rangi "zwykłe" (te, które nie są Adminem/Modem)
+                    // Żeby system przez przypadek nie dał komuś rangi Administrator za 1000 postów
+                    var autoRanks = allRanks
+                        .Where(r => r.Name != "Administrator" && r.Name != "Moderator")
+                        .ToList();
+
+                    // 5. Szukamy odpowiedniej rangi
+                    // LastOrDefault znajdzie najwyższą rangę, której próg spełniamy
+                    var correctRank = autoRanks.LastOrDefault(r => r.MinMessages <= actualPostCount);
+
+                    // 6. Jeśli ranga powinna być inna -> Aktualizujemy
+                    if (correctRank != null && user.CurrentRankId != correctRank.Id)
                     {
-                        user.Id,
-                        user.Username,
-                        user.Email,
-                        user.Bio,
-                        user.AvatarUrl,
-                        user.CreatedAt,
-                        user.LastActivityAt,
-                        postCount = actualPostCount,
-                        currentRank = user.CurrentRank?.Name
-                    });
+                        user.CurrentRankId = correctRank.Id;
+                        user.PostCount = actualPostCount; // Aktualizujemy też licznik w tabeli usera
+                        
+                        _context.Users.Update(user);
+                        await _context.SaveChangesAsync();
+
+                        // Podmieniamy obiekt w pamięci, żeby zwrócić nową nazwę od razu
+                        user.CurrentRank = correctRank; 
+                    }
+                    // Jeśli ranga jest OK, ale licznik w tabeli User jest stary -> aktualizujemy sam licznik
+                    else if (user.PostCount != actualPostCount)
+                    {
+                        user.PostCount = actualPostCount;
+                        _context.Users.Update(user);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                // ============================================================
+
+                return Ok(new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.Bio,
+                    user.AvatarUrl,
+                    user.CreatedAt,
+                    user.LastActivityAt,
+                    postCount = user.PostCount,
+                    currentRankId = user.CurrentRankId,
+                    currentRank = user.CurrentRank?.Name ?? "Brak rangi"
+                });
             }
             catch (Exception ex)
             {
@@ -397,9 +455,61 @@ namespace ForumDyskusyjne.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-    }
 
-    // DTOs
+        // ==========================================
+        // ✅ TUTAJ JEST POPRAWNE MIEJSCE NA NOWĄ METODĘ
+        // ==========================================
+
+        // PUT: api/users/{id}/rank
+        [Authorize]
+        [HttpPut("{id}/rank")]
+        public async Task<IActionResult> UpdateUserRank(int id, [FromBody] int newRankId)
+        {
+            try
+            {
+                // 1. Sprawdź, kto wykonuje akcję
+                var requesterIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(requesterIdClaim, out var requesterId))
+                    return Unauthorized(new { error = "Błąd autoryzacji" });
+
+                var requester = await _context.Users.FindAsync(requesterId);
+                if (requester == null) return Unauthorized();
+
+                // 2. Sprawdź uprawnienia (Tylko Admin i Moderator)
+                if (requester.Role != UserRole.Admin && requester.Role != UserRole.Moderator)
+                {
+                    return Forbid(); // 403 Forbidden
+                }
+
+                // 3. Znajdź użytkownika, któremu zmieniamy rangę
+                var targetUser = await _context.Users.FindAsync(id);
+                if (targetUser == null)
+                    return NotFound(new { error = "Nie znaleziono użytkownika" });
+
+                // 4. Znajdź nową rangę
+                var newRank = await _context.UserRanks.FindAsync(newRankId);
+                if (newRank == null)
+                    return NotFound(new { error = "Nie znaleziono takiej rangi" });
+
+                // 5. Zapisz zmiany
+                targetUser.CurrentRankId = newRankId;
+                _context.Users.Update(targetUser);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    message = $"Zmieniono rangę użytkownika {targetUser.Username} na {newRank.Name}",
+                    newRankName = newRank.Name 
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+    } // <--- TO JEST KONIEC KLASY KONTROLERA. Wszystkie metody muszą być PRZED tym nawiasem.
+
+    // DTOs (Data Transfer Objects) mogą być tutaj (poza klasą kontrolera, ale w namespace)
     public class UpdateUserRequest
     {
         public string? Bio { get; set; }

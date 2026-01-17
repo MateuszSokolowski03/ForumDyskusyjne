@@ -199,7 +199,7 @@
     <footer class="mt-auto border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">© 2026 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                 <div class="flex gap-6 text-sm">
                     <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
                     <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
@@ -256,60 +256,58 @@
         }
     }
 
-    // Załaduj statystyki użytkownika
+// Załaduj statystyki użytkownika
     async function loadUserStats() {
         try {
-            if (!currentUser || !currentUser.id) {
-                console.error('❌ Brak ID użytkownika');
-                return;
-            }
+            if (!currentUser || !currentUser.id) return;
 
             console.log(`📊 Ładowanie stats dla user ID: ${currentUser.id}`);
             
+            // Pobieramy dane z naprawionego endpointu
             const res = await fetch(`/api/users/profile/${currentUser.id}`, { 
                 credentials: 'include' 
             });
 
-            if (!res.ok) {
-                console.error('❌ API Error:', res.status);
-                return;
-            }
+            if (!res.ok) return;
 
             const user = await res.json();
             console.log('📥 User stats:', user);
 
-            // Zaktualizuj avatar
-            const initial = (user.username || currentUser.username || 'U').charAt(0).toUpperCase();
+            // 1. Avatar
             const avatarEl = document.querySelector('.avatar-profile');
-            
             if (user.avatarUrl) {
                 avatarEl.style.backgroundImage = `url(${user.avatarUrl})`;
                 avatarEl.style.backgroundSize = 'cover';
                 avatarEl.style.backgroundPosition = 'center';
                 avatarEl.textContent = '';
             } else {
-                avatarEl.textContent = initial;
+                avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
             }
 
-            // Zaktualizuj licznik postów
-            const postCountEl = document.getElementById('post-count');
-            if (postCountEl) {
-                postCountEl.textContent = user.postCount || 0; // dynamicznie z API, już poprawnie liczone
-            }
-
-            // Zaktualizuj email
+            // 2. Email
             const emailEl = document.getElementById('user-email');
-            if (emailEl) {
-                emailEl.textContent = user.email || '-';
-            }
+            if (emailEl) emailEl.textContent = user.email || '-';
 
-            // Zaktualizuj rangę
+            // ============================================================
+            // ✅ 3. RANGA (POPRAWKA)
+            // Bierzemy gotową nazwę z backendu (user.currentRank)
+            // zamiast robić dodatkowe zapytanie loadUserRank
+            // ============================================================
             const rankEl = document.getElementById('user-rank');
             if (rankEl) {
-                // Załaduj rangę z tabeli UserRanks
-                await loadUserRank(user.userRankId);
+                rankEl.textContent = user.currentRank || 'Brak rangi';
+                
+                // Opcjonalne kolory (jeśli chcesz)
+                rankEl.className = 'text-gray-900 dark:text-white font-semibold';
+                if (user.currentRank === 'Administrator' || user.currentRank === 'Admin') {
+                    rankEl.classList.add('text-red-600', 'dark:text-red-400');
+                } else if (user.currentRank === 'Moderator') {
+                    rankEl.classList.add('text-green-600', 'dark:text-green-400');
+                }
             }
+            // ============================================================
 
+            // 4. Daty
             const joinedEl = document.getElementById('joined-date');
             if (joinedEl && user.createdAt) {
                 joinedEl.textContent = new Date(user.createdAt).toLocaleDateString('pl-PL');
@@ -321,78 +319,117 @@
                     new Date(user.lastActivityAt).toLocaleDateString('pl-PL') : '-';
             }
 
-            console.log('✅ Stats załadowane');
         } catch (error) {
             console.error('❌ Błąd ładowania statystyk:', error);
         }
     }
 
-    // Załaduj posty użytkownika
+// --- ZMIENNE GLOBALNE ---
+    let allUserPostsData = [];
+    let postsCurrentPage = 1;
+    // Zwiększamy limit pobierania, żeby na start pobrać więcej postów (np. 100), 
+    // dzięki temu klient-side paginacja będzie działać płynnie dla większości userów.
+    const API_PAGE_SIZE = 100; 
+    const UI_PAGE_SIZE = 5; // Tyle wyświetlamy na stronie w profilu
+
     async function loadUserPosts() {
         const container = document.getElementById('user-posts-container');
         
         try {
             if (!currentUser || !currentUser.id) {
-                console.error('❌ Brak ID użytkownika');
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Błąd: Brak ID użytkownika</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">Błąd: Brak ID użytkownika</p>';
                 return;
             }
 
-            console.log(`📝 Ładowanie postów dla user ID: ${currentUser.id}`);
-            
-            const res = await fetch(`/api/forum/user/${currentUser.id}`, { 
+            // Pobieramy posty (prosimy o 100 sztuk, żeby mieć zapas do paginacji)
+            const res = await fetch(`/api/forum/user/${currentUser.id}?pageSize=${API_PAGE_SIZE}`, { 
                 credentials: 'include' 
             });
 
             if (!res.ok) {
-                console.error('❌ API Error:', res.status);
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Brak postów</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">Brak postów</p>';
                 return;
             }
 
             const data = await res.json();
-            console.log('📥 Posts data:', data);
+            allUserPostsData = data.threads || [];
 
-            const posts = data.threads || [];
+            // ============================================================
+            // ✅ NAPRAWA LICZNIKA:
+            // Używamy data.totalThreads (jeśli dostępne), bo to prawdziwa liczba z bazy.
+            // Jeśli nie ma, używamy długości tablicy.
+            // ============================================================
+            const postCountEl = document.getElementById('post-count');
+            if (postCountEl) {
+                // "|| 0" zabezpiecza przed null/undefined
+                postCountEl.textContent = data.totalThreads !== undefined ? data.totalThreads : allUserPostsData.length;
+            }
 
-            if (posts.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Brak postów</p>';
+            if (allUserPostsData.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">Brak postów</p>';
                 return;
             }
 
-            container.innerHTML = posts.map(post => `
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-[#232f48] rounded-lg border border-gray-200 dark:border-[#324467] hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
-                    <div class="flex-1 min-w-0">
-                        <a href="thread.html?threadId=${post.id}" class="text-base font-bold text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary transition-colors block">
-                            ${escapeHtml(post.title || '')}
-                        </a>
-                        <div class="mt-2 flex items-center gap-x-4 gap-y-2 flex-wrap text-sm text-gray-500 dark:text-gray-400">
-                            <span>📅 ${new Date(post.createdAt).toLocaleDateString('pl-PL')}</span>
-                            <span class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-base">comment</span>
-                                ${post.repliesCount || 0} odpowiedzi
-                            </span>
-                            <span class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-base">visibility</span>
-                                ${post.views || 0} wyświetleń
-                            </span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button onclick="editPost(${post.id})" class="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3a4a61] text-gray-500 dark:text-gray-400 transition-colors" title="Edytuj">
-                            <span class="material-symbols-outlined text-xl">edit</span>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            // Resetujemy widok na 1 stronę
+            postsCurrentPage = 1;
+            renderPostsPage();
 
-            console.log(`✅ Załadowano ${posts.length} postów`);
         } catch (error) {
-            console.error('❌ Błąd ładowania postów:', error);
+            console.error('❌ Błąd:', error);
             container.innerHTML = '<p class="text-center text-red-500">Błąd ładowania postów</p>';
         }
     }
 
+    // Funkcja renderująca pozostaje bez zmian (używa UI_PAGE_SIZE = 5)
+    function renderPostsPage() {
+        const container = document.getElementById('user-posts-container');
+        const startIndex = (postsCurrentPage - 1) * UI_PAGE_SIZE;
+        const endIndex = startIndex + UI_PAGE_SIZE;
+        const postsToDisplay = allUserPostsData.slice(startIndex, endIndex);
+
+        let htmlContent = postsToDisplay.map(post => `
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-[#232f48] rounded-lg border border-gray-200 dark:border-[#324467] hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                             ${escapeHtml(post.forum?.name || 'Forum')}
+                        </span>
+                    </div>
+                    <a href="thread.html?threadId=${post.id}" class="text-base font-bold text-gray-900 dark:text-white hover:text-primary transition-colors block">
+                        ${escapeHtml(post.title || '')}
+                    </a>
+                    <div class="mt-2 flex items-center gap-x-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span>📅 ${new Date(post.createdAt).toLocaleDateString('pl-PL')}</span>
+                        <span class="flex items-center gap-1">💬 ${post.repliesCount || 0}</span>
+                        <span class="flex items-center gap-1">👁️ ${post.views || 0}</span>
+                    </div>
+                </div>
+                <button onclick="editPost(${post.id})" class="h-9 w-9 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3a4a61] text-gray-500 dark:text-gray-400 transition-colors">
+                    <span class="material-symbols-outlined text-xl">edit</span>
+                </button>
+            </div>
+        `).join('');
+
+        // Paginacja
+        const totalPages = Math.ceil(allUserPostsData.length / UI_PAGE_SIZE);
+        if (totalPages > 1) {
+            htmlContent += `
+                <div class="flex justify-center items-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-[#324467]">
+                    <button onclick="changePostPage(${postsCurrentPage - 1})" class="px-3 py-1 text-sm border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-[#2a3851] dark:text-gray-300" ${postsCurrentPage === 1 ? 'disabled' : ''}>Poprzednia</button>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Strona ${postsCurrentPage} z ${totalPages}</span>
+                    <button onclick="changePostPage(${postsCurrentPage + 1})" class="px-3 py-1 text-sm border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-[#2a3851] dark:text-gray-300" ${postsCurrentPage === totalPages ? 'disabled' : ''}>Następna</button>
+                </div>
+            `;
+        }
+        container.innerHTML = htmlContent;
+    }
+
+    function changePostPage(newPage) {
+        const totalPages = Math.ceil(allUserPostsData.length / UI_PAGE_SIZE);
+        if (newPage < 1 || newPage > totalPages) return;
+        postsCurrentPage = newPage;
+        renderPostsPage();
+    }
 // --- EDYCJA ---
     // Przekierowuje do widoku wątku, gdzie dostępna jest funkcja edycji (którą zrobiliśmy wcześniej)
     function editPost(threadId) {
@@ -726,6 +763,27 @@
         } catch (e) { console.warn('header avatar error', e); }
         loadUserProfile();
     });
+
+
+
+       document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    
+    // Sprawdź czy jest parametr reason=inactivity
+    if (params.get('reason') === 'inactivity') {
+        // Tutaj wyświetlasz komunikat w swoim stylu (np. wstawiasz do div-a z błędami)
+        const errorContainer = document.getElementById('login-error') || document.querySelector('.error-message');
+        
+        if (errorContainer) {
+            errorContainer.textContent = 'Zostałeś wylogowany z powodu braku aktywności.';
+            errorContainer.classList.remove('hidden'); // Jeśli używasz klasy hidden
+            errorContainer.style.display = 'block';
+        } else {
+            // Fallback, jeśli nie masz kontenera na błędy
+            alert('Zostałeś wylogowany z powodu braku aktywności.');
+        }
+    }
+});
 </script>
 </body>
 </html>

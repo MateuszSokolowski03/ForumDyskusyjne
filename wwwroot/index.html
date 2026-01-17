@@ -114,7 +114,7 @@
             <footer class="mt-auto border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-wrap items-center justify-between gap-4">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2024 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2026 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
                     <div class="flex gap-6 text-sm">
                         <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
                         <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
@@ -131,7 +131,6 @@
 async function fetchJson(url, opts = {}) {
     try {
         const res = await fetch(url, Object.assign({ credentials: 'include', headers: { 'Accept': 'application/json' } }, opts));
-        // Ignorujemy błędy 401/403 w fetchJson, zwracamy status, żeby obsłużyć to w logice
         if (!res.ok) return { ok: false, status: res.status, json: null };
         const json = await res.json();
         return { ok: true, status: res.status, json };
@@ -146,12 +145,12 @@ function escapeHtml(text) {
     return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
 }
 
+// --- OGŁOSZENIA ---
 async function loadAnnouncements() {
     const container = document.getElementById('announcements-container');
     if (!container) return;
 
     try {
-        // Sprawdź czy user jest adminem (tylko do wyświetlania przycisku usuwania)
         let isAdmin = false;
         try {
             const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
@@ -159,9 +158,7 @@ async function loadAnnouncements() {
                 const user = await statusRes.json();
                 isAdmin = (user.role === 'Admin' || user.role === 'ADMIN');
             }
-        } catch (err) {
-            // Ignoruj błędy auth przy ładowaniu ogłoszeń
-        }
+        } catch (err) {}
 
         const response = await fetch('/api/announcements/active', {
             headers: { 'Accept': 'application/json' }
@@ -229,7 +226,7 @@ async function deleteAnnouncement(btn, announcementId, title) {
     }
 }
 
-// --- POPRAWIONA FUNKCJA POPULARNYCH WĄTKÓW ---
+// --- POPULARNE WĄTKI ---
 async function loadPopularThreads() {
     const container = document.getElementById('popular-threads');
     if (!container) return;
@@ -237,20 +234,13 @@ async function loadPopularThreads() {
     container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">Ładowanie...</p>';
 
     let threads = [];
-
-    // KROK 1: Próba pobrania z endpointów publicznych (pomijamy /api/admin)
-    const tryEndpoints = [
-        '/api/forum/popular?limit=10',
-        '/api/threads?limit=20'
-    ];
+    const tryEndpoints = ['/api/forum/popular?limit=10', '/api/threads?limit=20'];
 
     for (const url of tryEndpoints) {
         const res = await fetchJson(url);
         if (!res.ok) continue;
-
         let body = res.json;
         let candidates = [];
-        
         if (Array.isArray(body)) candidates = body;
         else if (body && Array.isArray(body.threads)) candidates = body.threads;
         else if (body && Array.isArray(body.data)) candidates = body.data;
@@ -262,153 +252,84 @@ async function loadPopularThreads() {
         }
     }
 
-    // KROK 2: FALLBACK (Plan B dla niezalogowanych)
-    // Jeśli nie udało się pobrać listy wątków, pobieramy kategorie i wyciągamy wątki ręcznie
     if (threads.length === 0) {
         try {
-            // 1. Pobierz kategorie (publiczne)
             const catRes = await fetchJson('/api/forum/categories');
-            
             if (catRes.ok && Array.isArray(catRes.json)) {
-                // 2. Zbierz ID pierwszych kilku forów
                 const forumIds = [];
                 catRes.json.forEach(cat => {
-                    const forums = cat.Forums || cat.forums || [];
-                    forums.forEach(f => forumIds.push(f.id || f.Id));
+                    (cat.Forums || cat.forums || []).forEach(f => forumIds.push(f.id || f.Id));
                 });
-
-                // 3. Pobierz wątki z pierwszych 3 forów (limitujemy zapytania)
                 if (forumIds.length > 0) {
                     const promises = forumIds.slice(0, 3).map(fid => 
-                        fetchJson(`/api/forum/forum/${fid}`)
-                            .then(r => {
-                                if (!r.ok || !r.json) return [];
-                                return r.json.Threads || r.json.threads || [];
-                            })
+                        fetchJson(`/api/forum/forum/${fid}`).then(r => (r.ok && r.json) ? (r.json.Threads || r.json.threads || []) : [])
                     );
-
                     const results = await Promise.all(promises);
                     threads = results.flat();
                 }
             }
-        } catch (e) {
-            console.warn('Fallback loading failed', e);
-        }
+        } catch (e) {}
     }
 
-    // Jeśli nadal pusto
     if (!Array.isArray(threads) || threads.length === 0) {
         container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Brak popularnych wątków</p>`;
         return;
     }
 
-    // KROK 3: Normalizacja i sortowanie
-    const normalized = threads.map(t => {
-        return {
-            id: t.id ?? t.Id ?? t.threadId,
-            title: t.title ?? t.Title ?? '(brak tytułu)',
-            description: t.description ?? t.Description ?? '',
-            views: Number(t.views ?? t.Views ?? 0),
-            replies: Number(t.repliesCount ?? t.RepliesCount ?? t.messageCount ?? 0),
-            forumName: t.forumName ?? (t.Forum ? t.Forum.Name : '') ?? (t.forum ? t.forum.name : '') ?? ''
-        };
-    });
+    const normalized = threads.map(t => ({
+        id: t.id ?? t.Id ?? t.threadId,
+        title: t.title ?? t.Title ?? '(brak tytułu)',
+        description: t.description ?? t.Description ?? '',
+        views: Number(t.views ?? t.Views ?? 0),
+        replies: Number(t.repliesCount ?? t.RepliesCount ?? t.messageCount ?? 0),
+        forumName: t.forumName ?? (t.Forum ? t.Forum.Name : '') ?? (t.forum ? t.forum.name : '') ?? ''
+    })).sort((a, b) => b.views - a.views).slice(0, 2);
 
-    // Sortuj po wyświetleniach malejąco
-    normalized.sort((a, b) => b.views - a.views);
-
-    // Weź top 2
-    const top = normalized.slice(0, 2);
-
-    // Renderowanie
-    container.innerHTML = top.map(thread => `
+    container.innerHTML = normalized.map(thread => `
         <div class="forum-thread p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] flex gap-4 items-start hover:shadow-md transition-shadow cursor-pointer" onclick="window.location.href='thread.html?threadId=${thread.id}'">
             <div class="flex-1">
                 <h4 class="font-semibold text-lg text-gray-900 dark:text-white">
-                    <a href="thread.html?threadId=${encodeURIComponent(thread.id)}" class="hover:underline text-blue-600 dark:text-blue-400">
-                        ${escapeHtml(thread.title)}
-                    </a>
+                    <a href="thread.html?threadId=${encodeURIComponent(thread.id)}" class="hover:underline text-blue-600 dark:text-blue-400">${escapeHtml(thread.title)}</a>
                 </h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 break-words">
-                    ${escapeHtml(thread.description)}
-                </p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 break-words">${escapeHtml(thread.description)}</p>
                 <div class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
                     ${thread.forumName ? `<span class="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">${escapeHtml(thread.forumName)}</span>` : ''}
-                    <span class="flex items-center gap-1" title="Wyświetlenia"><span class="material-symbols-outlined text-[16px]">visibility</span> ${Number(thread.views).toLocaleString('pl-PL')}</span>
-                    <span class="flex items-center gap-1" title="Odpowiedzi"><span class="material-symbols-outlined text-[16px]">forum</span> ${Number(thread.replies).toLocaleString('pl-PL')}</span>
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">visibility</span> ${Number(thread.views).toLocaleString('pl-PL')}</span>
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">forum</span> ${Number(thread.replies).toLocaleString('pl-PL')}</span>
                 </div>
             </div>
         </div>
     `).join('');
 }
 
+// --- STATYSTYKI ---
 async function loadStats() {
     try {
         const res = await fetchJson('/api/status');
-        // Jeśli endpoint status nie działa, spróbuj innego lub po prostu zostaw
         if (!res.ok || !res.json) return;
         
         const payload = res.json.stats ? res.json.stats : res.json;
-        const usersEl = document.getElementById('stat-users');
-        const forumsEl = document.getElementById('stat-forums');
-        const threadsEl = document.getElementById('stat-threads');
-        const messagesEl = document.getElementById('stat-messages');
+        const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = Number(val).toLocaleString('pl-PL'); };
 
-        if (usersEl) usersEl.textContent = Number(payload.totalUsers ?? payload.totalUsersCount ?? 0).toLocaleString('pl-PL');
-        if (forumsEl) forumsEl.textContent = Number(payload.totalForums ?? payload.totalCategories ?? payload.totalForumsCount ?? 0).toLocaleString('pl-PL');
-        if (threadsEl) threadsEl.textContent = Number(payload.totalThreads ?? payload.totalThreadsCount ?? 0).toLocaleString('pl-PL');
-        if (messagesEl) messagesEl.textContent = Number(payload.totalMessages ?? payload.totalMessagesCount ?? 0).toLocaleString('pl-PL');
-    } catch (e) {
-        console.warn('loadStats error', e);
-    }
+        setTxt('stat-users', payload.totalUsers ?? payload.totalUsersCount ?? 0);
+        setTxt('stat-forums', payload.totalForums ?? payload.totalCategories ?? 0);
+        setTxt('stat-threads', payload.totalThreads ?? payload.totalThreadsCount ?? 0);
+        setTxt('stat-messages', payload.totalMessages ?? payload.totalMessagesCount ?? 0);
+    } catch (e) {}
 }
 
+// --- INICJALIZACJA ---
 document.addEventListener('DOMContentLoaded', async function () {
+    // 1. Ładujemy zawartość strony
     loadAnnouncements();
     loadPopularThreads();
     loadStats();
 
-    // Inicjalizacja nagłówka z main.js powinna zadziałać, ale na wszelki wypadek obsługujemy tu też logikę avatara
-    // (main.js robi to globalnie, ale kod poniżej zapewnia fallback)
-    try {
-        if (typeof window.ForumApp !== 'undefined' && window.ForumApp.setupAuthenticationUI) {
-            // main.js jest załadowany i działa
-        } else {
-            // Fallback auth check
-            const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
-            if (statusRes.ok) {
-                const user = await statusRes.json();
-                const authContainer = document.getElementById('auth-container');
-                if (authContainer) {
-                    // Render avatara (prosty fallback)
-                    const userInitial = (user.username || 'U').charAt(0).toUpperCase();
-                    authContainer.innerHTML = `
-                        <div class="relative flex items-center gap-3">
-                            <button onclick="window.location.href='/profile.html'" class="w-10 h-10 bg-blue-500 text-white rounded-full font-bold flex items-center justify-center">
-                                ${user.avatarUrl ? `<img src="${user.avatarUrl}" class="w-full h-full rounded-full object-cover">` : userInitial}
-                            </button>
-                            <span class="hidden md:inline font-semibold text-gray-900 dark:text-white">${escapeHtml(user.username)}</span>
-                        </div>
-                    `;
-                }
-            } else {
-                const authContainer = document.getElementById('auth-container');
-                if (authContainer) {
-                    authContainer.innerHTML = `
-                        <div class="flex space-x-4">
-                            <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">Logowanie</a>
-                            <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">Rejestracja</a>
-                        </div>
-                    `;
-                }
-            }
-        }
-    } catch (e) {
-        console.warn('Auth fallback error', e);
-    }
+    // 2. UWAGA: Nie obsługujemy tutaj #auth-container ani logowania.
+    // Robi to teraz automatycznie plik js/main.js, który dba o poprawny awatar i menu.
 });
 
-// Logo updater
+// Logo (pozostawiamy, bo to specyficzne dla layoutu index.html)
 function initUpdatersIndex() {
     const logoContainer = document.getElementById('logo-container');
     if (!logoContainer) return;
@@ -431,6 +352,7 @@ function initUpdatersIndex() {
     }
     updateLogo();
 }
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initUpdatersIndex);
 } else {

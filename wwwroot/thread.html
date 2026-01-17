@@ -90,245 +90,312 @@
             </div>
         </main>
 
+        <!-- FOOTER -->
         <footer class="mt-auto border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#192231]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <p class="text-sm text-center text-gray-500">© 2024 Forum Dyskusyjne.</p>
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">© 2026 Forum Dyskusyjne. Wszelkie prawa zastrzeżone.</p>
+                    <div class="flex gap-6 text-sm">
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="rules.html">Regulamin</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="privacy.html">Polityka Prywatności</a>
+                        <a class="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" href="contact.html">Kontakt</a>
+                    </div>
+                </div>
             </div>
         </footer>
     </div>
 
     <script src="js/main.js"></script>
-    <script>
-        let currentUser = null;
-        let currentThreadId = null;
+<script>
+    let currentUser = null;
+    let currentThreadId = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            // main.js automatycznie obsłuży logowanie UI (setupAuthenticationUI)
-            
-            const params = new URLSearchParams(window.location.search);
-            currentThreadId = params.get('threadId');
+    document.addEventListener('DOMContentLoaded', async function() {
+        const params = new URLSearchParams(window.location.search);
+        currentThreadId = params.get('threadId');
 
-            if (!currentThreadId) {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.remove('hidden');
-                return;
-            }
-
-            // Pobierz dane użytkownika
-            try {
-                const statusResponse = await fetch('/api/auth/status', { credentials: 'include' });
-                if (statusResponse.ok) {
-                    const userData = await statusResponse.json();
-                    // Normalizacja danych użytkownika (obsługa zagnieżdżenia user.user lub płaskiej struktury)
-                    if (userData.user) {
-                        currentUser = { ...userData.user, role: userData.role || userData.user.role, moderatedForumIds: userData.moderatedForumIds };
-                    } else {
-                        currentUser = userData;
-                    }
-                    console.log('✅ Zalogowany jako:', currentUser.username, 'Rola:', currentUser.role);
-                    document.getElementById('reply-section').classList.remove('hidden');
-                }
-            } catch (e) {
-                console.log('ℹ️ Użytkownik niezalogowany');
-            }
-
-            await loadThread(parseInt(currentThreadId, 10));
-
-            // Obsługa Edycji/Usuwania (Delegacja zdarzeń)
-            document.getElementById('content').addEventListener('click', handleMessageActions);
-            
-            // Obsługa wysyłania odpowiedzi
-            document.getElementById('reply-form')?.addEventListener('submit', handleReplySubmit);
-        });
-
-        async function loadThread(threadId) {
-            try {
-                const response = await fetch(`/api/forum/thread/${threadId}`, { credentials: 'include' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const data = await response.json();
-                
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('content').classList.remove('hidden');
-                renderThread(data);
-            } catch (error) {
-                console.error('❌ Błąd ładowania:', error);
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('error').classList.remove('hidden');
-            }
+        if (!currentThreadId) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            return;
         }
 
-        function renderThread(data) {
-            // Obsługa różnej wielkości liter (CamelCase z API vs PascalCase z C#)
-            const thread = data.thread || data.Thread;
-            const messages = data.messages || data.Messages || [];
+        // 1. Logika autoryzacji i naprawy HEADERA
+        try {
+            // Najpierw sprawdzamy, czy ktoś jest zalogowany (to zwraca ID i rolę, ale często nie zwraca avatara)
+            const statusResponse = await fetch('/api/auth/status', { credentials: 'include' });
             
-            if (!thread) return;
+            if (statusResponse.ok) {
+                let userData = await statusResponse.json();
+                
+                // Normalizacja danych użytkownika (czasem API zwraca obiekt w polu .user)
+                if (userData.user) {
+                    currentUser = { 
+                        ...userData.user, 
+                        role: userData.role || userData.user.role, 
+                        moderatedForumIds: userData.moderatedForumIds 
+                    };
+                } else {
+                    currentUser = userData;
+                }
 
-            // Ustawianie nagłówka
-            document.getElementById('thread-title').textContent = escapeHtml(thread.title || '');
-            const authorName = thread.author?.username || thread.authorName || 'Anonim';
-            document.getElementById('thread-author').textContent = escapeHtml(authorName);
+                // >>> POPRAWKA: Dociągamy pełne dane profilowe, aby mieć pewność, że mamy avatarUrl <<<
+                if (currentUser && currentUser.id) {
+                    try {
+                        const profileResponse = await fetch(`/api/users/${currentUser.id}`, { credentials: 'include' });
+                        if (profileResponse.ok) {
+                            const fullProfile = await profileResponse.json();
+                            // Jeśli profil ma awatar, nadpisujemy go w currentUser
+                            if (fullProfile.avatarUrl || fullProfile.AvatarUrl) {
+                                currentUser.avatarUrl = fullProfile.avatarUrl || fullProfile.AvatarUrl;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('⚠️ Nie udało się pobrać szczegółów awatara:', err);
+                    }
+                }
+                
+                console.log('✅ Zalogowany jako:', currentUser.username);
+                
+                // Aktualizujemy nagłówek ręcznie, używając pełnych danych
+                updateHeaderUserUI(currentUser);
+                
+                // Pokazujemy sekcję odpowiedzi
+                document.getElementById('reply-section').classList.remove('hidden');
+            } else {
+                // Jeśli niezalogowany
+                renderLoginButtons();
+            }
+        } catch (e) {
+            console.log('ℹ️ Użytkownik niezalogowany lub błąd auth', e);
+            renderLoginButtons();
+        }
+
+        // 2. Ładowanie wątku
+        await loadThread(parseInt(currentThreadId, 10));
+
+        // 3. Obsługa zdarzeń (edycja, usuwanie, odpowiadanie)
+        document.getElementById('content').addEventListener('click', handleMessageActions);
+        document.getElementById('reply-form')?.addEventListener('submit', handleReplySubmit);
+    });
+
+    // --- Funkcja renderująca zalogowanego użytkownika w nagłówku ---
+    function updateHeaderUserUI(user) {
+        const authContainer = document.getElementById('auth-container');
+        if (!authContainer) return;
+
+        // Obsługa różnych nazw pól z API
+        const avatarUrl = user.avatarUrl || user.AvatarUrl || user.avatar;
+        const username = user.username || 'Użytkownik';
+        const initial = username.charAt(0).toUpperCase();
+
+        // Styl dla tła (to rozwiązuje problem niewyświetlania obrazka)
+        const avatarStyle = avatarUrl 
+            ? `background-image:url('${avatarUrl}');background-size:cover;background-position:center;` 
+            : '';
+
+        authContainer.innerHTML = `
+            <div class="relative flex items-center gap-3">
+                <button id="header-avatar-btn" 
+                        class="w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 font-semibold flex items-center justify-center cursor-pointer overflow-hidden shadow-sm border border-gray-200 dark:border-gray-600"
+                        style="${avatarStyle}">
+                     ${!avatarUrl ? initial : ''}
+                </button>
+                
+                <span class="hidden md:inline font-medium text-sm text-gray-700 dark:text-gray-200">
+                    ${escapeHtml(username)}
+                </span>
+
+                <div id="header-avatar-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#192231] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1e293b]/50">
+                        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">${escapeHtml(username)}</p>
+                    </div>
+                    <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                        <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
+                    </a>
+                    <a href="messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
+                        <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
+                    </a>
+                    <hr class="my-1 border-gray-200 dark:border-gray-700">
+                    <button id="header-logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Obsługa kliknięcia w menu (Toggle)
+        const btn = document.getElementById('header-avatar-btn');
+        const menu = document.getElementById('header-avatar-menu');
+        
+        if (btn && menu) {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+            };
+
+            // Zamknięcie po kliknięciu poza
+            document.addEventListener('click', (e) => {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+
+            // Obsługa wylogowania
+            document.getElementById('header-logout-btn').onclick = async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.reload();
+            };
+        }
+    }
+
+    function renderLoginButtons() {
+        const authContainer = document.getElementById('auth-container');
+        if (authContainer) {
+             authContainer.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <a href="login.html" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary px-3 py-2">Logowanie</a>
+                    <a href="register.html" class="text-sm font-medium bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 shadow-sm">Rejestracja</a>
+                </div>
+            `;
+        }
+    }
+
+    // --- Logika wątku ---
+
+    async function loadThread(threadId) {
+        try {
+            const response = await fetch(`/api/forum/thread/${threadId}`, { credentials: 'include' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
-            // --- POPRAWKA: Użycie toLocaleString zamiast toLocaleDateString ---
-            document.getElementById('thread-date').textContent = new Date(thread.createdAt).toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
-            // -------------------------------------------------------------------
+            const data = await response.json();
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+            renderThread(data);
+        } catch (error) {
+            console.error('❌ Błąd ładowania:', error);
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+        }
+    }
 
-            document.getElementById('thread-views').textContent = thread.views || 0;
-            document.getElementById('thread-replies').textContent = Math.max(0, messages.length - 1);
+    function renderThread(data) {
+        const thread = data.thread || data.Thread;
+        const messages = data.messages || data.Messages || [];
+        
+        if (!thread) return;
 
-            // Breadcrumbs
-            const forumId = thread.forum?.id || thread.forumId;
-            const forumName = thread.forum?.name || thread.forumName;
-            const forumCrumb = document.getElementById('forum-breadcrumb');
-            if (forumId && forumCrumb) {
-                forumCrumb.href = `forum.html?forumId=${forumId}`;
-                forumCrumb.textContent = escapeHtml(forumName || 'Forum');
-            }
+        // Ustawienie nagłówków wątku
+        document.getElementById('thread-title').textContent = escapeHtml(thread.title || '');
+        const authorName = thread.author?.username || thread.authorName || 'Anonim';
+        document.getElementById('thread-author').textContent = escapeHtml(authorName);
+        document.getElementById('thread-date').textContent = new Date(thread.createdAt).toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
+        document.getElementById('thread-views').textContent = thread.views || 0;
+        document.getElementById('thread-replies').textContent = Math.max(0, messages.length - 1);
 
-            // Renderowanie wiadomości
-            const content = document.getElementById('content');
-            if (messages.length === 0) {
-                content.innerHTML = '<p class="text-center text-gray-500">Brak wiadomości.</p>';
-                return;
-            }
+        // Ustawienie breadcrumbs
+        const forumId = thread.forum?.id || thread.forumId;
+        const forumName = thread.forum?.name || thread.forumName;
+        const forumCrumb = document.getElementById('forum-breadcrumb');
+        if (forumId && forumCrumb) {
+            forumCrumb.href = `forum.html?forumId=${forumId}`;
+            forumCrumb.textContent = escapeHtml(forumName || 'Forum');
+        }
 
-            content.innerHTML = messages.map((msg, index) => {
-                const isOP = index === 0;
-                const author = msg.author || {};
-                const avatarUrl = author.avatarUrl || null;
-                const username = author.username || 'Anonim';
-                
-                // --- POPRAWKA: Użycie toLocaleString zamiast toLocaleDateString ---
-                const date = new Date(msg.createdAt).toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
-                // -------------------------------------------------------------------
-                
-                return `
-                <article class="p-6 rounded-lg border ${isOP ? 'border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800' : 'border-gray-200 bg-white dark:bg-[#192231] dark:border-gray-700'}" id="msg-${msg.id}">
-                    <div class="flex gap-4">
-                        <div class="flex-shrink-0">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 overflow-hidden bg-gray-200 dark:bg-gray-700" 
-                                 style="${avatarUrl ? `background-image:url('${avatarUrl}');background-size:cover;` : ''}">
-                                ${!avatarUrl ? username.charAt(0).toUpperCase() : ''}
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between mb-2">
-                                <div>
-                                    <span class="font-bold text-gray-900 dark:text-white mr-2">${escapeHtml(username)}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
-                                </div>
-                                ${isOP ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-200">OP</span>' : ''}
-                            </div>
-                            
-                            <div class="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 break-words message-content">
-                                ${escapeHtml(msg.content)}
-                            </div>
-                            
-                            ${msg.updatedAt || msg.isEdited ? '<p class="text-xs text-gray-400 mt-2 italic">Edytowano</p>' : ''}
-                            
-                            ${renderModeratorButtons(currentUser, msg, thread)}
+        const content = document.getElementById('content');
+        if (messages.length === 0) {
+            content.innerHTML = '<p class="text-center text-gray-500">Brak wiadomości.</p>';
+            return;
+        }
+
+        // Renderowanie listy wiadomości
+        content.innerHTML = messages.map((msg, index) => {
+            const isOP = index === 0;
+            const author = msg.author || {};
+            // Pobieramy avatarUrl z różnych możliwych pól
+            const avatarUrl = author.avatarUrl || author.AvatarUrl || null;
+            const username = author.username || 'Anonim';
+            const date = new Date(msg.createdAt).toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
+            
+            return `
+            <article class="p-6 rounded-lg border ${isOP ? 'border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800' : 'border-gray-200 bg-white dark:bg-[#192231] dark:border-gray-700'}" id="msg-${msg.id}">
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-600" 
+                             style="${avatarUrl ? `background-image:url('${avatarUrl}');background-size:cover;background-position:center;` : ''}">
+                            ${!avatarUrl ? username.charAt(0).toUpperCase() : ''}
                         </div>
                     </div>
-                </article>`;
-            }).join('');
-        }
-
-function renderModeratorButtons(user, msg, thread) {
-    if (!user) return '';
-
-    // Konwersja ID na liczby dla pewności
-    const currentUserId = parseInt(user.id || user.userId);
-    const msgAuthorId = parseInt(msg.author?.id || msg.authorId);
-    const forumId = parseInt(thread.forum?.id || thread.forumId);
-
-    // 1. Sprawdź czy to Autor
-    const isAuthor = currentUserId === msgAuthorId;
-
-    // 2. Sprawdź czy to Admin (bezpieczne sprawdzanie stringa)
-    const userRole = String(user.role || '').toLowerCase();
-    const isAdmin = userRole === 'admin';
-
-    // 3. Sprawdź czy to Moderator tego forum
-    let isMod = false;
-    if (userRole === 'moderator' && Array.isArray(user.moderatedForumIds)) {
-        const modIds = user.moderatedForumIds.map(Number);
-        if (modIds.includes(forumId)) {
-            isMod = true;
-        }
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <span class="font-bold text-gray-900 dark:text-white mr-2">${escapeHtml(username)}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
+                            </div>
+                            ${isOP ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-200">OP</span>' : ''}
+                        </div>
+                        <div class="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 break-words message-content">
+                            ${escapeHtml(msg.content)}
+                        </div>
+                        ${msg.updatedAt || msg.isEdited ? '<p class="text-xs text-gray-400 mt-2 italic">Edytowano</p>' : ''}
+                        ${renderModeratorButtons(currentUser, msg, thread)}
+                    </div>
+                </div>
+            </article>`;
+        }).join('');
     }
 
-    // Debugowanie w konsoli (jeśli przyciski się nie pojawiają, sprawdź F12)
-    // console.log(`Msg ${msg.id}: Author=${isAuthor}, Admin=${isAdmin}, Mod=${isMod} (UserRole=${userRole})`);
+    function renderModeratorButtons(user, msg, thread) {
+        if (!user) return '';
+        const currentUserId = parseInt(user.id || user.userId);
+        const msgAuthorId = parseInt(msg.author?.id || msg.authorId);
+        const forumId = parseInt(thread.forum?.id || thread.forumId);
+        const isAuthor = currentUserId === msgAuthorId;
+        const userRole = String(user.role || '').toLowerCase();
+        const isAdmin = userRole === 'admin';
+        
+        let isMod = false;
+        if (userRole === 'moderator' && Array.isArray(user.moderatedForumIds)) {
+            const modIds = user.moderatedForumIds.map(Number);
+            if (modIds.includes(forumId)) isMod = true;
+        }
 
-    if (isAuthor || isAdmin || isMod) {
-        return `
-        <div class="mt-4 flex gap-2 border-t border-gray-100 dark:border-gray-700 pt-2">
-            <button class="edit-btn text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" 
-                    data-id="${msg.id}">Edytuj</button>
-            <button class="delete-btn text-xs font-semibold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" 
-                    data-id="${msg.id}">Usuń</button>
-        </div>`;
+        if (isAuthor || isAdmin || isMod) {
+            return `
+            <div class="mt-4 flex gap-2 border-t border-gray-100 dark:border-gray-700 pt-2">
+                <button class="edit-btn text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" data-id="${msg.id}">Edytuj</button>
+                <button class="delete-btn text-xs font-semibold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" data-id="${msg.id}">Usuń</button>
+            </div>`;
+        }
+        return '';
     }
-    return '';
-}
 
-        async function handleMessageActions(e) {
-            const btn = e.target;
-            const msgId = btn.dataset.id;
+    async function handleMessageActions(e) {
+        const btn = e.target;
+        const msgId = btn.dataset.id;
+        
+        // Obsługa edycji
+        if (btn.classList.contains('edit-btn')) {
+            const article = document.getElementById(`msg-${msgId}`);
+            const contentDiv = article.querySelector('.message-content');
+            const oldContent = contentDiv.textContent.trim();
             
-            // EDYCJA
-            if (btn.classList.contains('edit-btn')) {
-                const article = document.getElementById(`msg-${msgId}`);
-                const contentDiv = article.querySelector('.message-content');
-                const oldContent = contentDiv.textContent.trim();
-                
-                const newContent = prompt("Edytuj treść:", oldContent);
-                if (newContent !== null && newContent !== oldContent) {
-                    try {
-                        const res = await fetch(`/api/forum/messages/${msgId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ content: newContent })
-                        });
-                        
-                        if (res.ok) {
-                            location.reload();
-                        } else {
-                            const err = await res.json();
-                            alert('Błąd: ' + (err.error || 'Nie udało się edytować'));
-                        }
-                    } catch (error) {
-                        alert('Błąd połączenia');
-                    }
-                }
-            }
-
-            // USUWANIE
-            if (btn.classList.contains('delete-btn')) {
-                if (!confirm("Czy na pewno usunąć tę wiadomość?")) return;
-                
+            const newContent = prompt("Edytuj treść:", oldContent);
+            if (newContent !== null && newContent !== oldContent) {
                 try {
-                    // Przekazanie userId w URL (zgodnie z kontrolerem)
-                    const userId = currentUser ? currentUser.id : 0;
-                    
-                    const res = await fetch(`/api/forum/messages/${msgId}?userId=${userId}`, {
-                        method: 'DELETE',
-                        credentials: 'include'
+                    const res = await fetch(`/api/forum/messages/${msgId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ content: newContent })
                     });
-
+                    
                     if (res.ok) {
-                        const data = await res.json();
-                        if (data.isThreadDeleted) {
-                            alert('Usunięto pierwszą wiadomość - cały wątek został usunięty.');
-                            window.location.href = 'forum.html';
-                        } else {
-                            location.reload();
-                        }
+                        location.reload();
                     } else {
                         const err = await res.json();
-                        alert('Błąd: ' + (err.error || 'Nie udało się usunąć'));
+                        alert('Błąd: ' + (err.error || 'Nie udało się edytować'));
                     }
                 } catch (error) {
                     alert('Błąd połączenia');
@@ -336,36 +403,66 @@ function renderModeratorButtons(user, msg, thread) {
             }
         }
 
-        async function handleReplySubmit(e) {
-            e.preventDefault();
-            if (!currentUser) return alert('Musisz być zalogowany');
+        // Obsługa usuwania
+        if (btn.classList.contains('delete-btn')) {
+            if (!confirm("Czy na pewno usunąć tę wiadomość?")) return;
             
-            const content = document.getElementById('reply-content').value.trim();
-            if (!content) return alert('Wpisz treść');
-
             try {
-                const res = await fetch('/api/forum/message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ threadId: parseInt(currentThreadId), content })
+                const userId = currentUser ? currentUser.id : 0;
+                const res = await fetch(`/api/forum/messages/${msgId}?userId=${userId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
                 });
 
                 if (res.ok) {
-                    location.reload();
+                    const data = await res.json();
+                    // Jeśli usunięto pierwszą wiadomość, wątek też znika
+                    if (data.isThreadDeleted) {
+                        alert('Usunięto pierwszą wiadomość - cały wątek został usunięty.');
+                        window.location.href = 'forum.html';
+                    } else {
+                        location.reload();
+                    }
                 } else {
                     const err = await res.json();
-                    alert('Błąd: ' + (err.error || 'Nie udało się dodać odpowiedzi'));
+                    alert('Błąd: ' + (err.error || 'Nie udało się usunąć'));
                 }
-            } catch (e) {
+            } catch (error) {
                 alert('Błąd połączenia');
             }
         }
+    }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+    async function handleReplySubmit(e) {
+        e.preventDefault();
+        if (!currentUser) return alert('Musisz być zalogowany');
+        
+        const content = document.getElementById('reply-content').value.trim();
+        if (!content) return alert('Wpisz treść');
+
+        try {
+            const res = await fetch('/api/forum/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ threadId: parseInt(currentThreadId), content })
+            });
+
+            if (res.ok) {
+                location.reload();
+            } else {
+                const err = await res.json();
+                alert('Błąd: ' + (err.error || 'Nie udało się dodać odpowiedzi'));
+            }
+        } catch (e) {
+            alert('Błąd połączenia');
         }
-    </script>
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+    }
+</script>
 </body>
 </html>
