@@ -15,7 +15,6 @@
     <header class="sticky top-0 z-50 bg-white/95 dark:bg-[#111722]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#232f48]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <!-- Logo and Brand -->
                     <div class="flex items-center gap-4">
                             <div id="logo-container" class="flex items-center gap-3">
                             <div class="text-primary flex items-center">
@@ -27,9 +26,8 @@
                         </div>
                     </div>
 
-                    <!-- Navigation -->
                     <nav class="hidden md:flex items-center gap-6">
-                        <a href="/" class="nav-item" title="Strona główna">
+                        <a href="/" class="nav-item nav-item--active" title="Strona główna">
                             🏠
                         </a>
                         <a href="forum.html" class="nav-item" title="Kategorie">
@@ -43,9 +41,7 @@
                         </button>
                     </nav>
 
-                    <!-- Search and User Actions -->
                     <div class="flex items-center gap-4">
-                        <!-- Expandable Search Bar -->
                         <div id="search-container" class="hidden items-center relative">
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">
@@ -63,10 +59,8 @@
                             </div>
                         </div>
 
-                        <!-- Auth Container - Avatar lub Login/Register -->
                         <div id="auth-container" class="relative">
-                            <!-- Dynamicznie wstawiane przez JavaScript -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -81,20 +75,16 @@
             <div class="Announcements mb-8">
                 <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">🔥 Ogłoszenia</h3>
                 <div id="announcements-container" class="space-y-4">
-                    <!-- Ogłoszenia będą wstawiane dynamicznie -->
-                </div>
+                    </div>
             </div>
         
 
-                <!-- Sekcja 2 najbardziej odwiedzanych wątków -->
                 <div class="popular-threads-section mb-8">
                     <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">🔥 Najbardziej odwiedzane wątki</h3>
                     <div id="popular-threads" class="grid grid-cols-1 gap-6">
-                        <!-- Wątki zostaną wstawione dynamicznie -->
-                    </div>
+                        </div>
                 </div>
 
-                <!-- Sekcja statystyk -->
                 <div class="stats-section">
                     <h3 class="stats-title">📊 Statystyki Forum</h3>
                     <div class="stats-grid grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
@@ -138,10 +128,10 @@
 
 <script src="js/main.js"></script>
 <script>
-/* Replace loadPopularThreads implementation: fetch several endpoints, normalize shape, pick top-2 by views */
 async function fetchJson(url, opts = {}) {
     try {
         const res = await fetch(url, Object.assign({ credentials: 'include', headers: { 'Accept': 'application/json' } }, opts));
+        // Ignorujemy błędy 401/403 w fetchJson, zwracamy status, żeby obsłużyć to w logice
         if (!res.ok) return { ok: false, status: res.status, json: null };
         const json = await res.json();
         return { ok: true, status: res.status, json };
@@ -155,99 +145,22 @@ function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
 }
-async function loadAnnouncements() {
-    const container = document.getElementById('announcements-container');
-    if (!container) return;
-
-    const res = await fetchJson('/api/announcements');
-    if (!res.ok || !Array.isArray(res.json)) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const announcements = res.json
-        .filter(a => a.isActive !== false)
-        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-        .slice(0, 5);
-
-    if (announcements.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    container.innerHTML = announcements.map(announcement => {
-        const createdDate = announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString('pl-PL') : '';
-        
-        return `
-            <div class="announcement-item flex items-start gap-4 p-4 bg-white dark:bg-[#192231] rounded-lg border border-yellow-200 dark:border-[#232f48] mb-3 last:mb-0">
-                <div class="flex-shrink-0 pt-1">
-                    <span class="material-symbols-outlined text-2xl text-yellow-600 dark:text-yellow-500">announcement</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-lg text-gray-900 dark:text-white">${escapeHtml(announcement.title || 'Ogłoszenie')}</h4>
-                    <p class="text-gray-700 dark:text-gray-300 mt-2 break-words">${escapeHtml(announcement.content || '')}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        ${announcement.createdBy ? '👤 ' + escapeHtml(announcement.createdBy) + ' • ' : ''}
-                        📅 ${createdDate}
-                    </p>
-                </div>
-                <button class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" onclick="closeAnnouncement(this)">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-        `;
-    }).join('');
-}
-
-function closeAnnouncement(btn) {
-    const item = btn.closest('.announcement-item');
-    item.style.animation = 'fadeOut 0.3s ease-out';
-    setTimeout(() => item.remove(), 300);
-}
-
-async function deleteAnnouncement(btn, announcementId, title) {
-    if (!confirm(`Czy na pewno chcesz usunąć ogłoszenie "${title}"?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/announcements/${announcementId}`, {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-            alert('Nie udało się usunąć ogłoszenia');
-            return;
-        }
-
-        // Animuj usunięcie
-        const item = btn.closest('.announcement-item');
-        item.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => item.remove(), 300);
-
-    } catch (error) {
-        console.error('Error deleting announcement:', error);
-        alert('Błąd przy usuwaniu ogłoszenia');
-    }
-}
 
 async function loadAnnouncements() {
     const container = document.getElementById('announcements-container');
     if (!container) return;
 
     try {
-        // Check if user is admin
+        // Sprawdź czy user jest adminem (tylko do wyświetlania przycisku usuwania)
         let isAdmin = false;
         try {
             const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
             if (statusRes.ok) {
                 const user = await statusRes.json();
-                isAdmin = user.role === 'Admin' || user.role === 'ADMIN';
+                isAdmin = (user.role === 'Admin' || user.role === 'ADMIN');
             }
         } catch (err) {
-            console.log('Not authenticated');
+            // Ignoruj błędy auth przy ładowaniu ogłoszeń
         }
 
         const response = await fetch('/api/announcements/active', {
@@ -255,14 +168,12 @@ async function loadAnnouncements() {
         });
 
         if (!response.ok) {
-            console.error('Failed to load announcements');
             container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>';
             return;
         }
 
         let announcements = await response.json();
 
-        // Handle different response formats
         if (announcements && typeof announcements === 'object' && 'data' in announcements) {
             announcements = announcements.data;
         }
@@ -276,14 +187,14 @@ async function loadAnnouncements() {
             <div class="announcement-item bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/20 dark:to-purple-900/20 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded-lg" data-announcement-id="${announcement.id}">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <h4 class="font-bold text-gray-900 dark:text-white">${announcement.title}</h4>
-                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">${announcement.content}</p>
+                        <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(announcement.title)}</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">${escapeHtml(announcement.content)}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            Dodane przez: <strong>${announcement.createdBy}</strong>
+                            Dodane przez: <strong>${escapeHtml(announcement.createdBy || 'Admin')}</strong>
                         </p>
                     </div>
                     ${isAdmin ? `
-                    <button onclick="deleteAnnouncement(this, '${announcement.id}', '${announcement.title}')" class="ml-4 text-red-400 hover:text-red-600 dark:hover:text-red-300 flex-shrink-0" title="Usuń ogłoszenie">
+                    <button onclick="deleteAnnouncement(this, '${announcement.id}', '${escapeHtml(announcement.title)}')" class="ml-4 text-red-400 hover:text-red-600 dark:hover:text-red-300 flex-shrink-0" title="Usuń ogłoszenie">
                         <span class="material-symbols-outlined">delete</span>
                     </button>
                     ` : ''}
@@ -293,94 +204,155 @@ async function loadAnnouncements() {
 
     } catch (error) {
         console.error('Error loading announcements:', error);
-        container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Błąd przy ładowaniu ogłoszeń</p>';
+        container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>';
     }
 }
 
+async function deleteAnnouncement(btn, announcementId, title) {
+    if (!confirm(`Czy na pewno chcesz usunąć ogłoszenie "${title}"?`)) return;
+
+    try {
+        const response = await fetch(`/api/announcements/${announcementId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const item = btn.closest('.announcement-item');
+            item.style.opacity = '0';
+            setTimeout(() => item.remove(), 300);
+        } else {
+            alert('Nie udało się usunąć ogłoszenia');
+        }
+    } catch (error) {
+        alert('Błąd połączenia');
+    }
+}
+
+// --- POPRAWIONA FUNKCJA POPULARNYCH WĄTKÓW ---
 async function loadPopularThreads() {
     const container = document.getElementById('popular-threads');
     if (!container) return;
 
-    container.innerHTML = '<p class="text-center text-gray-500">Ładowanie...</p>';
-
-    const tryEndpoints = [
-        '/api/admin/threads',
-        '/api/threads',
-        '/api/forum/popular?limit=10',
-        '/api/forum/threads?limit=50'
-    ];
+    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">Ładowanie...</p>';
 
     let threads = [];
 
+    // KROK 1: Próba pobrania z endpointów publicznych (pomijamy /api/admin)
+    const tryEndpoints = [
+        '/api/forum/popular?limit=10',
+        '/api/threads?limit=20'
+    ];
+
     for (const url of tryEndpoints) {
         const res = await fetchJson(url);
-        if (!res.ok) {
-            // if 401/403 try next
-            continue;
-        }
+        if (!res.ok) continue;
 
-        const body = res.json;
-        if (Array.isArray(body)) {
-            threads = body;
-        } else if (Array.isArray(body.threads)) {
-            threads = body.threads;
-        } else if (Array.isArray(body.data)) {
-            threads = body.data;
-        } else if (Array.isArray(body.items)) {
-            threads = body.items;
-        }
+        let body = res.json;
+        let candidates = [];
+        
+        if (Array.isArray(body)) candidates = body;
+        else if (body && Array.isArray(body.threads)) candidates = body.threads;
+        else if (body && Array.isArray(body.data)) candidates = body.data;
+        else if (body && Array.isArray(body.items)) candidates = body.items;
 
-        if (threads && threads.length) break;
+        if (candidates.length > 0) {
+            threads = candidates;
+            break; 
+        }
     }
 
+    // KROK 2: FALLBACK (Plan B dla niezalogowanych)
+    // Jeśli nie udało się pobrać listy wątków, pobieramy kategorie i wyciągamy wątki ręcznie
+    if (threads.length === 0) {
+        try {
+            // 1. Pobierz kategorie (publiczne)
+            const catRes = await fetchJson('/api/forum/categories');
+            
+            if (catRes.ok && Array.isArray(catRes.json)) {
+                // 2. Zbierz ID pierwszych kilku forów
+                const forumIds = [];
+                catRes.json.forEach(cat => {
+                    const forums = cat.Forums || cat.forums || [];
+                    forums.forEach(f => forumIds.push(f.id || f.Id));
+                });
+
+                // 3. Pobierz wątki z pierwszych 3 forów (limitujemy zapytania)
+                if (forumIds.length > 0) {
+                    const promises = forumIds.slice(0, 3).map(fid => 
+                        fetchJson(`/api/forum/forum/${fid}`)
+                            .then(r => {
+                                if (!r.ok || !r.json) return [];
+                                return r.json.Threads || r.json.threads || [];
+                            })
+                    );
+
+                    const results = await Promise.all(promises);
+                    threads = results.flat();
+                }
+            }
+        } catch (e) {
+            console.warn('Fallback loading failed', e);
+        }
+    }
+
+    // Jeśli nadal pusto
     if (!Array.isArray(threads) || threads.length === 0) {
-        container.innerHTML = `<p class="text-center text-gray-500">Brak danych o popularnych wątkach</p>`;
+        container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Brak popularnych wątków</p>`;
         return;
     }
 
-    // normalize and sort by views (support several field names)
+    // KROK 3: Normalizacja i sortowanie
     const normalized = threads.map(t => {
         return {
-            id: t.id ?? t.Id ?? t.threadId ?? t.ThreadId ?? (t.Thread && (t.Thread.Id)),
-            title: t.title ?? t.Title ?? t.subject ?? (t.Thread && t.Thread.Title) ?? '(brak tytułu)',
-            description: t.description ?? t.Description ?? t.snippet ?? t.preview ?? '',
-            image: t.image ?? t.Image ?? null,
-            views: Number(t.views ?? t.Views ?? t.viewCount ?? t.ViewCount ?? 0),
-            postCount: Number(t.postCount ?? t.PostCount ?? t.messageCount ?? t.MessageCount ?? t.repliesCount ?? t.RepliesCount ?? 0),
-            forumName: t.forumName ?? t.ForumName ?? t.forum?.name ?? t.Forum?.Name ?? ''
+            id: t.id ?? t.Id ?? t.threadId,
+            title: t.title ?? t.Title ?? '(brak tytułu)',
+            description: t.description ?? t.Description ?? '',
+            views: Number(t.views ?? t.Views ?? 0),
+            replies: Number(t.repliesCount ?? t.RepliesCount ?? t.messageCount ?? 0),
+            forumName: t.forumName ?? (t.Forum ? t.Forum.Name : '') ?? (t.forum ? t.forum.name : '') ?? ''
         };
     });
 
-    normalized.sort((a, b) => (b.views || 0) - (a.views || 0));
+    // Sortuj po wyświetleniach malejąco
+    normalized.sort((a, b) => b.views - a.views);
+
+    // Weź top 2
     const top = normalized.slice(0, 2);
 
-            container.innerHTML = top.map(thread => `
-            <div class="forum-thread p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] flex gap-4 items-start">
-                <div class="flex-1">
-                    <h4 class="font-semibold text-lg text-gray-900 dark:text-white">
-                        <a href="thread.html?threadId=${encodeURIComponent(thread.id)}" class="hover:underline">${escapeHtml(thread.title)}</a>
-                    </h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(thread.description)}</p>
-                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        ${thread.forumName ? escapeHtml(thread.forumName) + ' • ' : ''}
-                        👁️ ${Number(thread.views).toLocaleString('pl-PL')} • ✉️ ${Number(thread.postCount).toLocaleString('pl-PL')}
-                    </div>
+    // Renderowanie
+    container.innerHTML = top.map(thread => `
+        <div class="forum-thread p-4 bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] flex gap-4 items-start hover:shadow-md transition-shadow cursor-pointer" onclick="window.location.href='thread.html?threadId=${thread.id}'">
+            <div class="flex-1">
+                <h4 class="font-semibold text-lg text-gray-900 dark:text-white">
+                    <a href="thread.html?threadId=${encodeURIComponent(thread.id)}" class="hover:underline text-blue-600 dark:text-blue-400">
+                        ${escapeHtml(thread.title)}
+                    </a>
+                </h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 break-words">
+                    ${escapeHtml(thread.description)}
+                </p>
+                <div class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
+                    ${thread.forumName ? `<span class="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">${escapeHtml(thread.forumName)}</span>` : ''}
+                    <span class="flex items-center gap-1" title="Wyświetlenia"><span class="material-symbols-outlined text-[16px]">visibility</span> ${Number(thread.views).toLocaleString('pl-PL')}</span>
+                    <span class="flex items-center gap-1" title="Odpowiedzi"><span class="material-symbols-outlined text-[16px]">forum</span> ${Number(thread.replies).toLocaleString('pl-PL')}</span>
                 </div>
             </div>
-        `).join('');
+        </div>
+    `).join('');
 }
 
-// keep existing stats loader or fallback
 async function loadStats() {
     try {
         const res = await fetchJson('/api/status');
+        // Jeśli endpoint status nie działa, spróbuj innego lub po prostu zostaw
         if (!res.ok || !res.json) return;
+        
         const payload = res.json.stats ? res.json.stats : res.json;
-        // try both id sets used in different files
-        const usersEl = document.getElementById('stat-users') || document.getElementById('users-count');
-        const forumsEl = document.getElementById('stat-forums') || document.getElementById('forums-count');
-        const threadsEl = document.getElementById('stat-threads') || document.getElementById('threads-count');
-        const messagesEl = document.getElementById('stat-messages') || document.getElementById('messages-count');
+        const usersEl = document.getElementById('stat-users');
+        const forumsEl = document.getElementById('stat-forums');
+        const threadsEl = document.getElementById('stat-threads');
+        const messagesEl = document.getElementById('stat-messages');
 
         if (usersEl) usersEl.textContent = Number(payload.totalUsers ?? payload.totalUsersCount ?? 0).toLocaleString('pl-PL');
         if (forumsEl) forumsEl.textContent = Number(payload.totalForums ?? payload.totalCategories ?? payload.totalForumsCount ?? 0).toLocaleString('pl-PL');
@@ -396,101 +368,52 @@ document.addEventListener('DOMContentLoaded', async function () {
     loadPopularThreads();
     loadStats();
 
- try {
-        const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
-        const user = statusRes.ok ? await statusRes.json() : null;
-        
-        const authContainer = document.getElementById('auth-container');
-        if (!authContainer) return;
-        
-        if (user) {
-            // User is logged in - show avatar
-            const initial = (user.username || 'U').charAt(0).toUpperCase();
-            authContainer.innerHTML = `
-                <div class="relative flex items-center gap-3">
-                    <button id="avatar-btn" class="js-avatar-btn w-10 h-10 bg-blue-500 text-white rounded-full hover:ring-2 hover:ring-blue-400/50 font-semibold flex items-center justify-center cursor-pointer" aria-label="Avatar"></button>
-                    <span id="header-username" class="hidden md:inline font-semibold text-gray-900 dark:text-white">${user.username}</span>
-                    <div id="avatar-menu" class="js-avatar-menu hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#192231] rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white">${user.username}</p>
-                            <p class="text-xs text-gray-500">${user.email || ''}</p>
-                        </div>
-                        <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">person</span>Mój profil
-                        </a>
-                    <a href="/messages.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a3851] transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">mail</span>Wiadomości
-                        </a>
-                    <hr class="my-1 border-gray-200 dark:border-gray-700">
-                    <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                            <span class="material-symbols-outlined align-middle text-base mr-2">logout</span>Wyloguj się
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            // Set avatar image if available
-            const avatarBtnEl = document.querySelector('.js-avatar-btn, #avatar-btn');
-            const avatarMenuEl = document.querySelector('.js-avatar-menu, #avatar-menu');
-            if (avatarBtnEl) {
-                if (user.avatarUrl) {
-                    avatarBtnEl.style.backgroundImage = `url(${user.avatarUrl})`;
-                    avatarBtnEl.style.backgroundSize = 'cover';
-                    avatarBtnEl.style.backgroundPosition = 'center';
-                } else {
-                    avatarBtnEl.textContent = '';
-                }
-                // Direct dropdown handler (forum.html style)
-                avatarBtnEl.addEventListener('click', function(e) {
-                    if (avatarMenuEl) avatarMenuEl.classList.toggle('hidden');
-                    e.stopPropagation();
-                });
-                document.addEventListener('click', function(e) {
-                    if (avatarMenuEl && !avatarBtnEl.contains(e.target) && !avatarMenuEl.contains(e.target)) {
-                        avatarMenuEl.classList.add('hidden');
-                    }
-                });
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' && avatarMenuEl) {
-                        avatarMenuEl.classList.add('hidden');
-                    }
-                });
-            }
-
-            // Logout handler
-            const logoutBtnEl = document.querySelector('#logout-btn');
-            if (logoutBtnEl) {
-                logoutBtnEl.addEventListener('click', async () => {
-                    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-                    window.location.href = '/';
-                });
-            }
+    // Inicjalizacja nagłówka z main.js powinna zadziałać, ale na wszelki wypadek obsługujemy tu też logikę avatara
+    // (main.js robi to globalnie, ale kod poniżej zapewnia fallback)
+    try {
+        if (typeof window.ForumApp !== 'undefined' && window.ForumApp.setupAuthenticationUI) {
+            // main.js jest załadowany i działa
         } else {
-            // Not logged in - show login/register buttons
-            authContainer.innerHTML = `
-                <div class="flex space-x-4">
-                    <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">
-                        Logowanie
-                    </a>
-                    <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">
-                        Rejestracja
-                    </a>
-                </div>
-            `;
+            // Fallback auth check
+            const statusRes = await fetch('/api/auth/status', { credentials: 'include' });
+            if (statusRes.ok) {
+                const user = await statusRes.json();
+                const authContainer = document.getElementById('auth-container');
+                if (authContainer) {
+                    // Render avatara (prosty fallback)
+                    const userInitial = (user.username || 'U').charAt(0).toUpperCase();
+                    authContainer.innerHTML = `
+                        <div class="relative flex items-center gap-3">
+                            <button onclick="window.location.href='/profile.html'" class="w-10 h-10 bg-blue-500 text-white rounded-full font-bold flex items-center justify-center">
+                                ${user.avatarUrl ? `<img src="${user.avatarUrl}" class="w-full h-full rounded-full object-cover">` : userInitial}
+                            </button>
+                            <span class="hidden md:inline font-semibold text-gray-900 dark:text-white">${escapeHtml(user.username)}</span>
+                        </div>
+                    `;
+                }
+            } else {
+                const authContainer = document.getElementById('auth-container');
+                if (authContainer) {
+                    authContainer.innerHTML = `
+                        <div class="flex space-x-4">
+                            <a href="/login.html" class="bg-white text-blue-700 px-4 py-2 rounded hover:bg-gray-100 font-medium">Logowanie</a>
+                            <a href="/register.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">Rejestracja</a>
+                        </div>
+                    `;
+                }
+            }
         }
-    } catch (error) {
-        console.error('Auth setup error:', error);
+    } catch (e) {
+        console.warn('Auth fallback error', e);
     }
 });
-</script>
-<script>
-// Logo and Avatar updater for index page
+
+// Logo updater
 function initUpdatersIndex() {
     const logoContainer = document.getElementById('logo-container');
-    const authContainer = document.getElementById('auth-container');
-
+    if (!logoContainer) return;
+    
     async function updateLogo() {
-        if (!logoContainer) return false;
         try {
             const response = await fetch('/api/admin/settings/logo');
             if (response.ok) {
@@ -503,69 +426,11 @@ function initUpdatersIndex() {
                         <h1 class="text-xl font-bold text-gray-900 dark:text-white">${data.forumName || 'Forum Dyskusyjne'}</h1>
                     `;
                 }
-                return true;
-            } else {
-                return false;
             }
-        } catch (e) {
-            console.warn('Logo update failed:', e);
-            return false;
-        }
+        } catch (e) {}
     }
-
-    async function updateAvatar() {
-        if (!authContainer) return false;
-        try {
-            const statusResponse = await fetch('/api/auth/status', { method: 'GET', credentials: 'include' });
-            if (statusResponse.ok) {
-                const currentUser = await statusResponse.json();
-                if (currentUser && currentUser.id) {
-                    const userResponse = await fetch(`/api/users/${currentUser.id}`, { credentials: 'include' });
-                    if (userResponse.ok) {
-                        const user = await userResponse.json();
-                        const avatarBtn = authContainer.querySelector('.js-avatar-btn, #avatar-btn');
-                        if (avatarBtn) {
-                            if (user.avatarUrl) {
-                                avatarBtn.style.backgroundImage = `url(${user.avatarUrl})`;
-                                avatarBtn.style.backgroundSize = 'cover';
-                                avatarBtn.style.backgroundPosition = 'center';
-                                avatarBtn.textContent = '';
-                            } else {
-                                avatarBtn.style.backgroundImage = '';
-                                avatarBtn.textContent = (user.username || 'U').charAt(0).toUpperCase();
-                            }
-                        }
-                        const headerName = authContainer.querySelector('#header-username');
-                        if (headerName && user.username) headerName.textContent = user.username;
-
-                        // ensure dropdown handlers from main.js catch this newly inserted HTML
-                        try { if (typeof ensureAvatarButtons === 'function') ensureAvatarButtons(); } catch(_){}
-                        try { if (typeof setupAvatarDelegation === 'function') setupAvatarDelegation(); } catch(_){}
-                        try { if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown(); } catch(_){}
-
-                        return true;
-                    }
-                }
-            }
-            return false;
-        } catch (e) {
-            console.warn('Avatar update failed:', e);
-            return false;
-        }
-    }
-
-    // Poll with simple backoff: normal 30s, on failure retry after 60s
-    async function poll() {
-        const logoOk = await updateLogo();
-        await updateAvatar();
-        const delay = logoOk ? 30000 : 60000;
-        setTimeout(poll, delay);
-    }
-
-    // start polling
-    poll();
+    updateLogo();
 }
-
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initUpdatersIndex);
 } else {

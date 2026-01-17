@@ -586,86 +586,106 @@ namespace ForumDyskusyjne.Controllers
 
         [HttpPut("messages/{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdateMessage(int id, [FromBody] UpdateMessageRequest request)
+public async Task<IActionResult> UpdateMessage(int id, [FromBody] UpdateMessageRequest request)
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
         {
-            try
+            return BadRequest(new { error = "Treść wiadomości jest wymagana" });
+        }
+
+        var message = await _context.Messages
+            .Include(m => m.Thread)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        
+        if (message == null)
+        {
+            return NotFound(new { error = "Wiadomość nie została znaleziona" });
+        }
+
+        int currentUserId;
+        try
+        {
+            currentUserId = GetCurrentUserId();
+        }
+        catch
+        {
+            return Unauthorized(new { error = "Brak sesji użytkownika" });
+        }
+
+        var currentUser = await _context.Users.FindAsync(currentUserId);
+        if (currentUser == null)
+            return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
+
+        // --- POPRAWIONA LOGIKA UPRAWNIEŃ ---
+        bool isAllowed = false;
+
+        // 1. Autor wiadomości ZAWSZE może edytować
+        if (message.AuthorId == currentUserId)
+        {
+            isAllowed = true;
+            System.Diagnostics.Debug.WriteLine($"✅ [EDIT] User {currentUserId} is Author.");
+        }
+        // 2. Admin ZAWSZE może edytować
+        else if (currentUser.Role == UserRole.Admin)
+        {
+            isAllowed = true;
+            System.Diagnostics.Debug.WriteLine($"✅ [EDIT] User {currentUserId} is Admin.");
+        }
+        // 3. Moderator może edytować, jeśli jest przypisany do tego forum
+        else if (currentUser.Role == UserRole.Moderator)
+        {
+            var isModeratorForForum = await _context.ForumModerators
+                .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == message.Thread.ForumId);
+            
+            if (isModeratorForForum)
             {
-                if (string.IsNullOrWhiteSpace(request.Content))
-                {
-                    return BadRequest(new { error = "Treść wiadomości jest wymagana" });
-                }
-
-                var message = await _context.Messages
-                    .Include(m => m.Thread)
-                    .FirstOrDefaultAsync(m => m.Id == id);
-                
-                if (message == null)
-                {
-                    return NotFound(new { error = "Wiadomość nie została znaleziona" });
-                }
-
-                // Sprawdź, kto wykonuje akcję
-                int currentUserId;
-                try
-                {
-                    currentUserId = GetCurrentUserId();
-                }
-                catch
-                {
-                    return Unauthorized(new { error = "Brak sesji użytkownika" });
-                }
-
-                var currentUser = await _context.Users.FindAsync(currentUserId);
-                if (currentUser == null)
-                    return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
-
-                System.Diagnostics.Debug.WriteLine($"📝 [EDIT] Attempting to edit message {id}, author: {message.AuthorId}, requester: {currentUserId}, role: {currentUser.Role}");
-
-                // Autoryzacja: TYLKO moderator przypisany do forum może edytować wiadomości
-                if (currentUser.Role != UserRole.Moderator)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [EDIT] User {currentUserId} is not moderator");
-                    return Forbid();
-                }
-
-                var isModeratorForForum = await _context.ForumModerators
-                    .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == message.Thread.ForumId);
-
-                System.Diagnostics.Debug.WriteLine($"🔍 [EDIT] Moderator {currentUserId} forum check: isModeratorForForum={isModeratorForForum}, requiredForumId={message.Thread.ForumId}");
-
-                if (!isModeratorForForum)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [EDIT] Moderator not assigned to forum {message.Thread.ForumId}");
-                    return Forbid();
-                }
-
-                System.Diagnostics.Debug.WriteLine($"✅ [EDIT] Moderator assigned to forum");
-
-                // Edytuj wiadomość
-                message.Content = request.Content.Trim();
-                message.IsEdited = true;
-                message.EditedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                System.Diagnostics.Debug.WriteLine($"✅ [EDIT] Message {id} edited successfully");
-                return Ok(new 
-                { 
-                    message = "Wiadomość została edytowana",
-                    data = new
-                    {
-                        id = message.Id,
-                        content = message.Content,
-                        editedAt = message.EditedAt
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ [EDIT] Error: {ex.Message}");
-                return StatusCode(500, new { error = ex.Message });
+                isAllowed = true;
+                System.Diagnostics.Debug.WriteLine($"✅ [EDIT] User {currentUserId} is Moderator for this forum.");
             }
         }
+
+        if (!isAllowed)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [EDIT] User {currentUserId} (Role: {currentUser.Role}) forbidden to edit message {id}.");
+            return Forbid();
+        }
+        // ------------------------------------
+
+        // Sprawdzenie zakazanych słów
+        var (containsBannedWords, bannedWordsFound) = await CheckBannedWords("", request.Content);
+        if (containsBannedWords)
+        {
+             return BadRequest(new { 
+                error = "Edytowana treść zawiera zakazane słowa", 
+                bannedWords = bannedWordsFound 
+            });
+        }
+
+        // Zapisz zmiany
+        message.Content = request.Content.Trim();
+        message.IsEdited = true;
+        message.EditedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new 
+        { 
+            message = "Wiadomość została edytowana",
+            data = new
+            {
+                id = message.Id,
+                content = message.Content,
+                editedAt = message.EditedAt
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { error = ex.Message });
+    }
+}
 
         [HttpDelete("messages/{id}")]
         [Authorize]
@@ -775,59 +795,90 @@ namespace ForumDyskusyjne.Controllers
         }
 
         private async Task<IActionResult> DeleteThreadInternal(int id)
+{
+    try
+    {
+        var thread = await _context.Threads
+            .Include(t => t.Forum)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (thread == null)
         {
-            try
+            return NotFound(new { error = "Wątek nie został znaleziony" });
+        }
+
+        int currentUserId;
+        try
+        {
+            currentUserId = GetCurrentUserId();
+        }
+        catch
+        {
+            return Unauthorized(new { error = "Użytkownik nie jest zalogowany" });
+        }
+
+        var currentUser = await _context.Users.FindAsync(currentUserId);
+        if (currentUser == null)
+            return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
+
+        // --- SPRAWDZANIE UPRAWNIEŃ ---
+        bool isAuthorized = false;
+
+        // 1. Autor wątku
+        if (thread.AuthorId == currentUserId)
+        {
+            isAuthorized = true;
+        }
+        // 2. Administrator
+        else if (currentUser.Role == UserRole.Admin)
+        {
+            isAuthorized = true;
+        }
+        // 3. Moderator forum
+        else if (currentUser.Role == UserRole.Moderator)
+        {
+            isAuthorized = await _context.ForumModerators
+                .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == thread.ForumId);
+        }
+
+        if (!isAuthorized)
+        {
+            return Forbid();
+        }
+
+        // --- USUWANIE DANYCH ---
+        
+        // 1. Pobierz wiadomości WRAZ z załącznikami
+        var messages = await _context.Messages
+            .Include(m => m.Attachments) // Kluczowe dla uniknięcia błędu FK
+            .Where(m => m.ThreadId == id)
+            .ToListAsync();
+
+        // 2. Usuń załączniki (jeśli istnieją)
+        foreach (var msg in messages)
+        {
+            if (msg.Attachments != null && msg.Attachments.Any())
             {
-                var thread = await _context.Threads
-                    .Include(t => t.Forum)
-                    .FirstOrDefaultAsync(t => t.Id == id);
-
-                if (thread == null)
-                {
-                    return NotFound(new { error = "Wątek nie został znaleziony" });
-                }
-
-                int currentUserId;
-                try
-                {
-                    currentUserId = GetCurrentUserId();
-                }
-                catch
-                {
-                    return Unauthorized(new { error = "Użytkownik nie jest zalogowany" });
-                }
-
-                var currentUser = await _context.Users.FindAsync(currentUserId);
-                if (currentUser == null)
-                    return Unauthorized(new { error = "Użytkownik nie został znaleziony" });
-
-                // Sprawdź, czy użytkownik jest administratorem lub moderatorem przypisanym do forum wątku
-                bool isAuthorized = currentUser.Role == UserRole.Admin;
-                if (currentUser.Role == UserRole.Moderator)
-                {
-                    isAuthorized = await _context.ForumModerators
-                        .AnyAsync(fm => fm.UserId == currentUserId && fm.ForumId == thread.ForumId);
-                }
-
-                if (!isAuthorized)
-                {
-                    return Forbid(); // Użytkownik nie ma uprawnień
-                }
-
-                // Usuń wszystkie wiadomości powiązane z wątkiem
-                var messages = await _context.Messages.Where(m => m.ThreadId == id).ToListAsync();
-                _context.Messages.RemoveRange(messages);
-
-                _context.Threads.Remove(thread);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Wątek i powiązane wiadomości zostały usunięte" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
+                _context.RemoveRange(msg.Attachments);
             }
         }
+
+        // 3. Usuń wiadomości i wątek
+        _context.Messages.RemoveRange(messages);
+        _context.Threads.Remove(thread);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Wątek i powiązane wiadomości zostały usunięte" });
+    }
+    catch (Exception ex)
+    {
+        // Zwróć dokładniejszy błąd (np. błąd SQL)
+        var msg = ex.Message;
+        if (ex.InnerException != null) msg += " | Inner: " + ex.InnerException.Message;
+        return StatusCode(500, new { error = msg });
+    }
+}
     }
 
     public class CreateThreadRequest

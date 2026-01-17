@@ -382,9 +382,6 @@
                         <button onclick="editPost(${post.id})" class="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3a4a61] text-gray-500 dark:text-gray-400 transition-colors" title="Edytuj">
                             <span class="material-symbols-outlined text-xl">edit</span>
                         </button>
-                        <button onclick="deletePost(${post.id})" class="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors" title="Usuń">
-                            <span class="material-symbols-outlined text-xl">delete</span>
-                        </button>
                     </div>
                 </div>
             `).join('');
@@ -396,41 +393,49 @@
         }
     }
 
-    // Usuń post
+// --- EDYCJA ---
+    // Przekierowuje do widoku wątku, gdzie dostępna jest funkcja edycji (którą zrobiliśmy wcześniej)
+    function editPost(threadId) {
+        // Przekierowanie do thread.html z ID wątku
+        window.location.href = `thread.html?threadId=${threadId}`;
+    }
+
+    // --- USUWANIE ---
+    // Usuwa cały wątek korzystając z API
     async function deletePost(threadId) {
-        if (!confirm('Czy na pewno chcesz usunąć ten wątek? Ta operacja jest nieodwracalna.')) return;
+        if (!confirm('Czy na pewno chcesz usunąć ten wątek? Ta operacja jest nieodwracalna i usunie wszystkie odpowiedzi w wątku.')) return;
 
         try {
+            // Wywołanie endpointu usuwania wątku (tego, który naprawiliśmy w C#)
             const res = await fetch(`/api/forum/thread/${threadId}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
             
             if (res.ok) {
-                alert('✅ Wątek został usunięty');
-                loadUserPosts(); // Reload user's posts
+                // Jeśli sukces (status 200-299)
+                const data = await res.json();
+                alert('✅ ' + (data.message || 'Wątek został usunięty'));
+                
+                // Odśwież listę postów bez przeładowania całej strony
+                await loadUserPosts();
+                
+                // Opcjonalnie: zaktualizuj statystyki użytkownika (liczba postów zmaleje)
+                await loadUserStats();
             } else {
-                let errorMessage = res.statusText;
+                // Obsługa błędów
+                let errorMessage = 'Nie udało się usunąć wątku';
                 try {
                     const errorJson = await res.json();
-                    if (errorJson.error) {
-                        errorMessage = errorJson.error;
-                    }
-                } catch (jsonError) {
-                    // If parsing as JSON fails, use statusText or a generic message
-                    console.warn('Failed to parse error response as JSON:', jsonError);
-                }
-                alert('❌ Błąd usuwania wątku: ' + errorMessage);
+                    if (errorJson.error) errorMessage = errorJson.error;
+                } catch (e) {}
+                
+                alert('❌ Błąd: ' + errorMessage);
             }
         } catch (error) {
             console.error('❌ Błąd:', error);
-            alert('❌ Błąd połączenia');
+            alert('❌ Błąd połączenia z serwerem');
         }
-    }
-
-    // Edytuj post
-    function editPost(threadId) { // Renamed postId to threadId for clarity
-        window.location.href = `/create-thread.html?threadId=${threadId}`;
     }
 
     // Zmień hasło
