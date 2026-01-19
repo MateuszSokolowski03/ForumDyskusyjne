@@ -14,8 +14,7 @@
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 fixed md:relative z-20">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
@@ -43,7 +42,7 @@
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
-                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                            <span class="material-symbols-outlined">campaign</span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -54,283 +53,324 @@
                 </div>
             </aside>
 
-            <!-- Main Content -->
-            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+            <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto w-full">
                 <div class="content-wrapper max-w-7xl mx-auto">
                     <header class="page-header mb-8">
-                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Przegląd aktywności i statystyk forum.</p>
+                        <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Centrum Moderacji</h2>
+                        <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Zarządzaj zgłoszeniami użytkowników i naruszeniami regulaminu.</p>
                     </header>
 
-                    <!-- Stats Cards -->
-                    <div class="stats-grid grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
-                            <div class="stat-content flex items-center justify-center h-40">
-                                <div class="stat-icon flex-shrink-0 p-6 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400" style="font-size:3rem;">group</span>
-                                </div>
-                                <div class="stat-info ml-8">
-                                    <p class="stat-label text-lg font-semibold text-gray-600 dark:text-gray-400">Użytkownicy</p>
-                                    <p class="stat-value text-4xl font-extrabold text-gray-900 dark:text-white"></p>
-                                </div>
+                    <div class="bg-white dark:bg-[#192231] rounded-xl shadow-sm border border-gray-200 dark:border-[#232f48] overflow-hidden mb-8">
+                        <div class="p-6 border-b border-gray-200 dark:border-[#232f48] flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-red-500">report</span>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Oczekujące zgłoszenia</h3>
                             </div>
+                            <button onclick="loadReports(1)" class="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">refresh</span> Odśwież
+                            </button>
                         </div>
                         
-                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
-                            <div class="stat-content flex items-center justify-center h-40">
-                                <div class="stat-icon flex-shrink-0 p-6 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                    <span class="material-symbols-outlined text-green-600 dark:text-green-400" style="font-size:3rem;">forum</span>
-                                </div>
-                                <div class="stat-info ml-8">
-                                    <p class="stat-label text-lg font-semibold text-gray-600 dark:text-gray-400">Wątki</p>
-                                    <p class="stat-value text-4xl font-extrabold text-gray-900 dark:text-white"></p>
-                                </div>
-                            </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-gray-50 dark:bg-[#1e293b] text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">
+                                    <tr>
+                                        <th class="px-6 py-4">Data</th>
+                                        <th class="px-6 py-4">Zgłaszający</th>
+                                        <th class="px-6 py-4">Powód</th>
+                                        <th class="px-6 py-4 w-1/3">Zgłoszona Treść</th>
+                                        <th class="px-6 py-4 text-right">Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reports-table-body" class="divide-y divide-gray-200 dark:divide-[#2a3851]">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                            <div class="flex flex-col items-center">
+                                                <div class="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mb-2"></div>
+                                                Ładowanie zgłoszeń...
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        
-                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
-                            <div class="stat-content flex items-center justify-center h-40">
-                                <div class="stat-icon flex-shrink-0 p-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400" style="font-size:3rem;">chat</span>
-                                </div>
-                                <div class="stat-info ml-8">
-                                    <p class="stat-label text-lg font-semibold text-gray-600 dark:text-gray-400">Posty</p>
-                                    <p class="stat-value text-4xl font-extrabold text-gray-900 dark:text-white"></p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
-                            <div class="stat-content flex items-center justify-center h-40">
-                                <div class="stat-icon flex-shrink-0 p-6 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400" style="font-size:3rem;">category</span>
-                                </div>
-                                <div class="stat-info ml-8">
-                                    <p class="stat-label text-lg font-semibold text-gray-600 dark:text-gray-400">Kategorie</p>
-                                    <p class="stat-value text-4xl font-extrabold text-gray-900 dark:text-white"></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
+                        <div class="p-4 border-t border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="text-sm text-gray-500 dark:text-gray-400">
+        Pokazuję <span id="results-start">0</span>-<span id="results-end">0</span> z <span id="results-total">0</span> zgłoszeń
+    </div>
+    <div class="flex gap-2">
+        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                id="prev-btn" onclick="changePage(-1)" disabled>
+            <span class="material-symbols-outlined text-sm">chevron_left</span>
+        </button>
+        
+        <div class="flex gap-1" id="pagination-numbers"></div>
+
+        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                id="next-btn" onclick="changePage(1)" disabled>
+            <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </button>
+    </div>
+</div>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
 
-          <script src="../js/main.js"></script>
+    <script src="../js/main.js"></script>
     <script src="../js/admin.js"></script>
     <script>
-        let adminStats = {
-            users: 0,
-            threads: 0,
-            messages: 0,
-            categories: 0
-        };
+        // --- ZMIENNE GLOBALNE ---
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalReports = 0;
 
-        // Helper - format czasu
-        function formatTime(dateStr) {
-            if (!dateStr) return 'Niedawno';
-            
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return 'Niedawno';
-            
-            const now = new Date();
-            const diff = now - date;
-            
-            const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(diff / 3600000);
-            const days = Math.floor(diff / 86400000);
+        // --- KONFIGURACJA PAGINACJI ---
 
-            if (minutes < 1) return 'Teraz';
-            if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minutę' : 'minut'} temu`;
-            if (hours < 24) return `${hours} ${hours === 1 ? 'godzinę' : 'godzin'} temu`;
-            if (days < 7) return `${days} ${days === 1 ? 'dzień' : 'dni'} temu`;
+        function updatePaginationControls(page, total) {
+            const totalPages = Math.ceil(total / pageSize) || 1;
             
-            return date.toLocaleDateString('pl-PL');
+            // Obliczanie zakresu "Pokazuję X-Y z Z"
+            const start = total === 0 ? 0 : ((page - 1) * pageSize) + 1;
+            const end = Math.min(page * pageSize, total);
+
+            // Aktualizacja tekstów
+            const startEl = document.getElementById('results-start');
+            const endEl = document.getElementById('results-end');
+            const totalEl = document.getElementById('results-total');
+
+            if (startEl) startEl.textContent = start;
+            if (endEl) endEl.textContent = end;
+            if (totalEl) totalEl.textContent = total;
+
+            // Obsługa przycisków Prev/Next
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= totalPages;
+
+            // Generowanie numerków
+            generatePageNumbers(page, totalPages);
         }
 
-        // Escapuj HTML
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/[&<>"']/g, m => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            })[m]);
+        function generatePageNumbers(currentPage, totalPages) {
+            const container = document.getElementById('pagination-numbers');
+            if (!container) return;
+
+            const buttons = [];
+            const maxButtons = 5; // Ile przycisków pokazywać naraz
+            
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                // Klasy CSS identyczne jak w admin-users.js
+                const baseClass = "w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors";
+                const activeClass = "bg-primary text-white";
+                const inactiveClass = "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#232f48]";
+                
+                buttons.push(`
+                    <button class="${baseClass} ${isActive ? activeClass : inactiveClass}" 
+                    onclick="loadReports(${i})" 
+                    ${isActive ? 'disabled' : ''}>
+                        ${i}
+                    </button>
+                `);
+            }
+            container.innerHTML = buttons.join('');
         }
 
-        // Helper - zaktualizuj wartość statystyki
-        function updateStatValue(index, value) {
-            const statValues = document.querySelectorAll('.stat-value');
-            if (statValues[index]) {
-                statValues[index].textContent = value.toLocaleString('pl-PL');
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            const totalPages = Math.ceil(totalReports / pageSize) || 1;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadReports(newPage);
             }
         }
 
-        // Załaduj ostatnią aktywność
-        async function loadRecentActivity() {
-            const activityList = document.querySelector('.activity-list');
-            if (!activityList) {
-                console.warn('⚠️ Brak elementu .activity-list');
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleString('pl-PL', { 
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+            });
+        }
+
+        // --- GŁÓWNA FUNKCJA POBIERANIA ZGŁOSZEŃ ---
+        async function loadReports(page = 1) {
+            const tbody = document.getElementById('reports-table-body');
+            
+            // Loader (colspan=5)
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Ładowanie...</td></tr>`;
+
+            try {
+                const res = await fetch('/api/reports', { credentials: 'include' });
+                
+                if (!res.ok) throw new Error('Błąd API');
+                
+                let data = await res.json();
+                let reports = Array.isArray(data) ? data : (data.items || []);
+                
+                // Filtrowanie tylko oczekujących (status 0)
+                reports = reports.filter(r => r.status === 0 || r.status === 'Pending' || r.status === undefined);
+
+                totalReports = reports.length;
+                
+                // Paginacja po stronie klienta
+                const start = (page - 1) * pageSize;
+                const end = start + pageSize;
+                const paginatedReports = reports.slice(start, end);
+
+                renderReportsTable(paginatedReports);
+                updatePaginationControls(page, totalReports);
+                currentPage = page;
+
+            } catch (error) {
+                console.error('Błąd:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-red-500">
+                            <span class="block mb-2 text-2xl">⚠️</span>
+                            Nie udało się pobrać zgłoszeń. Sprawdź czy endpoint /api/reports istnieje.
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // --- RENDEROWANIE TABELI ---
+        function renderReportsTable(reports) {
+            const tbody = document.getElementById('reports-table-body');
+            
+            if (reports.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <span class="material-symbols-outlined text-green-500 text-4xl mb-2">check_circle</span>
+                            <p class="text-gray-500 dark:text-gray-400">Brak nowych zgłoszeń! Dobra robota.</p>
+                        </td>
+                    </tr>`;
                 return;
             }
-            
-            try {
-                console.log('📝 Ładowanie ostatniej aktywności...');
 
-                const activities = [];
+            tbody.innerHTML = reports.map(report => {
+                const messageContent = report.reportedMessage?.content || report.ReportedMessage?.Content || '(Treść usunięta lub niedostępna)';
+                const reporterName = report.reporter?.username || report.Reporter?.Username || 'Anonim';
+                const reason = report.reason || report.Reason || 'Brak powodu';
+                const date = formatDate(report.createdAt || report.CreatedAt);
+                const msgId = report.reportedMessageId || report.ReportedMessageId;
+                const reportId = report.id || report.Id;
 
-                // Pobierz ostatnich użytkowników
-                try {
-                    const usersRes = await fetch('/api/status', { credentials: 'include' });
-                    if (usersRes.ok) {
-                        const data = await usersRes.json();
-                        const recentUsers = data.recentUsers || [];
-                        
-                        recentUsers.slice(0, 3).forEach(user => {
-                            activities.push({
-                                icon: 'person_add',
-                                color: 'blue',
-                                text: `Nowy użytkownik <strong>${escapeHtml(user.username || 'Użytkownik')}</strong> zarejestrował się`,
-                                time: formatTime(user.createdAt),
-                                timestamp: new Date(user.createdAt || Date.now()).getTime()
-                            });
-                        });
-                        console.log('✅ Użytkownicy załadowani');
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Błąd pobierania użytkowników:', e.message);
-                }
-
-                                                // Pobierz ostatnie wątki
-                try {
-                    const threadsRes = await fetch('/api/forum', { credentials: 'include' });
-                    if (threadsRes.ok) {
-                        const data = await threadsRes.json();
-                        const threads = Array.isArray(data) ? data : data.threads || [];
-                        
-                        threads
-                            .sort((a, b) => new Date(b.createdAt || b.CreatedAt || 0) - new Date(a.createdAt || a.CreatedAt || 0))
-                            .slice(0, 3)
-                            .forEach(thread => {
-                                activities.push({
-                                    icon: 'add_comment',
-                                    color: 'green',
-                                    text: `Nowy wątek <strong>"${escapeHtml(thread.title || thread.Title || 'Bez tytułu')}"</strong>`,
-                                    time: formatTime(thread.createdAt || thread.CreatedAt),
-                                    timestamp: new Date(thread.createdAt || thread.CreatedAt || Date.now()).getTime()
-                                });
-                            });
-                        console.log('✅ Wątki załadowane z /api/forum');
-                    } else {
-                        console.warn('⚠️ GET /api/forum - status:', threadsRes.status);
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Błąd pobierania wątków z /api/forum:', e.message);
-                }
-
-                // Pobierz ostatnie posty (messages) z /api/forum/{id}/messages
-                try {
-                    const messagesRes = await fetch('/api/messages/all', { credentials: 'include' });
-                    if (messagesRes.ok) {
-                        const messages = await messagesRes.json();
-                        const recentMessages = Array.isArray(messages) ? messages : [];
-                        
-                        recentMessages
-                            .sort((a, b) => new Date(b.createdAt || b.CreatedAt || 0) - new Date(a.createdAt || a.CreatedAt || 0))
-                            .slice(0, 5)
-                            .forEach(msg => {
-                                const content = (msg.content || msg.Content || 'Brak treści').substring(0, 50);
-                                activities.push({
-                                    icon: 'chat',
-                                    color: 'purple',
-                                    text: `Nowy post od <strong>${escapeHtml(msg.authorName || msg.AuthorName || 'Użytkownik')}</strong>: <em>"${escapeHtml(content)}..."</em>`,
-                                    time: formatTime(msg.createdAt || msg.CreatedAt),
-                                    timestamp: new Date(msg.createdAt || msg.CreatedAt || Date.now()).getTime()
-                                });
-                            });
-                        console.log('✅ Posty załadowane z /api/messages/all');
-                    } else {
-                        console.warn('⚠️ GET /api/messages/all - status:', messagesRes.status);
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Błąd pobierania postów z /api/messages/all:', e.message);
-                }
-                
-
-                
-
-                // Sortuj aktywności po czasie (najnowsze najpierw)
-                activities.sort((a, b) => b.timestamp - a.timestamp);
-
-                // Wyświetl aktywności
-                if (activities.length === 0) {
-                    activityList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Brak ostatniej aktywności</p>';
-                    console.log('⚠️ Brak aktywności do wyświetlenia');
-                    return;
-                }
-
-                activityList.innerHTML = activities.slice(0, 10).map(activity => `
-                    <div class="activity-item flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#101622] rounded-lg border-l-4 border-${activity.color}-500">
-                        <div class="activity-icon p-2 bg-${activity.color}-100 dark:bg-${activity.color}-900/30 rounded-lg flex-shrink-0">
-                            <span class="material-symbols-outlined text-${activity.color}-600 dark:text-${activity.color}-400 !text-xl">${activity.icon}</span>
+                return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-[#232f48] transition-colors group border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                        ${date}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap align-top">
+                        <div class="flex items-center">
+                            <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                                ${reporterName.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="ml-3">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(reporterName)}</div>
+                            </div>
                         </div>
-                        <div class="activity-content flex-1 min-w-0">
-                            <p class="activity-text text-gray-800 dark:text-gray-200">${activity.text}</p>
-                            <p class="activity-time text-sm text-gray-500 dark:text-gray-400 mt-1">${activity.time}</p>
-                        </div>
-                    </div>
-                `).join('');
-
-                console.log(`✅ Załadowano ${activities.length} aktywności`);
-            } catch (error) {
-                console.error('❌ Błąd ładowania aktywności:', error);
-                activityList.innerHTML = '<p class="text-center text-red-500">Błąd ładowania aktywności</p>';
-            }
-        }
-
-        // Załaduj statystyki
-        async function loadAdminStats() {
-            try {
-                console.log('📊 Ładowanie statystyk admin...');
-
-                // Pobierz dane ze statusu
-                const statusRes = await fetch('/api/status', { credentials: 'include' });
-                if (statusRes.ok) {
-                    const data = await statusRes.json();
+                    </td>
                     
-                    adminStats.users = data.stats?.totalUsers || 0;
-                    adminStats.threads = data.stats?.totalThreads || 0;
-                    adminStats.messages = data.stats?.totalMessages || 0;
-                    adminStats.categories = data.stats?.totalCategories || 0;
+                    <td class="px-6 py-4 align-top">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border border-red-200 dark:border-red-800">
+                            ${escapeHtml(reason)}
+                        </span>
+                    </td>
 
-                    updateStatValue(0, adminStats.users);
-                    updateStatValue(1, adminStats.threads);
-                    updateStatValue(2, adminStats.messages);
-                    updateStatValue(3, adminStats.categories);
+                    <td class="px-6 py-4 align-top">
+                        <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-3 italic border-l-2 border-gray-300 dark:border-gray-600 pl-3">
+                            "${escapeHtml(messageContent)}"
+                        </p>
+                    </td>
 
-                    console.log('✅ Wszystkie statystyki załadowane:', adminStats);
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
+                        <div class="flex justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="dismissReport(${reportId})" 
+                                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors"
+                                    title="Odrzuć zgłoszenie (Post zostaje)">
+                                <span class="material-symbols-outlined text-sm">close</span> Odrzuć
+                            </button>
+                            
+                            <button onclick="deleteMessage(${reportId}, ${msgId})" 
+                                    class="text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm transition-colors"
+                                    title="Usuń post i zaakceptuj zgłoszenie">
+                                <span class="material-symbols-outlined text-sm">delete</span> Usuń
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        async function dismissReport(reportId) {
+            if (!confirm('Czy na pewno chcesz odrzucić to zgłoszenie? Post pozostanie widoczny.')) return;
+
+            try {
+                const res = await fetch(`/api/reports/${reportId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: reportId, status: 2, adminNotes: 'Odrzucone przez panel' }),
+                    credentials: 'include'
+                });
+
+                if (res.ok) {
+                    loadReports(currentPage);
                 } else {
-                    console.warn('⚠️ GET /api/status - status:', statusRes.status);
+                    alert('Błąd podczas odrzucania zgłoszenia.');
                 }
-
-                // Załaduj ostatnią aktywność
-                await loadRecentActivity();
-            } catch (error) {
-                console.error('❌ Błąd ładowania statystyk:', error);
+            } catch (e) {
+                console.error(e);
+                alert('Błąd połączenia.');
             }
         }
 
-        // Inicjalizacja
+        async function deleteMessage(reportId, messageId) {
+            if (!confirm('UWAGA: Czy na pewno usunąć tę wiadomość? Ta operacja jest nieodwracalna.')) return;
+
+            try {
+                const deleteRes = await fetch(`/api/forum/messages/${messageId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (deleteRes.ok) {
+                    await fetch(`/api/reports/${reportId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: reportId, status: 1, adminNotes: 'Wiadomość usunięta' }),
+                        credentials: 'include'
+                    });
+                    
+                    loadReports(currentPage);
+                } else {
+                    const err = await deleteRes.json();
+                    alert('Błąd usuwania: ' + (err.error || 'Nieznany błąd'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Błąd połączenia.');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Inicjalizowanie admin dashboard');
-            loadAdminStats();
-            
-            // Odśwież co 30 sekund
-            setInterval(loadAdminStats, 30000);
+            loadReports();
+            if (typeof loadRecentActivity === 'function') {
+                loadRecentActivity();
+            }
         });
     </script>
 </body>

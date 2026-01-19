@@ -104,6 +104,42 @@
             </div>
         </footer>
     </div>
+    <div id="reportModal" class="hidden fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-[#1e293b] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200 dark:border-gray-700">
+            <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <span class="material-symbols-outlined text-red-600">flag</span>
+                    </div>
+                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white" id="modal-title">Zgłoś naruszenie</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Zgłaszasz ten post do moderacji. Opisz krótko powód zgłoszenia.
+                            </p>
+                            <input type="hidden" id="reportMessageId">
+                            <textarea id="reportReason" rows="3" 
+                                class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] text-gray-900 dark:text-white px-3 py-2 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                                placeholder="Np. obraźliwe treści, spam..."></textarea>
+                            <p id="reportError" class="text-red-500 text-sm mt-2 hidden font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-[#0f172a]/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button type="button" id="sendReportBtn" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors">
+                    Wyślij zgłoszenie
+                </button>
+                <button type="button" onclick="closeReportModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-[#1e293b] px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-[#2a3851] sm:mt-0 sm:w-auto transition-colors">
+                    Anuluj
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <script src="js/main.js"></script>
 <script>
@@ -310,14 +346,27 @@
         }
 
         // Renderowanie listy wiadomości
-        content.innerHTML = messages.map((msg, index) => {
+ // Renderowanie listy wiadomości
+content.innerHTML = messages.map((msg, index) => {
             const isOP = index === 0;
             const author = msg.author || {};
-            // Pobieramy avatarUrl z różnych możliwych pól
             const avatarUrl = author.avatarUrl || author.AvatarUrl || null;
             const username = author.username || 'Anonim';
+            // Pobieramy rangę (zabezpieczenie jeśli null)
+            const rank = author.rank || author.Rank || 'Użytkownik';
             const date = new Date(msg.createdAt).toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
             
+            // Logika kolorów rangi
+            let rankClass = "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600";
+            const r = rank.toLowerCase();
+            if (r.includes('admin') || r.includes('administrator')) {
+                rankClass = "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800";
+            } else if (r.includes('moderator')) {
+                rankClass = "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800";
+            } else if (r.includes('ekspert') || r.includes('bywalec')) {
+                rankClass = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+            }
+
             return `
             <article class="p-6 rounded-lg border ${isOP ? 'border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800' : 'border-gray-200 bg-white dark:bg-[#192231] dark:border-gray-700'}" id="msg-${msg.id}">
                 <div class="flex gap-4">
@@ -328,18 +377,24 @@
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-2">
-                            <div>
-                                <span class="font-bold text-gray-900 dark:text-white mr-2">${escapeHtml(username)}</span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
+                        <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-gray-900 dark:text-white text-lg">${escapeHtml(username)}</span>
+                                
+                                <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${rankClass}">
+                                    ${escapeHtml(rank)}
+                                </span>
+
+                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">${date}</span>
                             </div>
                             ${isOP ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-200">OP</span>' : ''}
                         </div>
-                        <div class="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 break-words message-content">
+                        <div class="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 break-words message-content mt-1">
                             ${escapeHtml(msg.content)}
                         </div>
                         ${msg.updatedAt || msg.isEdited ? '<p class="text-xs text-gray-400 mt-2 italic">Edytowano</p>' : ''}
-                        ${renderModeratorButtons(currentUser, msg, thread)}
+                        
+                        ${renderActions(currentUser, msg, thread)}
                     </div>
                 </div>
             </article>`;
@@ -433,11 +488,13 @@
         }
     }
 
-    async function handleReplySubmit(e) {
+async function handleReplySubmit(e) {
         e.preventDefault();
         if (!currentUser) return alert('Musisz być zalogowany');
         
-        const content = document.getElementById('reply-content').value.trim();
+        const textarea = document.getElementById('reply-content'); // Pobierz element
+        const content = textarea.value.trim();
+        
         if (!content) return alert('Wpisz treść');
 
         try {
@@ -449,6 +506,7 @@
             });
 
             if (res.ok) {
+                textarea.value = ''; // <--- WYCZYŚĆ POLE PRZED PRZEŁADOWANIEM
                 location.reload();
             } else {
                 const err = await res.json();
@@ -458,6 +516,119 @@
             alert('Błąd połączenia');
         }
     }
+
+// --- Nowa funkcja renderująca przyciski akcji (Zgłoś, Edytuj, Usuń) ---
+    function renderActions(user, msg, thread) {
+        if (!user) return ''; // Niezalogowany nic nie widzi
+
+        const currentUserId = parseInt(user.id || user.userId);
+        const msgAuthorId = parseInt(msg.author?.id || msg.authorId);
+        const forumId = parseInt(thread.forum?.id || thread.forumId);
+        
+        // Uprawnienia
+        const isAuthor = currentUserId === msgAuthorId;
+        const userRole = String(user.role || '').toLowerCase();
+        const isAdmin = userRole === 'admin';
+        let isMod = false;
+        if (userRole === 'moderator' && Array.isArray(user.moderatedForumIds)) {
+            const modIds = user.moderatedForumIds.map(Number);
+            if (modIds.includes(forumId)) isMod = true;
+        }
+
+        // HTML dla przycisków
+        let buttonsHtml = '';
+
+        // Przycisk Zgłoś (dla każdego zalogowanego, opcjonalnie: ukryj dla autora)
+        if (!isAuthor) {
+            buttonsHtml += `
+                <button onclick="openReportModal(${msg.id})" class="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors mr-3">
+                    <span class="material-symbols-outlined text-[16px]">flag</span> Zgłoś
+                </button>
+            `;
+        }
+
+        // Przyciski Moderacyjne / Autora
+        if (isAuthor || isAdmin || isMod) {
+            buttonsHtml += `
+                <button class="edit-btn text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors mr-3" data-id="${msg.id}">Edytuj</button>
+                <button class="delete-btn text-xs font-semibold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" data-id="${msg.id}">Usuń</button>
+            `;
+        }
+
+        if (buttonsHtml) {
+            return `<div class="mt-4 flex items-center border-t border-gray-100 dark:border-gray-700 pt-3">${buttonsHtml}</div>`;
+        }
+        return '';
+    }
+
+    // --- Obsługa Zgłoszeń (Modal i API) ---
+
+    // Musimy przypisać funkcje do window, aby działały w onclick="" wewnątrz HTML stringa
+    window.openReportModal = function(messageId) {
+        document.getElementById('reportMessageId').value = messageId;
+        document.getElementById('reportReason').value = '';
+        document.getElementById('reportError').classList.add('hidden');
+        document.getElementById('reportModal').classList.remove('hidden');
+    }
+
+    window.closeReportModal = function() {
+        document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    // Obsługa wysyłania formularza z modala
+    document.addEventListener('DOMContentLoaded', () => {
+        const sendBtn = document.getElementById('sendReportBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', async function() {
+                const messageId = document.getElementById('reportMessageId').value;
+                const reason = document.getElementById('reportReason').value;
+                const errorMsg = document.getElementById('reportError');
+
+                if (!reason.trim()) {
+                    errorMsg.textContent = "Musisz podać powód zgłoszenia.";
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                // Blokada przycisku na czas wysyłki
+                const originalText = sendBtn.innerText;
+                sendBtn.innerText = "Wysyłanie...";
+                sendBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/reports', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Ważne: wysyłamy credentials, żeby backend wiedział kto zgłasza
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            messageId: parseInt(messageId), 
+                            reason: reason 
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('Dziękujemy! Zgłoszenie zostało wysłane do moderacji.');
+                        window.closeReportModal();
+                    } else if (response.status === 401) {
+                        alert('Twoja sesja wygasła. Zaloguj się ponownie.');
+                        window.location.href = 'login.html';
+                    } else {
+                        const data = await response.json();
+                        errorMsg.textContent = data.error || "Wystąpił błąd podczas wysyłania.";
+                        errorMsg.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorMsg.textContent = "Błąd połączenia z serwerem.";
+                    errorMsg.classList.remove('hidden');
+                } finally {
+                    sendBtn.innerText = originalText;
+                    sendBtn.disabled = false;
+                }
+            });
+        }
+    });
 
     function escapeHtml(text) {
         if (!text) return '';

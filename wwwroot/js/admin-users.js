@@ -5,11 +5,14 @@ class AdminUsers {
         this.currentPage = 1;
         this.pageSize = 10;
         this.totalUsers = 0;
-        this.allUsers = []; // Cache wszystkich użytkowników
+        this.allUsers = []; 
+        this.availableRanks = []; // Cache dostępnych rang
+        this.selectedUserId = null; // ID użytkownika edytowanego w modalu rang
         this.filters = {
             search: '',
             role: '',
-            status: ''
+            status: '',
+            rankId: '' // Nowy filtr
         };
         this.init();
     }
@@ -17,10 +20,10 @@ class AdminUsers {
     init() {
         this.setupEventListeners();
         this.loadUsers();
+        this.loadRanks(); // Pobierz rangi przy starcie
     }
 
     setupEventListeners() {
-        // Search input
         const searchInput = document.getElementById('search-users');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -29,9 +32,10 @@ class AdminUsers {
             });
         }
 
-        // Filter selects
+        // Automatyczne odświeżanie przy zmianie filtrów
         const roleFilter = document.getElementById('filter-role');
         const statusFilter = document.getElementById('filter-status');
+        const rankFilter = document.getElementById('filter-rank');
 
         if (roleFilter) {
             roleFilter.addEventListener('change', (e) => {
@@ -47,23 +51,13 @@ class AdminUsers {
             });
         }
 
-        // Filter button
-        const filterBtn = document.querySelector('.filter-btn');
-        if (filterBtn) {
-            filterBtn.addEventListener('click', () => {
-                this.loadUsers();
+        if (rankFilter) {
+            rankFilter.addEventListener('change', (e) => {
+                this.filters.rankId = e.target.value; // Zapisz wybraną rangę
+                this.loadUsers(); // Odśwież tabelę
             });
         }
 
-        // Add user button
-        const addUserBtn = document.querySelector('.add-user-btn');
-        if (addUserBtn) {
-            addUserBtn.addEventListener('click', () => {
-                this.showAddUserModal();
-            });
-        }
-
-        // Pagination
         const prevBtn = document.getElementById('prev-page');
         const nextBtn = document.getElementById('next-page');
 
@@ -95,14 +89,37 @@ class AdminUsers {
         }, 500);
     }
 
+    // --- Pobieranie Rang i wypełnianie filtra ---
+    async loadRanks() {
+        try {
+            const response = await fetch('/api/users/ranks', { credentials: 'include' });
+            if (response.ok) {
+                this.availableRanks = await response.json();
+                
+                // Wypełnij nowy select filtra w HTML
+                const filterSelect = document.getElementById('filter-rank');
+                if (filterSelect) {
+                    // Zachowaj pierwszą opcję "Wszystkie rangi" i dodaj resztę
+                    filterSelect.innerHTML = '<option value="">Wszystkie rangi</option>';
+                    
+                    this.availableRanks.forEach(rank => {
+                        filterSelect.innerHTML += `<option value="${rank.id}">${rank.name}</option>`;
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Błąd pobierania rang:', error);
+        }
+    }
+
     async loadUsers() {
         const tableBody = document.getElementById('users-table-body');
         if (!tableBody) return;
 
-        // Show loading
+        // Ustawienie statusu ładowania
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
                     <div class="loading-state">
                         <div class="spinner mx-auto mb-2"></div>
                         <p>Ładowanie użytkowników...</p>
@@ -113,29 +130,37 @@ class AdminUsers {
 
         try {
             const params = new URLSearchParams({
-                page: this.currentPage,
-                pageSize: this.pageSize,
                 search: this.filters.search,
                 role: this.filters.role,
-                status: this.filters.status
+                status: this.filters.status,
+                rankId: this.filters.rankId // Przekazujemy ID rangi do backendu
             });
 
-            const response = await fetch(`/api/admin/users?${params}`);
+            const response = await fetch(`/api/users?${params}`, { credentials: 'include' });
             
             if (response.ok) {
                 const data = await response.json();
-                this.renderUsers(data.users);
-                this.updatePagination(data.total);
+                
+                let users = Array.isArray(data) ? data : (data.users || []);
+                this.totalUsers = users.length;
+                
+                // Paginacja po stronie klienta
+                const start = (this.currentPage - 1) * this.pageSize;
+                const end = start + this.pageSize;
+                const paginatedUsers = users.slice(start, end);
+
+                this.renderUsers(paginatedUsers);
+                this.updatePagination(this.totalUsers);
             } else {
-                throw new Error('Błąd ładowania użytkowników');
+                throw new Error('Błąd API: ' + response.status + ' ' + response.statusText);
             }
         } catch (error) {
             console.error('Error loading users:', error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-8 text-red-500">
+                    <td colspan="8" class="text-center py-8 text-red-500">
                         <p>Błąd ładowania użytkowników: ${error.message}</p>
-                        <button class="btn-primary mt-2" onclick="adminUsers.loadUsers()">Spróbuj ponownie</button>
+                        <button class="text-blue-500 hover:underline mt-2" onclick="adminUsers.loadUsers()">Spróbuj ponownie</button>
                     </td>
                 </tr>
             `;
@@ -146,13 +171,12 @@ class AdminUsers {
         const tableBody = document.getElementById('users-table-body');
         if (!tableBody) return;
 
-        // Cache użytkowników
-        this.allUsers = users;
+        this.allUsers = users; 
 
         if (users.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
                         <p>Nie znaleziono użytkowników</p>
                     </td>
                 </tr>
@@ -160,61 +184,89 @@ class AdminUsers {
             return;
         }
 
-        const currentUser = window.auth.getUser();
+        const currentUser = window.auth?.getUser();
 
         tableBody.innerHTML = users.map(user => {
             const isCurrentUser = currentUser && user.id === currentUser.id;
-            const isAdmin = user.role.toLowerCase() === 'admin';
+            const isAdmin = String(user.role).toLowerCase() === 'admin';
             const canBlock = !isCurrentUser && !isAdmin;
 
             return `
-            <tr class="hover:bg-gray-50 dark:hover:bg-[#192231]">
-                <td class="user-info">
+            <tr class="hover:bg-gray-50 dark:hover:bg-[#192231] border-b border-gray-100 dark:border-gray-800">
+                <td class="user-info py-3 px-4">
                     <div class="flex items-center gap-3">
-                        <div class="user-avatar w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <div class="user-avatar w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
                             ${user.avatarUrl ? 
-                                `<img src="${user.avatarUrl}" alt="${user.username}" class="w-full h-full rounded-full object-cover">` :
+                                `<img src="${user.avatarUrl}" alt="${user.username}" class="w-full h-full object-cover">` :
                                 `<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">person</span>`
                             }
                         </div>
                         <div>
                             <p class="font-medium text-gray-900 dark:text-white">${user.username}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">ID: ${user.id}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">ID: ${user.id}</p>
                         </div>
                     </div>
                 </td>
-                <td class="user-email text-gray-600 dark:text-gray-300">${user.email || 'Brak email'}</td>
-                <td class="user-role">
+                <td class="user-email py-3 px-4 text-gray-600 dark:text-gray-300 text-sm">${user.email || 'Brak email'}</td>
+                <td class="user-role py-3 px-4">
                     <span class="role-badge inline-flex px-2 py-1 text-xs font-semibold rounded-full ${this.getRoleBadgeClass(user.role)}">
                         ${this.getRoleLabel(user.role)}
                     </span>
                 </td>
-                <td class="user-status">
-                    <span class="status-badge inline-flex px-2 py-1 text-xs font-semibold rounded-full ${this.getStatusBadgeClass(user.status || 'active')}">
-                        ${this.getStatusLabel(user.status || 'active')}
+                <td class="user-status py-3 px-4">
+                    <span class="status-badge inline-flex px-2 py-1 text-xs font-semibold rounded-full ${this.getStatusBadgeClass(user.isBanned ? 'blocked' : 'active')}">
+                        ${user.isBanned ? 'Zablokowany' : 'Aktywny'}
                     </span>
                 </td>
-                <td class="user-created text-gray-600 dark:text-gray-300">${this.formatDate(user.created_at)}</td>
-                <td class="user-activity text-gray-600 dark:text-gray-300">${this.formatDate(user.last_activity_at)}</td>
-                <td class="user-actions">
+                
+                <td class="user-rank py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                        <span class="material-symbols-outlined !text-sm">military_tech</span>
+                        ${user.currentRank || 'Brak'}
+                    </span>
+                </td>
+
+                <td class="user-created py-3 px-4 text-gray-600 dark:text-gray-300 text-sm hidden md:table-cell">
+                    ${this.formatDate(user.createdAt)}
+                </td>
+
+                <td class="user-lastlogin py-3 px-4 text-gray-600 dark:text-gray-300 text-sm hidden md:table-cell">
+                    ${this.formatDate(user.lastActivityAt)}
+                </td>
+
+                <td class="user-actions py-3 px-4">
                     <div class="flex justify-center gap-2">
-                        <button class="action-btn edit-btn" onclick="adminUsers.editUser(${user.id})" title="Edytuj">
-                            <span class="material-symbols-outlined !text-base">edit</span>
+                        <button class="action-btn p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 transition-colors" 
+                                onclick="adminUsers.editUser(${user.id})" 
+                                title="Edytuj rolę">
+                            <span class="material-symbols-outlined !text-xl">edit</span>
                         </button>
-                        ${user.status === 'pending' ? `
-                        <button class="action-btn verify-btn" onclick="adminUsers.verifyUserEmail(${user.id})" title="Potwierdź email">
-                            <span class="material-symbols-outlined !text-base">check_circle</span>
+                        
+                        <button class="action-btn p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-amber-600 dark:text-gray-400 transition-colors" 
+                                onclick="adminUsers.openRankModal(${user.id}, '${user.username}', ${user.currentRankId || 0})" 
+                                title="Zmień rangę">
+                            <span class="material-symbols-outlined !text-xl">military_tech</span>
+                        </button>
+
+                        ${!user.isBanned ? `
+                        <button class="action-btn p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-red-600 dark:text-gray-400 transition-colors" 
+                                onclick="adminUsers.blockUser(${user.id})" 
+                                title="Zablokuj"
+                                ${!canBlock ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                            <span class="material-symbols-outlined !text-xl">block</span>
                         </button>
                         ` : `
-                        <button class="action-btn ${user.status === 'blocked' ? 'unblock-btn' : 'block-btn'}" 
-                                onclick="adminUsers.${user.status === 'blocked' ? 'unblockUser' : 'blockUser'}(${user.id})" 
-                                title="${user.status === 'blocked' ? 'Odblokuj' : 'Zablokuj'}"
-                                ${!canBlock ? 'disabled' : ''}>
-                            <span class="material-symbols-outlined !text-base">${user.status === 'blocked' ? 'lock_open' : 'block'}</span>
+                        <button class="action-btn p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-green-600 dark:text-gray-400 transition-colors" 
+                                onclick="adminUsers.unblockUser(${user.id})" 
+                                title="Odblokuj">
+                            <span class="material-symbols-outlined !text-xl">lock_open</span>
                         </button>
                         `}
-                        <button class="action-btn delete-btn" onclick="adminUsers.deleteUser(${user.id})" title="Usuń" ${isCurrentUser ? 'disabled' : ''}>
-                            <span class="material-symbols-outlined !text-base">delete</span>
+                        
+                        <button class="action-btn p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-red-600 dark:text-gray-400 transition-colors" 
+                                onclick="adminUsers.deleteUser(${user.id})" 
+                                title="Usuń" ${isCurrentUser ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                            <span class="material-symbols-outlined !text-xl">delete</span>
                         </button>
                     </div>
                 </td>
@@ -222,27 +274,97 @@ class AdminUsers {
         `}).join('');
     }
 
+    // --- Logika Modala Rangi ---
+
+    openRankModal(userId, username, currentRankId) {
+        this.selectedUserId = userId;
+        const modal = document.getElementById('rank-modal');
+        const usernameSpan = document.getElementById('modal-username');
+        const select = document.getElementById('modal-rank-select');
+
+        if (!modal || !select) return;
+
+        if (usernameSpan) usernameSpan.textContent = username;
+
+        // Wypełnij select opcjami
+        select.innerHTML = this.availableRanks.map(rank => `
+            <option value="${rank.id}" ${rank.id === currentRankId ? 'selected' : ''}>
+                ${rank.name} (min. ${rank.minMessages} wiad.)
+            </option>
+        `).join('');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex'); 
+    }
+
+    closeRankModal() {
+        const modal = document.getElementById('rank-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        this.selectedUserId = null;
+    }
+
+    async confirmRankChange() {
+        if (!this.selectedUserId) return;
+        
+        const select = document.getElementById('modal-rank-select');
+        const newRankId = parseInt(select.value);
+
+        try {
+            const response = await fetch(`/api/users/${this.selectedUserId}/rank`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                credentials: 'include',
+                body: JSON.stringify(newRankId)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if(window.adminPanel) window.adminPanel.showSuccess(data.message || 'Ranga zmieniona pomyślnie');
+                else alert('Ranga zmieniona pomyślnie');
+                
+                this.closeRankModal();
+                this.loadUsers(); 
+            } else {
+                const error = await response.text();
+                try {
+                    const jsonError = JSON.parse(error);
+                    if(window.adminPanel) window.adminPanel.showError(jsonError.error || 'Błąd zmiany rangi');
+                    else alert(jsonError.error || 'Błąd zmiany rangi');
+                } catch {
+                    alert(`Błąd: ${error}`);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Wystąpił błąd połączenia');
+        }
+    }
+
+    // --- Metody pomocnicze ---
+
     updatePagination(total) {
         this.totalUsers = total;
-        const totalPages = Math.ceil(total / this.pageSize);
+        const totalPages = Math.ceil(total / this.pageSize) || 1;
         
-        // Update info
         const resultsStart = document.getElementById('results-start');
         const resultsEnd = document.getElementById('results-end');
         const resultsTotal = document.getElementById('results-total');
 
-        if (resultsStart) resultsStart.textContent = ((this.currentPage - 1) * this.pageSize) + 1;
+        if (resultsStart) resultsStart.textContent = total === 0 ? 0 : ((this.currentPage - 1) * this.pageSize) + 1;
         if (resultsEnd) resultsEnd.textContent = Math.min(this.currentPage * this.pageSize, total);
         if (resultsTotal) resultsTotal.textContent = total;
 
-        // Update buttons
         const prevBtn = document.getElementById('prev-page');
         const nextBtn = document.getElementById('next-page');
 
         if (prevBtn) prevBtn.disabled = this.currentPage <= 1;
         if (nextBtn) nextBtn.disabled = this.currentPage >= totalPages;
 
-        // Generate page numbers
         this.generatePageNumbers(totalPages);
     }
 
@@ -261,9 +383,13 @@ class AdminUsers {
 
         for (let i = startPage; i <= endPage; i++) {
             buttons.push(`
-                <button class="pagination-number ${i === this.currentPage ? 'active' : ''}" 
-                        onclick="adminUsers.goToPage(${i})" 
-                        ${i === this.currentPage ? 'disabled' : ''}>
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                    i === this.currentPage 
+                    ? 'bg-primary text-white' 
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#232f48]'
+                }" 
+                onclick="adminUsers.goToPage(${i})" 
+                ${i === this.currentPage ? 'disabled' : ''}>
                     ${i}
                 </button>
             `);
@@ -283,7 +409,7 @@ class AdminUsers {
             'moderator': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
             'user': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
         };
-        return classes[role?.toLowerCase()] || classes['user'];
+        return classes[String(role).toLowerCase()] || classes['user'];
     }
 
     getRoleLabel(role) {
@@ -292,7 +418,7 @@ class AdminUsers {
             'moderator': 'Moderator',
             'user': 'Użytkownik'
         };
-        return labels[role?.toLowerCase()] || 'Użytkownik';
+        return labels[String(role).toLowerCase()] || 'Użytkownik';
     }
 
     getStatusBadgeClass(status) {
@@ -304,269 +430,164 @@ class AdminUsers {
         return classes[status] || classes['active'];
     }
 
-    getStatusLabel(status) {
-        const labels = {
-            'active': 'Aktywny',
-            'blocked': 'Zablokowany',
-            'pending': 'Oczekujący'
-        };
-        return labels[status] || 'Aktywny';
-    }
-
     formatDate(dateString) {
         if (!dateString) return 'Nigdy';
         const date = new Date(dateString);
         return date.toLocaleDateString('pl-PL', {
             year: 'numeric',
-            month: 'short',
-            day: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
             hour: '2-digit',
             minute: '2-digit'
         });
     }
 
-    showAddUserModal() {
-        const modal = window.adminPanel.showModal('Dodaj nowego użytkownika', `
-            <form id="add-user-form" class="admin-form">
-                <div class="form-group">
-                    <label class="form-label">Nazwa użytkownika</label>
-                    <input type="text" name="username" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Hasło</label>
-                    <input type="password" name="password" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Rola</label>
-                    <select name="role" class="form-input">
-                        <option value="user">Użytkownik</option>
-                        <option value="moderator">Moderator</option>
-                        <option value="admin">Administrator</option>
-                    </select>
-                </div>
-            </form>
-        `, [
-            { text: 'Anuluj', type: 'secondary' },
-            { text: 'Dodaj użytkownika', type: 'primary', action: 'adminUsers.submitAddUser()' }
-        ]);
-    }
-
-    async submitAddUser() {
-        const form = document.getElementById('add-user-form');
-        const formData = new FormData(form);
-        const userData = Object.fromEntries(formData);
-
-        try {
-            const response = await fetch('/api/admin/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData)
-            });
-
-            if (response.ok) {
-                window.adminPanel.showSuccess('Użytkownik został dodany pomyślnie');
-                document.querySelector('.modal-overlay').remove();
-                this.loadUsers();
-            } else {
-                const error = await response.text();
-                window.adminPanel.showError(`Błąd: ${error}`);
-            }
-        } catch (error) {
-            window.adminPanel.showError('Wystąpił błąd podczas dodawania użytkownika');
-        }
-    }
-
     async editUser(userId) {
         try {
-            // Pobierz dane użytkownika z cache'owanej listy
             const userIdNum = parseInt(userId, 10);
             let user = this.allUsers.find(u => u.id === userIdNum);
 
-            // Jeśli nie ma w cache, pobierz wszystkich użytkowników bez paginacji
-            if (!user) {
-                const response = await fetch(`/api/admin/users?pageSize=10000`);
-                if (!response.ok) {
-                    window.adminPanel.showError('Błąd ładowania danych użytkownika');
-                    return;
-                }
-                const data = await response.json();
-                user = data.users.find(u => u.id === userIdNum);
-            }
+            if (!user) return; 
 
-            if (!user) {
-                window.adminPanel.showError('Użytkownik nie znaleziony');
-                return;
-            }
-
-            // Pokaż modal edycji
             const modal = document.createElement('div');
             modal.id = 'edit-user-modal';
             modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
             modal.innerHTML = `
-                <div class="bg-white dark:bg-[#192231] rounded-lg shadow-lg max-w-md w-full p-6">
+                <div class="bg-white dark:bg-[#192231] rounded-lg shadow-lg max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Edytuj użytkownika: ${user.username}</h2>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Edytuj rolę: ${user.username}</h2>
                         <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('edit-user-modal')?.remove()">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-
                     <form id="edit-user-form" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rola</label>
-                            <select id="user-role" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-                                <option value="user" ${user.role === 'user' ? 'selected' : ''}>Użytkownik</option>
-                                <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
-                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrator</option>
+                            <select id="user-role" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white">
+                                <option value="User" ${String(user.role).toLowerCase() === 'user' ? 'selected' : ''}>Użytkownik</option>
+                                <option value="Moderator" ${String(user.role).toLowerCase() === 'moderator' ? 'selected' : ''}>Moderator</option>
+                                <option value="Admin" ${String(user.role).toLowerCase() === 'admin' ? 'selected' : ''}>Administrator</option>
                             </select>
                         </div>
-
-                        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                            <p class="text-sm text-blue-800 dark:text-blue-300">
-                                <strong>Aktualna rola:</strong> ${this.getRoleLabel(user.role)}
-                            </p>
-                        </div>
-
                         <div class="flex gap-2 justify-end">
-                            <button type="button" class="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] transition" onclick="document.getElementById('edit-user-modal')?.remove()">
-                                Anuluj
-                            </button>
-                            <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition">
-                                Zapisz zmiany
-                            </button>
+                            <button type="button" class="px-4 py-2 border rounded-lg dark:text-white" onclick="document.getElementById('edit-user-modal')?.remove()">Anuluj</button>
+                            <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg">Zapisz</button>
                         </div>
                     </form>
                 </div>
             `;
-
             document.body.appendChild(modal);
 
-            // Obsłuż klik poza modalem
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.remove();
-            });
-
-            // Obsłuż wysłanie formularza
             document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newRole = document.getElementById('user-role').value;
-
-                if (newRole === user.role) {
-                    window.adminPanel.showInfo('Żaden zmian nie został dokonany');
-                    return;
-                }
-
+                
                 try {
-                    const response = await fetch(`/api/admin/users/${userId}/role`, {
+                    const response = await fetch(`/api/users/${userId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            Role: newRole.charAt(0).toUpperCase() + newRole.slice(1) // Kapitalizuj pierwszą literę
-                        })
+                        credentials: 'include',
+                        body: JSON.stringify({ ...user, role: newRole })
                     });
 
                     if (response.ok) {
-                        window.adminPanel.showSuccess(`Rola użytkownika zmieniona na: ${this.getRoleLabel(newRole)}`);
+                        if(window.adminPanel) window.adminPanel.showSuccess('Rola zmieniona');
                         modal.remove();
                         this.loadUsers();
                     } else {
-                        const error = await response.text();
-                        window.adminPanel.showError(`Błąd: ${error}`);
+                        alert('Błąd zmiany roli');
                     }
-                } catch (error) {
-                    window.adminPanel.showError('Błąd podczas zmiany roli użytkownika');
-                    console.error('Error:', error);
+                } catch (err) {
+                    console.error(err);
+                    alert('Błąd połączenia');
                 }
             });
-
         } catch (error) {
-            window.adminPanel.showError('Błąd podczas otwierania edytora');
-            console.error('Error:', error);
-        }
-    }
-
-    async verifyUserEmail(userId) {
-        if (confirm('Czy na pewno chcesz potwierdzić email tego użytkownika?')) {
-            try {
-                const response = await fetch(`/api/admin/users/${userId}/verify-email`, {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    window.adminPanel.showSuccess('Email użytkownika został potwierdzony');
-                    this.loadUsers();
-                } else {
-                    window.adminPanel.showError('Błąd podczas potwierdzania emaila');
-                }
-            } catch (error) {
-                window.adminPanel.showError('Błąd podczas potwierdzania emaila');
-            }
-        }
-    }
-
-    async blockUser(userId) {
-        if (confirm('Czy na pewno chcesz zablokować tego użytkownika?')) {
-            try {
-                const response = await fetch(`/api/admin/users/${userId}/block`, {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    window.adminPanel.showSuccess('Użytkownik został zablokowany');
-                    this.loadUsers();
-                } else {
-                    window.adminPanel.showError('Błąd podczas blokowania użytkownika');
-                }
-            } catch (error) {
-                window.adminPanel.showError('Błąd podczas blokowania użytkownika');
-            }
-        }
-    }
-
-    async unblockUser(userId) {
-        if (confirm('Czy na pewno chcesz odblokować tego użytkownika?')) {
-            try {
-                const response = await fetch(`/api/admin/users/${userId}/unblock`, {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    window.adminPanel.showSuccess('Użytkownik został odblokowany');
-                    this.loadUsers();
-                } else {
-                    window.adminPanel.showError('Błąd podczas odblokowywania użytkownika');
-                }
-            } catch (error) {
-                window.adminPanel.showError('Błąd podczas odblokowywania użytkownika');
-            }
+            console.error(error);
         }
     }
 
     async deleteUser(userId) {
-        if (confirm('Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna!')) {
+        if (confirm('Czy na pewno trwale usunąć tego użytkownika?')) {
             try {
-                const response = await fetch(`/api/admin/users/${userId}`, {
-                    method: 'DELETE'
+                const response = await fetch(`/api/users/${userId}`, { 
+                    method: 'DELETE',
+                    credentials: 'include'
                 });
-
+                
                 if (response.ok) {
-                    window.adminPanel.showSuccess('Użytkownik został usunięty');
+                    if(window.adminPanel) window.adminPanel.showSuccess('Użytkownik usunięty');
                     this.loadUsers();
                 } else {
-                    window.adminPanel.showError('Błąd podczas usuwania użytkownika');
+                    try {
+                       const json = await response.json();
+                       alert(json.error || 'Błąd usuwania');
+                    } catch {
+                       alert('Błąd usuwania (Status: ' + response.status + ')');
+                    }
                 }
-            } catch (error) {
-                window.adminPanel.showError('Błąd podczas usuwania użytkownika');
+            } catch (e) {
+                alert('Błąd połączenia');
             }
+        }
+    }
+    
+    async blockUser(userId) {
+        if (!confirm('Czy na pewno zablokować tego użytkownika?')) return;
+        
+        const user = this.allUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ...user, isBanned: true }) 
+            });
+
+            if (response.ok) {
+                if(window.adminPanel) window.adminPanel.showSuccess('Użytkownik zablokowany');
+                this.loadUsers();
+            } else {
+                alert('Błąd blokowania');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Błąd połączenia');
+        }
+    }
+
+    async unblockUser(userId) {
+        if (!confirm('Czy odblokować użytkownika?')) return;
+
+        const user = this.allUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ...user, isBanned: false })
+            });
+
+            if (response.ok) {
+                if(window.adminPanel) window.adminPanel.showSuccess('Użytkownik odblokowany');
+                this.loadUsers();
+            } else {
+                alert('Błąd odblokowania');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Błąd połączenia');
         }
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.adminUsers = new AdminUsers();
 });
+
+window.closeRankModal = () => window.adminUsers.closeRankModal();
+window.confirmRankChange = () => window.adminUsers.confirmRankChange();

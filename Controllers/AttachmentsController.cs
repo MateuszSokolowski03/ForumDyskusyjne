@@ -8,25 +8,25 @@ using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
-namespace ForumDyskusyjne
+namespace ForumDyskusyjne.Controllers
 {
-    public class BannedWordsController : Controller
+    public class AttachmentsController : Controller
     {
         private readonly ForumDbContext _context;
 
-        public BannedWordsController(ForumDbContext context)
+        public AttachmentsController(ForumDbContext context)
         {
             _context = context;
         }
 
-        // GET: BannedWords
+        // GET: Attachments
         public async Task<IActionResult> Index()
         {
-            var forumDbContext = _context.BannedWords.Include(b => b.CreatedByUser);
+            var forumDbContext = _context.Attachments.Include(a => a.Message);
             return View(await forumDbContext.ToListAsync());
         }
 
-        // GET: BannedWords/Details/5
+        // GET: Attachments/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -34,42 +34,42 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var bannedWord = await _context.BannedWords
-                .Include(b => b.CreatedByUser)
+            var attachment = await _context.Attachments
+                .Include(a => a.Message)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (bannedWord == null)
+            if (attachment == null)
             {
                 return NotFound();
             }
 
-            return View(bannedWord);
+            return View(attachment);
         }
 
-        // GET: BannedWords/Create
+        // GET: Attachments/Create
         public IActionResult Create()
         {
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email");
+            ViewData["MessageId"] = new SelectList(_context.Messages, "Id", "Content");
             return View();
         }
 
-        // POST: BannedWords/Create
+        // POST: Attachments/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Word,CreatedAt,SeverityLevel,MatchType,IsActive,CreatedBy,UpdatedAt,UsageCount")] BannedWord bannedWord)
+        public async Task<IActionResult> Create([Bind("Id,MessageId,FilePath,FileSize,CreatedAt,OriginalFilename,MimeType,DownloadCount")] Attachment attachment)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(bannedWord);
+                _context.Add(attachment);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
-            return View(bannedWord);
+            ViewData["MessageId"] = new SelectList(_context.Messages, "Id", "Content", attachment.MessageId);
+            return View(attachment);
         }
 
-        // GET: BannedWords/Edit/5
+        // GET: Attachments/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -77,23 +77,23 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var bannedWord = await _context.BannedWords.FindAsync(id);
-            if (bannedWord == null)
+            var attachment = await _context.Attachments.FindAsync(id);
+            if (attachment == null)
             {
                 return NotFound();
             }
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
-            return View(bannedWord);
+            ViewData["MessageId"] = new SelectList(_context.Messages, "Id", "Content", attachment.MessageId);
+            return View(attachment);
         }
 
-        // POST: BannedWords/Edit/5
+        // POST: Attachments/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Word,CreatedAt,SeverityLevel,MatchType,IsActive,CreatedBy,UpdatedAt,UsageCount")] BannedWord bannedWord)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,MessageId,FilePath,FileSize,CreatedAt,OriginalFilename,MimeType,DownloadCount")] Attachment attachment)
         {
-            if (id != bannedWord.Id)
+            if (id != attachment.Id)
             {
                 return NotFound();
             }
@@ -102,12 +102,12 @@ namespace ForumDyskusyjne
             {
                 try
                 {
-                    _context.Update(bannedWord);
+                    _context.Update(attachment);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!BannedWordExists(bannedWord.Id))
+                    if (!AttachmentExists(attachment.Id))
                     {
                         return NotFound();
                     }
@@ -118,11 +118,11 @@ namespace ForumDyskusyjne
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
-            return View(bannedWord);
+            ViewData["MessageId"] = new SelectList(_context.Messages, "Id", "Content", attachment.MessageId);
+            return View(attachment);
         }
 
-        // GET: BannedWords/Delete/5
+        // GET: Attachments/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -130,35 +130,35 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var bannedWord = await _context.BannedWords
-                .Include(b => b.CreatedByUser)
+            var attachment = await _context.Attachments
+                .Include(a => a.Message)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (bannedWord == null)
+            if (attachment == null)
             {
                 return NotFound();
             }
 
-            return View(bannedWord);
+            return View(attachment);
         }
 
-        // POST: BannedWords/Delete/5
+        // POST: Attachments/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var bannedWord = await _context.BannedWords.FindAsync(id);
-            if (bannedWord != null)
+            var attachment = await _context.Attachments.FindAsync(id);
+            if (attachment != null)
             {
-                _context.BannedWords.Remove(bannedWord);
+                _context.Attachments.Remove(attachment);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool BannedWordExists(int id)
+        private bool AttachmentExists(int id)
         {
-            return _context.BannedWords.Any(e => e.Id == id);
+            return _context.Attachments.Any(e => e.Id == id);
         }
     }
 }

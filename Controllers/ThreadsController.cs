@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authorization; // Add this line
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
-namespace ForumDyskusyjne
+namespace ForumDyskusyjne.Controllers
 {
     public class ThreadsController : Controller
     {

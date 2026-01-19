@@ -8,25 +8,25 @@ using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
-namespace ForumDyskusyjne
+namespace ForumDyskusyjne.Controllers
 {
-    public class MessagesController : Controller
+    public class BannedWordsController : Controller
     {
         private readonly ForumDbContext _context;
 
-        public MessagesController(ForumDbContext context)
+        public BannedWordsController(ForumDbContext context)
         {
             _context = context;
         }
 
-        // GET: Messages
+        // GET: BannedWords
         public async Task<IActionResult> Index()
         {
-            var forumDbContext = _context.Messages.Include(m => m.Author).Include(m => m.Thread);
+            var forumDbContext = _context.BannedWords.Include(b => b.CreatedByUser);
             return View(await forumDbContext.ToListAsync());
         }
 
-        // GET: Messages/Details/5
+        // GET: BannedWords/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -34,45 +34,42 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var message = await _context.Messages
-                .Include(m => m.Author)
-                .Include(m => m.Thread)
+            var bannedWord = await _context.BannedWords
+                .Include(b => b.CreatedByUser)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (message == null)
+            if (bannedWord == null)
             {
                 return NotFound();
             }
 
-            return View(message);
+            return View(bannedWord);
         }
 
-        // GET: Messages/Create
+        // GET: BannedWords/Create
         public IActionResult Create()
         {
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Email");
-            ViewData["ThreadId"] = new SelectList(_context.Threads, "Id", "Title");
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email");
             return View();
         }
 
-        // POST: Messages/Create
+        // POST: BannedWords/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ThreadId,AuthorId,Content,CreatedAt,IsEdited,EditedAt")] Message message)
+        public async Task<IActionResult> Create([Bind("Id,Word,CreatedAt,SeverityLevel,MatchType,IsActive,CreatedBy,UpdatedAt,UsageCount")] BannedWord bannedWord)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(message);
+                _context.Add(bannedWord);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Email", message.AuthorId);
-            ViewData["ThreadId"] = new SelectList(_context.Threads, "Id", "Title", message.ThreadId);
-            return View(message);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
+            return View(bannedWord);
         }
 
-        // GET: Messages/Edit/5
+        // GET: BannedWords/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -80,24 +77,23 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var message = await _context.Messages.FindAsync(id);
-            if (message == null)
+            var bannedWord = await _context.BannedWords.FindAsync(id);
+            if (bannedWord == null)
             {
                 return NotFound();
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Email", message.AuthorId);
-            ViewData["ThreadId"] = new SelectList(_context.Threads, "Id", "Title", message.ThreadId);
-            return View(message);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
+            return View(bannedWord);
         }
 
-        // POST: Messages/Edit/5
+        // POST: BannedWords/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ThreadId,AuthorId,Content,CreatedAt,IsEdited,EditedAt")] Message message)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Word,CreatedAt,SeverityLevel,MatchType,IsActive,CreatedBy,UpdatedAt,UsageCount")] BannedWord bannedWord)
         {
-            if (id != message.Id)
+            if (id != bannedWord.Id)
             {
                 return NotFound();
             }
@@ -106,12 +102,12 @@ namespace ForumDyskusyjne
             {
                 try
                 {
-                    _context.Update(message);
+                    _context.Update(bannedWord);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!MessageExists(message.Id))
+                    if (!BannedWordExists(bannedWord.Id))
                     {
                         return NotFound();
                     }
@@ -122,12 +118,11 @@ namespace ForumDyskusyjne
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Email", message.AuthorId);
-            ViewData["ThreadId"] = new SelectList(_context.Threads, "Id", "Title", message.ThreadId);
-            return View(message);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "Id", "Email", bannedWord.CreatedBy);
+            return View(bannedWord);
         }
 
-        // GET: Messages/Delete/5
+        // GET: BannedWords/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,36 +130,35 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var message = await _context.Messages
-                .Include(m => m.Author)
-                .Include(m => m.Thread)
+            var bannedWord = await _context.BannedWords
+                .Include(b => b.CreatedByUser)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (message == null)
+            if (bannedWord == null)
             {
                 return NotFound();
             }
 
-            return View(message);
+            return View(bannedWord);
         }
 
-        // POST: Messages/Delete/5
+        // POST: BannedWords/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var message = await _context.Messages.FindAsync(id);
-            if (message != null)
+            var bannedWord = await _context.BannedWords.FindAsync(id);
+            if (bannedWord != null)
             {
-                _context.Messages.Remove(message);
+                _context.BannedWords.Remove(bannedWord);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool MessageExists(int id)
+        private bool BannedWordExists(int id)
         {
-            return _context.Messages.Any(e => e.Id == id);
+            return _context.BannedWords.Any(e => e.Id == id);
         }
     }
 }

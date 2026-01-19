@@ -4,18 +4,17 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Zarządzanie Forami - Panel Moderatora</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" defer></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-    <script src="../js/tailwind-config.js" defer></script>
+    <script src="../js/tailwind-config.js"></script>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin.css">
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0" aria-label="Sidebar nawigacja">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 sticky top-0 z-40 overflow-y-auto">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">shield_person</span>
@@ -30,11 +29,11 @@
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="users.html" title="Użytkownicy">
                             <span class="material-symbols-outlined">group</span>Użytkownicy
                         </a></li>
-                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="forums.html" title="Kategorie i Fora">
-                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="forums.html" title="Forum">
+                            <span class="material-symbols-outlined">category</span>Fora
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="threads.html" title="Wątki i wiadomości">
-                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="threads.html" title="Wątki">
+                            <span class="material-symbols-outlined">forum</span>Wątki
                         </a></li>
                     </ul>
                 </nav>
@@ -45,23 +44,267 @@
                 </div>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto" role="main">
                 <div class="content-wrapper max-w-7xl mx-auto">
                     <header class="page-header mb-8 w-full">
                         <h2 class="main-title text-3xl font-bold text-gray-900 dark:text-white">Twoje Fora</h2>
                         <p class="page-subtitle text-gray-500 dark:text-gray-400 mt-1">Przeglądaj i zarządzaj forami, które moderujesz.</p>
                     </header>
-                    <section class="mod-forums-section w-full">
-                        <div id="mod-forums-list">
-                            <!-- Forum list will be injected by JavaScript -->
+                    
+                    <section class="mod-forums-section w-full bg-white dark:bg-[#192231] rounded-xl shadow-sm border border-gray-200 dark:border-[#232f48] overflow-hidden">
+                        <div id="mod-forums-list" class="divide-y divide-gray-200 dark:divide-[#2a3851]">
+                            <div class="p-8 text-center text-gray-500">Ładowanie forów...</div>
+                        </div>
+
+                        <div class="pagination-section p-4 bg-gray-50 dark:bg-[#101622] border-t border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div class="pagination-info text-sm text-gray-500 dark:text-gray-400">
+                                Pokazuję <span id="results-start">0</span>-<span id="results-end">0</span> z <span id="results-total">0</span> forów
+                            </div>
+                            <div class="pagination-controls flex gap-2">
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-[#232f48] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                        id="prev-btn" onclick="changePage(-1)" disabled>
+                                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                                </button>
+                                
+                                <div class="flex gap-1" id="pagination-numbers"></div>
+
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-[#232f48] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                        id="next-btn" onclick="changePage(1)" disabled>
+                                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                     </section>
                 </div>
             </main>
         </div>
     </div>
-    <script src="../js/main.js" defer></script>
-    <script src="../js/mod-forums.js" defer></script>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        // --- ZMIENNE GLOBALNE ---
+        let myForums = []; 
+        let currentPage = 1;
+        const pageSize = 5; 
+
+        // --- POBIERANIE DANYCH ---
+        async function loadForums() {
+            const container = document.getElementById('mod-forums-list');
+            
+            try {
+                // ✅ ZMIANA 1: Używamy endpointu Moderatora (/api/mod/forums) zamiast Admina
+                const resForums = await fetch('/api/mod/forums', { credentials: 'include' });
+                
+                if (!resForums.ok) {
+                    throw new Error(`Błąd API: ${resForums.status} (Sprawdź czy masz rolę Moderatora)`);
+                }
+
+                let data = await resForums.json();
+                
+                // Obsługa różnych formatów odpowiedzi
+                if (data && Array.isArray(data)) {
+                    myForums = data;
+                } else if (data && data.data && Array.isArray(data.data)) {
+                    myForums = data.data;
+                } else {
+                    myForums = [];
+                }
+
+                currentPage = 1;
+                renderPage();
+
+            } catch (error) {
+                console.error('Błąd:', error);
+                container.innerHTML = `<div class="p-8 text-center text-red-500">
+                    <span class="block text-xl mb-2">⚠️</span>
+                    Nie udało się pobrać listy forów.<br>
+                    <span class="text-sm text-gray-400">${error.message}</span>
+                </div>`;
+            }
+        }
+
+        // --- RENDEROWANIE FORÓW ---
+        function renderPage() {
+            const container = document.getElementById('mod-forums-list');
+            const totalItems = myForums.length;
+
+            if (totalItems === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-gray-500">Nie jesteś przypisany do żadnych forów.</div>`;
+                updatePaginationControls(0, 0, 0, 0);
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / pageSize);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const forumsToShow = myForums.slice(start, end);
+
+            container.innerHTML = forumsToShow.map(forum => `
+                <div class="group p-6 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">folder</span>
+                                ${escapeHtml(forum.name)}
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${escapeHtml(forum.description || 'Brak opisu')}</p>
+                            <div class="mt-3 flex gap-4 text-xs font-medium text-gray-400 uppercase tracking-wide">
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined !text-sm">tag</span> ID: ${forum.id}</span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined !text-sm">forum</span> Wątki: ${forum.threadCount || 0}</span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined !text-sm">chat</span> Posty: ${forum.messageCount || 0}</span>
+                            </div>
+                        </div>
+                        
+                        <button onclick="toggleThreads(${forum.id}, '${escapeHtml(forum.name)}')" 
+                                class="shrink-0 px-4 py-2 rounded-lg bg-white dark:bg-[#232f48] border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2a3851] hover:text-primary dark:hover:text-white transition-all flex items-center gap-2 text-sm font-medium shadow-sm">
+                            <span class="material-symbols-outlined text-lg">list</span>
+                            Pokaż wątki
+                        </button>
+                    </div>
+                    
+                    <div id="threads-container-${forum.id}" class="hidden mt-4 pl-0 sm:pl-4 border-l-0 sm:border-l-2 border-primary/20"></div>
+                </div>
+            `).join('');
+
+            updatePaginationControls(currentPage, totalItems, start + 1, Math.min(end, totalItems));
+        }
+
+        // --- POKAŻ / UKRYJ WĄTKI ---
+        async function toggleThreads(forumId, forumName) {
+            const container = document.getElementById(`threads-container-${forumId}`);
+            
+            if (!container.classList.contains('hidden')) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            container.innerHTML = `<div class="py-4 text-sm text-gray-500 flex items-center gap-2"><div class="spinner w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div> Ładowanie wątków...</div>`;
+
+            try {
+                // ✅ ZMIANA 2: Używamy endpointu Moderatora (/api/mod/threads)
+                const res = await fetch(`/api/mod/threads`, { credentials: 'include' });
+                
+                if (!res.ok) throw new Error('Błąd pobierania wątków');
+
+                const allThreads = await res.json();
+                
+                // Filtrowanie po ID forum (bo endpoint zwraca wszystkie wątki moderatora)
+                // Sprawdzamy różne formaty właściwości (duże/małe litery)
+                const forumThreads = allThreads.filter(t => 
+                    (t.forumId === forumId) || 
+                    (t.ForumId === forumId) || 
+                    (t.forum && t.forum.id === forumId) ||
+                    (t.forumName === forumName) ||
+                    (t.ForumName === forumName)
+                );
+
+                if (forumThreads.length === 0) {
+                    container.innerHTML = `<div class="py-3 px-4 bg-gray-50 dark:bg-[#151e29] rounded border border-gray-100 dark:border-[#2a3851] text-sm text-gray-400 italic">Brak wątków w tym forum.</div>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="mt-3 bg-gray-50 dark:bg-[#151e29] rounded-lg border border-gray-200 dark:border-[#2a3851] overflow-hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-100 dark:bg-[#1e293b] text-xs uppercase text-gray-500 font-semibold">
+                                <tr>
+                                    <th class="px-4 py-2">Tytuł</th>
+                                    <th class="px-4 py-2">Autor</th>
+                                    <th class="px-4 py-2 text-right">Akcja</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-[#2a3851]">
+                                ${forumThreads.map(t => `
+                                    <tr class="hover:bg-gray-100 dark:hover:bg-[#232f48] transition-colors">
+                                        <td class="px-4 py-2 font-medium text-gray-900 dark:text-white">
+                                            ${escapeHtml(t.title || t.Title)}
+                                        </td>
+                                        <td class="px-4 py-2 text-gray-500">${escapeHtml(t.authorName || t.AuthorName || 'Anonim')}</td>
+                                        <td class="px-4 py-2 text-right">
+                                            <a href="/thread.html?id=${t.id || t.Id}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-bold inline-flex items-center gap-1">
+                                                Otwórz <span class="material-symbols-outlined !text-sm">open_in_new</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = `<div class="text-red-500 text-sm py-2">Błąd ładowania wątków.</div>`;
+            }
+        }
+
+        // --- KONTROLKI PAGINACJI ---
+        function updatePaginationControls(page, total, start, end) {
+            const totalPages = Math.ceil(total / pageSize) || 1;
+
+            const startEl = document.getElementById('results-start');
+            const endEl = document.getElementById('results-end');
+            const totalEl = document.getElementById('results-total');
+            
+            if(startEl) startEl.textContent = start;
+            if(endEl) endEl.textContent = end;
+            if(totalEl) totalEl.textContent = total;
+
+            document.getElementById('prev-btn').disabled = page <= 1;
+            document.getElementById('next-btn').disabled = page >= totalPages;
+
+            const container = document.getElementById('pagination-numbers');
+            container.innerHTML = '';
+
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === page;
+                const activeClass = "bg-primary text-white border-primary";
+                const inactiveClass = "bg-white dark:bg-[#192231] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#232f48]";
+                
+                const btn = document.createElement('button');
+                btn.className = `w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium border transition-colors ${isActive ? activeClass : inactiveClass}`;
+                btn.textContent = i;
+                
+                if (isActive) {
+                    btn.disabled = true;
+                } else {
+                    btn.onclick = () => {
+                        currentPage = i;
+                        renderPage();
+                        document.querySelector('.main-content').scrollTop = 0;
+                    };
+                }
+                container.appendChild(btn);
+            }
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(myForums.length / pageSize);
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderPage();
+                document.querySelector('.main-content').scrollTop = 0;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[m]);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadForums);
+    </script>
 </body>
 </html>

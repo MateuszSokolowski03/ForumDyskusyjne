@@ -8,25 +8,24 @@ using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
-namespace ForumDyskusyjne
+namespace ForumDyskusyjne.Controllers
 {
-    public class ForumsController : Controller
+    public class UserRanksController : Controller
     {
         private readonly ForumDbContext _context;
 
-        public ForumsController(ForumDbContext context)
+        public UserRanksController(ForumDbContext context)
         {
             _context = context;
         }
 
-        // GET: Forums
+        // GET: UserRanks
         public async Task<IActionResult> Index()
         {
-            var forumDbContext = _context.Forums.Include(f => f.Category);
-            return View(await forumDbContext.ToListAsync());
+            return View(await _context.UserRanks.ToListAsync());
         }
 
-        // GET: Forums/Details/5
+        // GET: UserRanks/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -34,42 +33,39 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var forum = await _context.Forums
-                .Include(f => f.Category)
+            var userRank = await _context.UserRanks
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (forum == null)
+            if (userRank == null)
             {
                 return NotFound();
             }
 
-            return View(forum);
+            return View(userRank);
         }
 
-        // GET: Forums/Create
+        // GET: UserRanks/Create
         public IActionResult Create()
         {
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name");
             return View();
         }
 
-        // POST: Forums/Create
+        // POST: UserRanks/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Description,CategoryId,CreatedAt")] Forum forum)
+        public async Task<IActionResult> Create([Bind("Id,Name,MinMessages,CanBeSetManually,MaxMessages,Color,Icon,Description,IsActive,SortOrder,CreatedAt,UpdatedAt")] UserRank userRank)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(forum);
+                _context.Add(userRank);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", forum.CategoryId);
-            return View(forum);
+            return View(userRank);
         }
 
-        // GET: Forums/Edit/5
+        // GET: UserRanks/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -77,23 +73,22 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var forum = await _context.Forums.FindAsync(id);
-            if (forum == null)
+            var userRank = await _context.UserRanks.FindAsync(id);
+            if (userRank == null)
             {
                 return NotFound();
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", forum.CategoryId);
-            return View(forum);
+            return View(userRank);
         }
 
-        // POST: Forums/Edit/5
+        // POST: UserRanks/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,CategoryId,CreatedAt")] Forum forum)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,MinMessages,CanBeSetManually,MaxMessages,Color,Icon,Description,IsActive,SortOrder,CreatedAt,UpdatedAt")] UserRank userRank)
         {
-            if (id != forum.Id)
+            if (id != userRank.Id)
             {
                 return NotFound();
             }
@@ -102,12 +97,12 @@ namespace ForumDyskusyjne
             {
                 try
                 {
-                    _context.Update(forum);
+                    _context.Update(userRank);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ForumExists(forum.Id))
+                    if (!UserRankExists(userRank.Id))
                     {
                         return NotFound();
                     }
@@ -118,11 +113,10 @@ namespace ForumDyskusyjne
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", forum.CategoryId);
-            return View(forum);
+            return View(userRank);
         }
 
-        // GET: Forums/Delete/5
+        // GET: UserRanks/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -130,35 +124,34 @@ namespace ForumDyskusyjne
                 return NotFound();
             }
 
-            var forum = await _context.Forums
-                .Include(f => f.Category)
+            var userRank = await _context.UserRanks
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (forum == null)
+            if (userRank == null)
             {
                 return NotFound();
             }
 
-            return View(forum);
+            return View(userRank);
         }
 
-        // POST: Forums/Delete/5
+        // POST: UserRanks/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var forum = await _context.Forums.FindAsync(id);
-            if (forum != null)
+            var userRank = await _context.UserRanks.FindAsync(id);
+            if (userRank != null)
             {
-                _context.Forums.Remove(forum);
+                _context.UserRanks.Remove(userRank);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ForumExists(int id)
+        private bool UserRankExists(int id)
         {
-            return _context.Forums.Any(e => e.Id == id);
+            return _context.UserRanks.Any(e => e.Id == id);
         }
     }
 }

@@ -4,6 +4,7 @@ using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims; 
+
 namespace ForumDyskusyjne.Controllers
 
 {
@@ -63,6 +64,37 @@ namespace ForumDyskusyjne.Controllers
             }
 
             return (foundWords.Count > 0, foundWords);
+        }
+
+        // --- Metoda pomocnicza do aktualizacji rangi (POPRAWIONA) ---
+        private async Task UpdateUserRankAsync(User user)
+        {
+            // 1. Pobierz obecną rangę (jeśli istnieje)
+            Models.UserRank? currentRank = null;
+            if (user.CurrentRankId.HasValue)
+            {
+                currentRank = await _context.UserRanks.FindAsync(user.CurrentRankId.Value);
+            }
+            
+            // 2. OCHRONA: Jeśli ranga istnieje I jest ustawiana ręcznie (np. Admin), STOP.
+            if (currentRank != null && currentRank.CanBeSetManually)
+            {
+                return; // Nie ruszamy Adminów/Moderatorów
+            }
+
+            // 3. Logika dla użytkowników BEZ rangi lub z rangą AUTOMATYCZNĄ
+            // Znajdź odpowiednią rangę dla nowej liczby postów (np. Nowicjusz dla 0+, Członek dla 10+)
+            var newRank = await _context.UserRanks
+                .Where(r => r.MinMessages <= user.PostCount && !r.CanBeSetManually)
+                .OrderByDescending(r => r.MinMessages)
+                .FirstOrDefaultAsync();
+
+            // 4. Jeśli znaleziono nową rangę i jest inna niż obecna -> Zaktualizuj
+            // (Działa też, gdy CurrentRankId jest null)
+            if (newRank != null && user.CurrentRankId != newRank.Id)
+            {
+                user.CurrentRankId = newRank.Id;
+            }
         }
 
         [AllowAnonymous]
@@ -424,12 +456,16 @@ namespace ForumDyskusyjne.Controllers
                     IsEdited = false
                 };
 
-                _context.Messages.Add(message);
-                await _context.SaveChangesAsync();
+               _context.Messages.Add(message);
+// await _context.SaveChangesAsync(); // Można usunąć ten pośredni zapis, zrobimy jeden na końcu
 
-                author.PostCount++;
-                _context.Users.Update(author);
-                await _context.SaveChangesAsync();
+// --- AKTUALIZACJA LICZNIKA I RANGI ---
+author.PostCount++;
+await UpdateUserRankAsync(author); // <--- TUTAJ SPRAWDZAMY RANGĘ
+_context.Users.Update(author);
+// -------------------------------------
+
+await _context.SaveChangesAsync();
 
                 return Ok(new { success = true, threadId = thread.Id, message = "Wątek utworzony" });
             }
@@ -484,12 +520,18 @@ namespace ForumDyskusyjne.Controllers
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _context.Messages.Add(message);
-                
-                // Aktualizuj licznik odpowiedzi w wątku
-                thread.RepliesCount++;
-                
-                await _context.SaveChangesAsync();
+_context.Messages.Add(message);
+
+// Aktualizuj licznik odpowiedzi w wątku
+thread.RepliesCount++;
+
+// --- AKTUALIZACJA LICZNIKA I RANGI ---
+author.PostCount++;
+await UpdateUserRankAsync(author); // <--- TUTAJ SPRAWDZAMY RANGĘ
+_context.Users.Update(author);
+// -------------------------------------
+
+await _context.SaveChangesAsync();
 
                 return Ok(new
                 {

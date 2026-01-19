@@ -43,7 +43,7 @@
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
-                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                            <span class="material-symbols-outlined">campaign</span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -145,8 +145,6 @@
             init() {
                 this.setupEventListeners();
                 this.loadBannedWords();
-                // Auto-refresh every 5 seconds
-                this.refreshInterval = setInterval(() => this.loadBannedWords(), 5000);
             }
 
             setupEventListeners() {

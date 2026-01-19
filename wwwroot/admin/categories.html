@@ -14,8 +14,8 @@
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+            
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 sticky top-0 z-40 overflow-y-auto">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
@@ -43,7 +43,7 @@
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
-                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                            <span class="material-symbols-outlined">campaign</span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -54,7 +54,6 @@
                 </div>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
                 <div class="content-wrapper max-w-7xl mx-auto">
                     <header class="page-header mb-8">
@@ -70,9 +69,11 @@
                         </div>
                     </header>
 
-                    <!-- Categories List -->
                     <div class="categories-section space-y-6">
+                        <p class="text-center text-gray-500">Ładowanie...</p>
                     </div>
+
+                    <div id="categories-pagination-container" class="mt-6"></div>
                 </div>
             </main>
         </div>
@@ -83,510 +84,495 @@
     <script src="../js/admin.js"></script>
 
     <script>
+        // --- ZMIENNE GLOBALNE ---
         let categories = [];
+        const categoryForumsData = {}; // Cache forów
+        const categoryCurrentPages = {}; // Paginacja forów wewnątrz kategorii
+        const FORUMS_PER_PAGE = 5;
+
+        // Paginacja KATEGORII
+        let categoriesPage = 1;
+        const CATEGORIES_PER_PAGE = 5; 
+
         let editingCategoryId = null;
         let editingForumId = null;
         let currentCategoryId = null;
 
-        // ✅ ZAŁADUJ KATEGORIE Z API
+        // ✅ ZAŁADUJ KATEGORIE
         async function loadCategories() {
             try {
                 const res = await fetch('/api/admin/categories', { credentials: 'include' });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 categories = await res.json();
-                console.log('✅ Kategorie załadowane:', categories);
+                
+                categoriesPage = 1; 
                 renderCategories();
             } catch (error) {
                 console.error('❌ Błąd ładowania kategorii:', error);
+                document.querySelector('.categories-section').innerHTML = '<p class="text-red-500 text-center">Błąd ładowania danych.</p>';
             }
         }
 
-        // ✅ RENDERUJ KATEGORIE Z DYNAMICZNIE ŁADOWANYMI FORAMI
+        // ✅ RENDEROWANIE KATEGORII
         function renderCategories() {
             const container = document.querySelector('.categories-section');
+            const paginationContainer = document.getElementById('categories-pagination-container');
             
             if (!categories || categories.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">Brak kategorii</p>';
+                container.innerHTML = '<p class="text-gray-500 text-center">Brak kategorii. Dodaj pierwszą!</p>';
+                paginationContainer.innerHTML = '';
                 return;
             }
 
+            // 1. Obliczenia paginacji
+            const totalCategories = categories.length;
+            const totalPages = Math.ceil(totalCategories / CATEGORIES_PER_PAGE);
+            
+            if (categoriesPage > totalPages && totalPages > 0) categoriesPage = totalPages;
+
+            const startIndex = (categoriesPage - 1) * CATEGORIES_PER_PAGE;
+            const endIndex = startIndex + CATEGORIES_PER_PAGE;
+            const categoriesToShow = categories.slice(startIndex, endIndex);
+
+            // 2. Generowanie HTML Kart
             let html = '<div class="space-y-6">';
             
-            categories.forEach(category => {
+            categoriesToShow.forEach(category => {
                 html += `
-                    <div class="category-card bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(category.name)}</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(category.description || '')}</p>
+                    <div class="category-card bg-white dark:bg-[#192231] rounded-lg border border-gray-200 dark:border-[#232f48] p-6 shadow-sm">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                    <span class="material-symbols-outlined">${category.icon || 'folder'}</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">${escapeHtml(category.name)}</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">${escapeHtml(category.description || '')}</p>
+                                </div>
                             </div>
-                            <div class="flex gap-2 flex-shrink-0">
-                                <button onclick="openAddForumModal(${category.id})" class="text-sm px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white transition-colors">
-                                    + Forum
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="openAddForumModal(${category.id})" class="flex-1 sm:flex-none text-sm px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white transition-colors flex items-center justify-center gap-1 shadow-sm">
+                                    <span class="material-symbols-outlined text-sm">add</span> Forum
                                 </button>
-                                <button onclick="editCategory(${category.id})" class="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors">
-                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                <button onclick="editCategory(${category.id})" class="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edytuj">
+                                    <span class="material-symbols-outlined text-lg">edit</span>
                                 </button>
-                                <button onclick="deleteCategory(${category.id})" class="px-2 py-1 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors">
-                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                <button onclick="deleteCategory(${category.id})" class="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Usuń">
+                                    <span class="material-symbols-outlined text-lg">delete</span>
                                 </button>
                             </div>
                         </div>
                         
-                        <!-- ✅ DYNAMICZNE FORA DLA TEJ KATEGORII -->
-                        <div class="forums-list space-y-2" id="forums-${category.id}" data-category-id="${category.id}">
-                            <p class="text-gray-500 text-sm">⏳ Ładowanie forów...</p>
+                        <div class="forums-container" id="forums-${category.id}" data-category-id="${category.id}">
+                            <div class="flex items-center justify-center py-4">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            
             html += '</div>';
             container.innerHTML = html;
-            
-            // ✅ ZAŁADUJ FORA DLA KAŻDEJ KATEGORII
-            categories.forEach(cat => loadForumsForCategory(cat.id));
+
+            // 3. ✅ Generowanie PAGINACJI KATEGORII (STYL USERS)
+            renderCategoriesPagination(totalCategories, totalPages, startIndex, endIndex);
+
+            // 4. Pobieranie forów
+            categoriesToShow.forEach(cat => loadForumsForCategory(cat.id));
         }
 
-        // ✅ ZAŁADUJ FORA TYLKO DLA JEDNEJ KATEGORII
+        // ✅ Nowa funkcja do paginacji kategorii (Styl z users.html)
+        function renderCategoriesPagination(total, totalPages, start, end) {
+            const container = document.getElementById('categories-pagination-container');
+            if (!container) return;
+
+            // Ustalanie zakresu wyświetlania (np. 1-5 z 12)
+            const displayEnd = Math.min(end, total);
+            const displayStart = total === 0 ? 0 : start + 1;
+
+            // Generowanie przycisków numerycznych
+            let numbersHtml = '';
+            const maxButtons = 5;
+            let startPage = Math.max(1, categoriesPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+            if (endPage - startPage + 1 < maxButtons) startPage = Math.max(1, endPage - maxButtons + 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === categoriesPage;
+                const activeClass = "bg-primary text-white";
+                const inactiveClass = "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#232f48]";
+                
+                numbersHtml += `
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${isActive ? activeClass : inactiveClass}" 
+                        onclick="changeCategoriesPageTo(${i})" ${isActive ? 'disabled' : ''}>
+                        ${i}
+                    </button>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="pagination-section p-4 bg-white dark:bg-[#192231] rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="pagination-info text-sm text-gray-500 dark:text-gray-400">
+                        Pokazuję <span class="font-medium text-gray-900 dark:text-white">${displayStart}-${displayEnd}</span> z <span class="font-medium text-gray-900 dark:text-white">${total}</span> kategorii
+                    </div>
+                    <div class="pagination-controls flex gap-2">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                onclick="changeCategoriesPage(-1)" ${categoriesPage <= 1 ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined text-sm">chevron_left</span>
+                        </button>
+                        
+                        <div class="flex gap-1">${numbersHtml}</div>
+
+                        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                onclick="changeCategoriesPage(1)" ${categoriesPage >= totalPages ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Zmiana strony kategorii (delta)
+        function changeCategoriesPage(delta) {
+            changeCategoriesPageTo(categoriesPage + delta);
+        }
+
+        // Zmiana strony kategorii (konkretna strona)
+        function changeCategoriesPageTo(page) {
+            const totalPages = Math.ceil(categories.length / CATEGORIES_PER_PAGE);
+            if (page >= 1 && page <= totalPages) {
+                categoriesPage = page;
+                renderCategories();
+                document.querySelector('.main-content').scrollTop = 0;
+            }
+        }
+
+        // ✅ POBIERANIE FORÓW Z API
         async function loadForumsForCategory(categoryId) {
             try {
-                console.log(`📂 Ładowanie forów dla kategorii ${categoryId}...`);
-                
                 const res = await fetch(`/api/admin/forums?categoryId=${categoryId}`, { credentials: 'include' });
-                if (!res.ok) {
-                    console.error(`❌ Błąd HTTP ${res.status} dla kategorii ${categoryId}`);
-                    throw new Error('HTTP ' + res.status);
-                }
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 
                 const forums = await res.json();
-                console.log(`✅ Fora dla kategorii ${categoryId}:`, forums);
                 
-                const container = document.getElementById(`forums-${categoryId}`);
-                if (!container) {
-                    console.warn(`⚠️ Kontener #forums-${categoryId} nie znaleziony`);
-                    return;
+                categoryForumsData[categoryId] = forums || [];
+                if (!categoryCurrentPages[categoryId]) {
+                    categoryCurrentPages[categoryId] = 1;
                 }
 
-                if (!Array.isArray(forums) || forums.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">Brak forów w tej kategorii</p>';
-                    return;
-                }
+                renderForumsList(categoryId);
 
-                container.innerHTML = forums.map(forum => `
-                    <div class="forum-item flex justify-between items-center p-3 bg-gray-50 dark:bg-[#101622] rounded border border-gray-200 dark:border-[#232f48]">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(forum.name)}</h4>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(forum.description || '')}</p>
-                            <div class="mt-1 flex gap-4 text-xs text-gray-500">
+            } catch (error) {
+                console.error(`❌ Błąd forów kat. ${categoryId}:`, error);
+                const el = document.getElementById(`forums-${categoryId}`);
+                if (el) el.innerHTML = `<p class="text-red-500 text-xs pl-2">Błąd ładowania.</p>`;
+            }
+        }
+
+        // ✅ RENDEROWANIE LISTY FORÓW (Z POPRAWIONĄ PAGINACJĄ < 1/2 >)
+        function renderForumsList(categoryId) {
+            const container = document.getElementById(`forums-${categoryId}`);
+            if (!container) return;
+
+            const forums = categoryForumsData[categoryId] || [];
+            
+            if (forums.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-lg">
+                        <p class="text-gray-400 text-sm">Brak forów w tej kategorii</p>
+                    </div>`;
+                return;
+            }
+
+            // Logika paginacji forów
+            const page = categoryCurrentPages[categoryId];
+            const totalPages = Math.ceil(forums.length / FORUMS_PER_PAGE);
+            
+            if (page > totalPages && totalPages > 0) {
+                categoryCurrentPages[categoryId] = totalPages;
+                renderForumsList(categoryId);
+                return;
+            }
+
+            const startIndex = (page - 1) * FORUMS_PER_PAGE;
+            const endIndex = startIndex + FORUMS_PER_PAGE;
+            const forumsToShow = forums.slice(startIndex, endIndex);
+
+            let html = '<div class="space-y-2">';
+            
+            forumsToShow.forEach(forum => {
+                html += `
+                    <div class="forum-item group flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-[#101622] hover:bg-gray-100 dark:hover:bg-[#151d2d] rounded-md border border-gray-200 dark:border-[#232f48] transition-colors">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-gray-400 text-sm">chat_bubble_outline</span>
+                                <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">${escapeHtml(forum.name)}</h4>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-6 line-clamp-1">${escapeHtml(forum.description || 'Brak opisu')}</p>
+                            <div class="mt-2 pl-6 flex gap-3 text-[10px] text-gray-400 uppercase font-medium tracking-wide">
                                 <span>📊 ${forum.threadCount || 0} wątków</span>
                                 <span>💬 ${forum.messageCount || 0} postów</span>
                             </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="editForum(${forum.id})" class="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm">Edytuj</button>
-                            <button onclick="deleteForum(${forum.id})" class="px-2 py-1 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 text-sm">Usuń</button>
+                        <div class="flex gap-2 mt-3 sm:mt-0 pl-6 sm:pl-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editForum(${forum.id})" class="text-xs px-2 py-1 rounded bg-white dark:bg-[#192231] border border-gray-200 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                Edytuj
+                            </button>
+                            <button onclick="deleteForum(${forum.id})" class="text-xs px-2 py-1 rounded bg-white dark:bg-[#192231] border border-gray-200 dark:border-gray-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                Usuń
+                            </button>
                         </div>
                     </div>
-                `).join('');
-            } catch (error) {
-                console.error(`❌ Błąd ładowania forów dla kategorii ${categoryId}:`, error);
-                const container = document.getElementById(`forums-${categoryId}`);
-                if (container) {
-                    container.innerHTML = `<p class="text-red-500 text-sm">Błąd ładowania forów</p>`;
-                }
+                `;
+            });
+            html += '</div>';
+
+            // ✅ POPRAWIONE: Paginacja forów ściśnięta (< 1 / 2 >)
+            if (totalPages > 1) {
+                html += `
+                    <div class="flex justify-center items-center gap-2 mt-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <button onclick="changeForumPage(${categoryId}, -1)" 
+                                class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-[#3a4a61] text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                                ${page === 1 ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined text-sm">chevron_left</span>
+                        </button>
+                        
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[30px] text-center">
+                            ${page} / ${totalPages}
+                        </span>
+                        
+                        <button onclick="changeForumPage(${categoryId}, 1)" 
+                                class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-[#3a4a61] text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                                ${page === totalPages ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ZMIANA STRONY FORUM
+        function changeForumPage(categoryId, delta) {
+            const forums = categoryForumsData[categoryId] || [];
+            const totalPages = Math.ceil(forums.length / FORUMS_PER_PAGE);
+            let newPage = categoryCurrentPages[categoryId] + delta;
+
+            if (newPage >= 1 && newPage <= totalPages) {
+                categoryCurrentPages[categoryId] = newPage;
+                renderForumsList(categoryId);
             }
         }
 
-        // Helper funkcje
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/[&<>"']/g, m => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            })[m]);
-        }
-
-        function openAddForumModal(categoryId = null) {
-            const modal = document.getElementById('forumModal');
-            if (!modal) {
-                console.error('❌ Modal #forumModal nie znaleziony');
-                return;
-            }
-
-            editingForumId = null;
-            currentCategoryId = categoryId;
-            
-            document.getElementById('forumName').value = '';
-            document.getElementById('forumDescription').value = '';
-            document.getElementById('forumModal').classList.remove('hidden');
-            document.getElementById('forumTitle').textContent = `Dodaj nowe forum`;
-            
-            console.log('📋 Otwarto modal dodawania forum dla kategorii:', categoryId);
-        }
-
-        // ✅ OTWÓRZ MODAL DODAWANIA KATEGORII
+        // --- Obsługa Modali ---
+        
         function openAddCategoryModal() {
-            const modal = document.getElementById('categoryModal');
-            if (!modal) {
-                console.error('❌ Modal #categoryModal nie znaleziony');
-                return;
-            }
-
             editingCategoryId = null;
             document.getElementById('categoryName').value = '';
             document.getElementById('categoryDescription').value = '';
             document.getElementById('categoryIcon').value = '';
-            document.getElementById('categoryModal').classList.remove('hidden');
             document.getElementById('categoryTitle').textContent = 'Dodaj nową kategorię';
-            
-            console.log('📋 Otwarto modal dodawania kategorii');
+            document.getElementById('categoryModal').classList.remove('hidden');
         }
 
-        // ✅ EDYTUJ KATEGORIĘ
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function openAddForumModal(categoryId) {
+            editingForumId = null;
+            currentCategoryId = categoryId;
+            document.getElementById('forumName').value = '';
+            document.getElementById('forumDescription').value = '';
+            document.getElementById('forumTitle').textContent = 'Dodaj nowe forum';
+            document.getElementById('forumModal').classList.remove('hidden');
+        }
+
+        function closeForumModal() {
+            document.getElementById('forumModal').classList.add('hidden');
+        }
+
+        // --- CRUD Kategorie ---
+
         function editCategory(categoryId) {
             const category = categories.find(c => c.id === categoryId);
             if (!category) return;
-
             editingCategoryId = categoryId;
             document.getElementById('categoryName').value = category.name;
             document.getElementById('categoryDescription').value = category.description || '';
             document.getElementById('categoryIcon').value = category.icon || '';
-            document.getElementById('categoryModal').classList.remove('hidden');
             document.getElementById('categoryTitle').textContent = 'Edytuj kategorię';
-            
-            console.log('✏️ Edycja kategorii:', categoryId);
+            document.getElementById('categoryModal').classList.remove('hidden');
         }
 
-        // ✅ ZAMKNIJ MODAL KATEGORII
-        function closeCategoryModal() {
-            document.getElementById('categoryModal').classList.add('hidden');
-            editingCategoryId = null;
-        }
-
-        // ✅ ZAPISZ KATEGORIĘ (NOWĄ LUB EDYTOWANĄ)
-        function saveCategory() {
-            if (editingCategoryId) {
-                editCategory_API();
-            } else {
-                addCategory_API();
-            }
-        }
-
-        // ✅ DODAJ KATEGORIĘ DO API
-        async function addCategory_API() {
+        async function saveCategory() {
             const name = document.getElementById('categoryName').value.trim();
             const description = document.getElementById('categoryDescription').value.trim();
             const icon = document.getElementById('categoryIcon').value.trim();
 
-            if (!name) {
-                alert('❌ Nazwa kategorii jest wymagana');
-                return;
-            }
+            if (!name) return alert('Nazwa jest wymagana');
 
             const data = { name, description, icon };
+            const method = editingCategoryId ? 'PUT' : 'POST';
+            const url = editingCategoryId 
+                ? `/api/admin/categories/${editingCategoryId}` 
+                : '/api/admin/categories';
 
             try {
-                const res = await fetch('/api/admin/categories', {
-                    method: 'POST',
-                    credentials: 'include',
+                const res = await fetch(url, {
+                    method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
-                }
-
-                alert('✅ Kategoria dodana');
-                closeCategoryModal();
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
-            }
-        }
-
-        // ✅ EDYTUJ KATEGORIĘ W API
-        async function editCategory_API() {
-            const name = document.getElementById('categoryName').value.trim();
-            const description = document.getElementById('categoryDescription').value.trim();
-            const icon = document.getElementById('categoryIcon').value.trim();
-
-            if (!name) {
-                alert('❌ Nazwa kategorii jest wymagana');
-                return;
-            }
-
-            if (!editingCategoryId) {
-                alert('❌ Brak ID kategorii');
-                return;
-            }
-
-            const data = { name, description, icon };
-
-            try {
-                const res = await fetch(`/api/admin/categories/${editingCategoryId}`, {
-                    method: 'PUT',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
-                }
-
-                alert('✅ Kategoria zaktualizowana');
-                closeCategoryModal();
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
-            }
-        }
-
-        // ✅ USUŃ KATEGORIĘ
-        async function deleteCategory(categoryId) {
-            if (!confirm('Czy na pewno chcesz usunąć tę kategorię? Wszystkie fora w niej będą również usunięte.')) return;
-
-            try {
-                const res = await fetch(`/api/admin/categories/${categoryId}`, {
-                    method: 'DELETE',
+                    body: JSON.stringify(data),
                     credentials: 'include'
                 });
 
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
+                if (res.ok) {
+                    closeCategoryModal();
+                    loadCategories();
+                } else {
+                    alert('Błąd zapisu');
                 }
-
-                alert('✅ Kategoria usunięta');
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
+            } catch (e) {
+                alert('Błąd połączenia');
             }
         }
+
+        async function deleteCategory(categoryId) {
+            if (!confirm('Usunąć kategorię i wszystkie jej fora?')) return;
+            try {
+                const res = await fetch(`/api/admin/categories/${categoryId}`, { method: 'DELETE', credentials: 'include' });
+                if (res.ok) loadCategories();
+                else alert('Błąd usuwania');
+            } catch (e) {
+                alert('Błąd połączenia');
+            }
+        }
+
+        // --- CRUD Fora ---
 
         function editForum(forumId) {
-            try {
-                const forumItem = event.target.closest('.forum-item');
-                const forumName = forumItem.querySelector('h4').textContent;
-                const forumDesc = forumItem.querySelector('p').textContent;
-
-                editingForumId = forumId;
-                
-                document.getElementById('forumName').value = forumName;
-                document.getElementById('forumDescription').value = forumDesc;
-                document.getElementById('forumModal').classList.remove('hidden');
-                document.getElementById('forumTitle').textContent = 'Edytuj forum';
-                
-                console.log('✏️ Edycja forum:', forumId);
-            } catch (error) {
-                console.error('❌ Błąd edycji:', error);
+            let foundForum = null;
+            for (const catId in categoryForumsData) {
+                const f = categoryForumsData[catId].find(x => x.id === forumId);
+                if (f) { foundForum = f; break; }
             }
+            if (!foundForum) return;
+
+            editingForumId = forumId;
+            document.getElementById('forumName').value = foundForum.name;
+            document.getElementById('forumDescription').value = foundForum.description || '';
+            document.getElementById('forumTitle').textContent = 'Edytuj forum';
+            document.getElementById('forumModal').classList.remove('hidden');
         }
 
-        function deleteForum(forumId) {
-            if (!confirm('Czy na pewno chcesz usunąć to forum?')) return;
-            deleteForum_API(forumId);
-        }
-
-        // ✅ DODAJ FORUM DO API
-        async function addForum_API() {
+        async function saveForum() {
             const name = document.getElementById('forumName').value.trim();
             const description = document.getElementById('forumDescription').value.trim();
-
-            if (!name) {
-                alert('❌ Nazwa forum jest wymagana');
-                return;
-            }
-
-            if (!currentCategoryId) {
-                alert('❌ Kategoria nie została wybrana');
-                return;
-            }
-
-            const data = { name, description, categoryId: currentCategoryId };
-
-            try {
-                const res = await fetch('/api/admin/forums', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
-                }
-
-                alert('✅ Forum dodane');
-                closeForumModal();
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
-            }
-        }
-
-        // ✅ EDYTUJ FORUM W API
-        async function editForum_API() {
-            const name = document.getElementById('forumName').value.trim();
-            const description = document.getElementById('forumDescription').value.trim();
-
-            if (!name) {
-                alert('❌ Nazwa forum jest wymagana');
-                return;
-            }
-
-            if (!editingForumId) {
-                alert('❌ Brak ID forum');
-                return;
-            }
+            if (!name) return alert('Nazwa jest wymagana');
 
             const data = { name, description };
-
-            try {
-                const res = await fetch(`/api/admin/forums/${editingForumId}`, {
-                    method: 'PUT',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
-                }
-
-                alert('✅ Forum zaktualizowane');
-                closeForumModal();
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
+            if (!editingForumId) {
+                if (!currentCategoryId) return alert('Błąd ID kategorii');
+                data.categoryId = currentCategoryId;
             }
-        }
 
-        // ✅ USUŃ FORUM Z API
-        async function deleteForum_API(forumId) {
+            const method = editingForumId ? 'PUT' : 'POST';
+            const url = editingForumId ? `/api/admin/forums/${editingForumId}` : '/api/admin/forums';
+
             try {
-                const res = await fetch(`/api/admin/forums/${forumId}`, {
-                    method: 'DELETE',
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
                     credentials: 'include'
                 });
 
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert('❌ Błąd: ' + (error.error || 'Nieznany błąd'));
-                    return;
+                if (res.ok) {
+                    closeForumModal();
+                    const targetCatId = editingForumId ? findCatIdByForum(editingForumId) : currentCategoryId;
+                    if (targetCatId) loadForumsForCategory(targetCatId);
+                    else loadCategories();
+                } else {
+                    alert('Błąd zapisu forum');
                 }
-
-                alert('✅ Forum usunięte');
-                loadCategories();
-            } catch (error) {
-                console.error('❌ Błąd:', error);
-                alert('❌ Błąd połączenia');
+            } catch (e) {
+                alert('Błąd połączenia');
             }
         }
 
-        // ✅ ZAMKNIJ MODAL
-        function closeForumModal() {
-            document.getElementById('forumModal').classList.add('hidden');
-            editingForumId = null;
-            currentCategoryId = null;
-        }
-
-        // ✅ ZAPISZ FORUM (NOWE LUB EDYTOWANE)
-        function saveForum() {
-            if (editingForumId) {
-                editForum_API();
-            } else {
-                addForum_API();
+        async function deleteForum(forumId) {
+            if (!confirm('Usunąć forum?')) return;
+            try {
+                const res = await fetch(`/api/admin/forums/${forumId}`, { method: 'DELETE', credentials: 'include' });
+                if (res.ok) {
+                    const catId = findCatIdByForum(forumId);
+                    if (catId) loadForumsForCategory(catId);
+                    else loadCategories();
+                } else alert('Błąd usuwania');
+            } catch (e) {
+                alert('Błąd połączenia');
             }
         }
 
-        // ✅ INICJALIZACJA
-        document.addEventListener('DOMContentLoaded', function() {
+        function findCatIdByForum(forumId) {
+            for (const catId in categoryForumsData) {
+                if (categoryForumsData[catId].some(f => f.id === forumId)) return parseInt(catId);
+            }
+            return null;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+        }
+
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', () => {
             loadCategories();
-            
-            // Event listener dla przycisku dodawania kategorii
-            const addCategoryBtn = document.querySelector('.add-btn');
-            if (addCategoryBtn) {
-                addCategoryBtn.addEventListener('click', openAddCategoryModal);
-            }
+            document.querySelector('.add-btn')?.addEventListener('click', openAddCategoryModal);
         });
     </script>
 
-    <!-- Modal dla kategorii -->
-    <div id="categoryModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-[#192231] rounded-lg p-8 max-w-md w-full border border-gray-200 dark:border-[#232f48]">
-            <h2 id="categoryTitle" class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dodaj kategorię</h2>
-            
-            <form id="categoryForm" class="space-y-4">
+    <div id="categoryModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#192231] rounded-lg p-6 max-w-md w-full border border-gray-200 dark:border-[#232f48] shadow-xl">
+            <h2 id="categoryTitle" class="text-xl font-bold text-gray-900 dark:text-white mb-6">Dodaj kategorię</h2>
+            <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nazwa kategorii</label>
-                    <input type="text" id="categoryName" placeholder="np. Dyskusje Ogólne" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nazwa</label>
+                    <input type="text" id="categoryName" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
                 </div>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Opis</label>
-                    <textarea id="categoryDescription" placeholder="Opis kategorii" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opis</label>
+                    <textarea id="categoryDescription" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:ring-primary focus:border-primary"></textarea>
                 </div>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ikona (Material Icon)</label>
-                    <input type="text" id="categoryIcon" placeholder="np. category" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ikona (Google Material Symbol)</label>
+                    <input type="text" id="categoryIcon" placeholder="np. folder, chat, sports" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
                 </div>
-                
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="saveCategory()" class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-semibold transition-colors">
-                        Zapisz
-                    </button>
-                    <button type="button" onclick="closeCategoryModal()" class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition-colors">
-                        Anuluj
-                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors">Zapisz</button>
+                    <button type="button" onclick="closeCategoryModal()" class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg font-medium transition-colors">Anuluj</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal dla forów -->
-    <div id="forumModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-[#192231] rounded-lg p-8 max-w-md w-full border border-gray-200 dark:border-[#232f48]">
-            <h2 id="forumTitle" class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dodaj forum</h2>
-            
-            <form id="forumForm" class="space-y-4">
+    <div id="forumModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#192231] rounded-lg p-6 max-w-md w-full border border-gray-200 dark:border-[#232f48] shadow-xl">
+            <h2 id="forumTitle" class="text-xl font-bold text-gray-900 dark:text-white mb-6">Dodaj forum</h2>
+            <form onsubmit="event.preventDefault(); saveForum();" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nazwa forum</label>
-                    <input type="text" id="forumName" placeholder="np. Tematy Ogólne" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nazwa</label>
+                    <input type="text" id="forumName" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
                 </div>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Opis</label>
-                    <textarea id="forumDescription" placeholder="Opis forum" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opis</label>
+                    <textarea id="forumDescription" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-[#232f48] text-gray-900 dark:text-white focus:ring-primary focus:border-primary"></textarea>
                 </div>
-                
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="saveForum()" class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-semibold transition-colors">
-                        Zapisz
-                    </button>
-                    <button type="button" onclick="closeForumModal()" class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition-colors">
-                        Anuluj
-                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors">Zapisz</button>
+                    <button type="button" onclick="closeForumModal()" class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg font-medium transition-colors">Anuluj</button>
                 </div>
             </form>
         </div>

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using ForumDyskusyjne.Data;
 using ForumDyskusyjne.Models;
 
-namespace ForumDyskusyjne
+namespace ForumDyskusyjne.Controllers
 {
     public class ReportsController : Controller
     {

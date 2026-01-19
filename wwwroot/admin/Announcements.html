@@ -16,8 +16,7 @@
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 sticky top-0 z-40 overflow-y-auto">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
@@ -45,18 +44,17 @@
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
                         <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="/admin/Announcements">
-                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                            <span class="material-symbols-outlined">campaign</span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
                 <div class="sidebar-footer p-4 border-t border-gray-200 dark:border-[#232f48]">
-                    <a class="logout-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
+                    <a class="home-btn flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/">
                         <span class="material-symbols-outlined">logout</span>Strona Główna
                     </a>
                 </div>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
                 <div class="content-wrapper max-w-7xl mx-auto">
                     <header class="page-header mb-8 flex items-center justify-between">
@@ -70,15 +68,12 @@
                         </button>
                     </header>
 
-                    <!-- Announcements List Section -->
                     <div class="announcements-section bg-white dark:bg-[#192231] p-6 rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48]">
-                        <!-- Loading State -->
                         <div id="loadingState" class="loading-state text-center py-8">
                             <div class="loading-spinner inline-block w-8 h-8 border-4 border-gray-300 border-t-primary rounded-full animate-spin"></div>
                             <p class="loading-text text-gray-500 dark:text-gray-400 mt-2">Ładowanie ogłoszeń...</p>
                         </div>
 
-                        <!-- Error State -->
                         <div id="errorState" class="error-state hidden text-center py-8">
                             <div class="error-icon text-red-500 mb-2">
                                 <span class="material-symbols-outlined !text-6xl">error</span>
@@ -89,7 +84,6 @@
                             </button>
                         </div>
 
-                        <!-- Empty State -->
                         <div id="emptyState" class="empty-state hidden text-center py-8">
                             <div class="empty-icon text-gray-400 dark:text-gray-500 mb-2">
                                 <span class="material-symbols-outlined !text-6xl">announcement</span>
@@ -97,9 +91,27 @@
                             <p class="empty-text text-gray-500 dark:text-gray-400">Brak ogłoszeń</p>
                         </div>
 
-                        <!-- Announcements List -->
-                        <div id="announcementsList" class="announcements-list hidden space-y-4">
-                            <!-- Announcements will be inserted here -->
+                        <div id="announcementsList" class="announcements-list hidden space-y-4 mb-6">
+                            </div>
+
+                        <div id="pagination-container" class="pagination-section pt-4 border-t border-gray-200 dark:border-[#232f48] flex flex-col sm:flex-row justify-between items-center gap-4 hidden">
+                            <div class="pagination-info text-sm text-gray-500 dark:text-gray-400">
+                                Pokazuję <span id="results-start">0</span>-<span id="results-end">0</span> z <span id="results-total">0</span> ogłoszeń
+                            </div>
+                            <div class="pagination-controls flex gap-2">
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                        id="prev-btn">
+                                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                                </button>
+                                
+                                <div class="flex gap-1" id="pagination-numbers">
+                                    </div>
+
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a3851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                                        id="next-btn">
+                                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -107,7 +119,6 @@
         </div>
     </div>
 
-    <!-- Add Announcement Modal -->
     <div id="addAnnouncementModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-[#192231] rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div class="sticky top-0 bg-white dark:bg-[#192231] border-b border-gray-200 dark:border-[#232f48] p-6 flex items-center justify-between">
@@ -119,7 +130,6 @@
 
             <div class="p-6">
                 <form id="announcementForm" class="space-y-6">
-                    <!-- Title -->
                     <div>
                         <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Tytuł ogłoszenia
@@ -136,7 +146,6 @@
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maksymalnie 200 znaków</p>
                     </div>
 
-                    <!-- Content -->
                     <div>
                         <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Treść ogłoszenia
@@ -151,7 +160,6 @@
                         ></textarea>
                     </div>
 
-                    <!-- Active Status -->
                     <div class="flex items-center">
                         <input 
                             type="checkbox" 
@@ -165,7 +173,6 @@
                         </label>
                     </div>
 
-                    <!-- Expiration Date -->
                     <div>
                         <label for="expiresAt" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Data wygaśnięcia (opcjonalnie)
@@ -179,7 +186,6 @@
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ogłoszenie będzie automatycznie ukryte po tej dacie</p>
                     </div>
 
-                    <!-- Action Buttons -->
                     <div class="flex gap-4 pt-4">
                         <button 
                             type="submit" 
@@ -198,7 +204,6 @@
                     </div>
                 </form>
 
-                <!-- Success Message -->
                 <div id="successMessage" class="hidden mt-6 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 rounded-lg">
                     <p class="text-green-800 dark:text-green-200 flex items-center">
                         <span class="material-symbols-outlined mr-2">check_circle</span>
@@ -206,7 +211,6 @@
                     </p>
                 </div>
 
-                <!-- Error Message -->
                 <div id="errorMessage" class="hidden mt-6 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg">
                     <p id="errorText" class="text-red-800 dark:text-red-200 flex items-center">
                         <span class="material-symbols-outlined mr-2">error</span>
@@ -217,11 +221,13 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="../js/main.js"></script>
     <script defer>
         class AnnouncementsManager {
             constructor() {
+                this.allAnnouncements = [];
+                this.currentPage = 1;
+                this.pageSize = 5; // Ilość ogłoszeń na stronę
                 this.init();
             }
 
@@ -236,28 +242,22 @@
                 const modal = document.getElementById('addAnnouncementModal');
                 const form = document.getElementById('announcementForm');
                 const retryBtn = document.getElementById('retryBtn');
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
 
-                if (addBtn) {
-                    addBtn.addEventListener('click', () => this.openModal());
-                }
-
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', () => this.closeModal());
-                }
-
+                if (addBtn) addBtn.addEventListener('click', () => this.openModal());
+                if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
                 if (modal) {
                     modal.addEventListener('click', (e) => {
                         if (e.target === modal) this.closeModal();
                     });
                 }
-
-                if (form) {
-                    form.addEventListener('submit', (e) => this.handleAddAnnouncement(e));
-                }
-
-                if (retryBtn) {
-                    retryBtn.addEventListener('click', () => this.loadAnnouncements());
-                }
+                if (form) form.addEventListener('submit', (e) => this.handleAddAnnouncement(e));
+                if (retryBtn) retryBtn.addEventListener('click', () => this.loadAnnouncements());
+                
+                // Pagination events
+                if (prevBtn) prevBtn.addEventListener('click', () => this.changePage(-1));
+                if (nextBtn) nextBtn.addEventListener('click', () => this.changePage(1));
             }
 
             openModal() {
@@ -281,7 +281,6 @@
                     
                     if (!response.ok) {
                         if (response.status === 401 || response.status === 403) {
-                            console.warn('Brak uprawnień do pobrania ogłoszeń (401/403)');
                             this.showError();
                             this.showToast('Brak uprawnień — zaloguj się jako administrator', 'error');
                             return;
@@ -291,7 +290,6 @@
 
                     let announcements = await response.json();
                     
-                    // Handle API response that might be wrapped in data property
                     if (announcements && typeof announcements === 'object' && 'data' in announcements) {
                         announcements = announcements.data;
                     }
@@ -300,11 +298,127 @@
                         announcements = [];
                     }
                     
-                    this.displayAnnouncements(announcements);
+                    // Sort by newest
+                    announcements.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+
+                    this.allAnnouncements = announcements;
+                    this.currentPage = 1;
+                    this.renderPage();
 
                 } catch (error) {
                     console.error('Błąd ładowania ogłoszeń:', error);
                     this.showError();
+                }
+            }
+
+            renderPage() {
+                if (this.allAnnouncements.length === 0) {
+                    this.showEmpty();
+                    return;
+                }
+
+                // Calculate pagination
+                const totalItems = this.allAnnouncements.length;
+                const totalPages = Math.ceil(totalItems / this.pageSize);
+                
+                if (this.currentPage > totalPages) this.currentPage = totalPages;
+                if (this.currentPage < 1) this.currentPage = 1;
+
+                const start = (this.currentPage - 1) * this.pageSize;
+                const end = start + this.pageSize;
+                const itemsToShow = this.allAnnouncements.slice(start, end);
+
+                this.displayAnnouncements(itemsToShow);
+                this.updatePaginationControls(totalItems, totalPages, start + 1, Math.min(end, totalItems));
+                
+                this.hideAllStates();
+                document.getElementById('announcementsList').classList.remove('hidden');
+                document.getElementById('pagination-container').classList.remove('hidden');
+            }
+
+            updatePaginationControls(total, totalPages, start, end) {
+                document.getElementById('results-start').textContent = total === 0 ? 0 : start;
+                document.getElementById('results-end').textContent = end;
+                document.getElementById('results-total').textContent = total;
+
+                document.getElementById('prev-btn').disabled = this.currentPage <= 1;
+                document.getElementById('next-btn').disabled = this.currentPage >= totalPages;
+
+                const numbersContainer = document.getElementById('pagination-numbers');
+                numbersContainer.innerHTML = '';
+
+                // Simple page numbers generator
+                for (let i = 1; i <= totalPages; i++) {
+                    // Show only around current page if too many
+                    if (totalPages > 7 && (i < this.currentPage - 2 || i > this.currentPage + 2) && i !== 1 && i !== totalPages) {
+                        if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+                            const dots = document.createElement('span');
+                            dots.className = "w-8 h-8 flex items-center justify-center text-gray-500";
+                            dots.textContent = "...";
+                            numbersContainer.appendChild(dots);
+                        }
+                        continue;
+                    }
+
+                    const btn = document.createElement('button');
+                    const isActive = i === this.currentPage;
+                    // Styl przycisków identyczny jak w users.html (szare, nieaktywny primary)
+                    const activeClass = "bg-primary text-white border-primary";
+                    const inactiveClass = "bg-white dark:bg-[#192231] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#232f48]";
+                    
+                    btn.className = `w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium border transition-colors ${isActive ? activeClass : inactiveClass}`;
+                    btn.textContent = i;
+                    btn.disabled = isActive;
+                    
+                    btn.addEventListener('click', () => {
+                        this.currentPage = i;
+                        this.renderPage();
+                    });
+                    numbersContainer.appendChild(btn);
+                }
+            }
+
+            changePage(delta) {
+                this.currentPage += delta;
+                this.renderPage();
+            }
+
+            async toggleActiveStatus(id, currentStatus) {
+                try {
+                    // Zakładam, że istnieje endpoint PUT do aktualizacji statusu
+                    // Jeśli nie, będziesz musiał go dorobić w backendzie
+                    const newStatus = !currentStatus;
+                    
+                    // Najpierw spróbujmy znaleźć ogłoszenie w lokalnej tablicy, żeby wysłać pełne dane jeśli API tego wymaga
+                    const ann = this.allAnnouncements.find(a => a.id === id);
+                    if (!ann) return;
+
+                    const response = await fetch(`/api/announcements/${id}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        // Wysyłamy zmieniony status oraz resztę danych
+                        body: JSON.stringify({ 
+                            ...ann,
+                            isActive: newStatus 
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Błąd aktualizacji statusu');
+                    }
+
+                    // Aktualizacja lokalna
+                    ann.isActive = newStatus;
+                    this.showToast(`Status ogłoszenia zmieniony na: ${newStatus ? 'Aktywne' : 'Nieaktywne'}`, 'success');
+                    this.renderPage();
+
+                } catch (error) {
+                    console.error('Błąd zmiany statusu:', error);
+                    this.showToast('Nie udało się zmienić statusu', 'error');
                 }
             }
 
@@ -339,24 +453,11 @@
                         body: JSON.stringify(announcementData)
                     });
 
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-
                     if (!response.ok) {
-                        if (response.status === 401 || response.status === 403) {
-                            errorMessage = 'Brak uprawnień — zaloguj się jako administrator';
-                        } else {
-                            try {
-                                const errorData = await response.json();
-                                errorMessage = errorData.error || errorData.message || errorMessage;
-                            } catch (parseError) {
-                                console.log('Could not parse error response as JSON');
-                            }
-                        }
-                        throw new Error(errorMessage);
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
                     }
 
-                    const result = await response.json();
-                    
                     this.showFormSuccess('Ogłoszenie zostało dodane pomyślnie!');
                     document.getElementById('announcementForm').reset();
                     setTimeout(() => {
@@ -382,50 +483,25 @@
                         headers: { 'Accept': 'application/json' }
                     });
 
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-
-                    if (!response.ok) {
-                        if (response.status === 401 || response.status === 403) {
-                            errorMessage = 'Brak uprawnień — zaloguj się jako administrator';
-                        } else {
-                            try {
-                                const errorData = await response.json();
-                                errorMessage = errorData.error || errorData.message || errorMessage;
-                            } catch (parseError) {
-                                console.log('Could not parse error response as JSON');
-                            }
-                        }
-                        throw new Error(errorMessage);
-                    }
+                    if (!response.ok) throw new Error('Błąd usuwania');
 
                     this.showToast(`Ogłoszenie "${title}" zostało usunięte`, 'success');
                     this.loadAnnouncements();
 
                 } catch (error) {
                     console.error('Błąd usuwania ogłoszenia:', error);
-                    this.showToast(error.message || 'Nie udało się usunąć ogłoszenia', 'error');
+                    this.showToast('Nie udało się usunąć ogłoszenia', 'error');
                 }
             }
 
             displayAnnouncements(announcements) {
                 const container = document.getElementById('announcementsList');
-                const listSection = document.getElementById('announcementsList').parentElement;
-                const emptyState = document.getElementById('emptyState');
-
-                if (!announcements || announcements.length === 0) {
-                    this.showEmpty();
-                    return;
-                }
-
                 container.innerHTML = '';
                 
                 announcements.forEach(announcement => {
                     const announcementElement = this.createAnnouncementElement(announcement);
                     container.appendChild(announcementElement);
                 });
-
-                this.hideAllStates();
-                container.classList.remove('hidden');
             }
 
             createAnnouncementElement(announcement) {
@@ -441,20 +517,46 @@
                 content.textContent = announcement.content;
                 
                 const footer = document.createElement('div');
-                footer.className = 'flex items-center justify-between text-sm text-gray-500 dark:text-gray-400';
+                footer.className = 'flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700';
                 
-                const status = document.createElement('span');
-                const statusClass = announcement.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-                status.className = statusClass;
-                status.textContent = announcement.isActive ? '✓ Aktywne' : '✗ Nieaktywne';
+                // Status z ikoną
+                const statusContainer = document.createElement('div');
+                statusContainer.className = 'flex items-center gap-2';
                 
+                const statusIcon = document.createElement('span');
+                statusIcon.className = `material-symbols-outlined text-lg ${announcement.isActive ? 'text-green-600' : 'text-red-500'}`;
+                statusIcon.textContent = announcement.isActive ? 'check_circle' : 'cancel';
+                
+                const statusText = document.createElement('span');
+                statusText.className = announcement.isActive ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium';
+                statusText.textContent = announcement.isActive ? 'Aktywne' : 'Nieaktywne';
+                
+                statusContainer.appendChild(statusIcon);
+                statusContainer.appendChild(statusText);
+
+                // Przyciski akcji
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'flex items-center gap-2';
+
+                // Przycisk zmiany statusu
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = `p-1.5 rounded transition-colors ${announcement.isActive ? 'text-gray-500 hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/20' : 'text-gray-500 hover:text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20'}`;
+                toggleBtn.title = announcement.isActive ? 'Dezaktywuj' : 'Aktywuj';
+                toggleBtn.innerHTML = `<span class="material-symbols-outlined text-xl">${announcement.isActive ? 'visibility_off' : 'visibility'}</span>`;
+                toggleBtn.addEventListener('click', () => this.toggleActiveStatus(announcement.id, announcement.isActive));
+
+                // Przycisk usuwania
                 const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors';
-                deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>';
+                deleteBtn.className = 'p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors';
+                deleteBtn.title = 'Usuń';
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined text-xl">delete</span>';
                 deleteBtn.addEventListener('click', () => this.deleteAnnouncement(announcement.id, announcement.title));
                 
-                footer.appendChild(status);
-                footer.appendChild(deleteBtn);
+                actionsContainer.appendChild(toggleBtn);
+                actionsContainer.appendChild(deleteBtn);
+                
+                footer.appendChild(statusContainer);
+                footer.appendChild(actionsContainer);
                 
                 div.appendChild(title);
                 div.appendChild(content);
@@ -483,6 +585,7 @@
                 document.getElementById('errorState').classList.add('hidden');
                 document.getElementById('emptyState').classList.add('hidden');
                 document.getElementById('announcementsList').classList.add('hidden');
+                document.getElementById('pagination-container').classList.add('hidden');
             }
 
             showFormSuccess(message) {
@@ -535,7 +638,6 @@
             }
         }
 
-        // Initialize announcements manager
         let announcementsManager;
         document.addEventListener('DOMContentLoaded', function() {
             announcementsManager = new AnnouncementsManager();

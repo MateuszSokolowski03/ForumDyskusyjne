@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Użytkownicy - Panel Moderatora</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" defer></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="../js/tailwind-config.js" defer></script>
@@ -15,7 +15,7 @@
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
             <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0" aria-label="Sidebar nawigacja">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 sticky top-0 z-40 overflow-y-auto">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">shield_person</span>
@@ -30,11 +30,11 @@
                         <li><a class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white font-semibold" href="users.html" title="Użytkownicy">
                             <span class="material-symbols-outlined">group</span>Użytkownicy
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="forums.html" title="Kategorie i Fora">
-                            <span class="material-symbols-outlined">category</span>Kategorie i Fora
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="forums.html" title="Forum">
+                            <span class="material-symbols-outlined">category</span>Fora
                         </a></li>
-                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="threads.html" title="Wątki i wiadomości">
-                            <span class="material-symbols-outlined">forum</span>Wątki i Wiadomości
+                        <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="threads.html" title="Wątki">
+                            <span class="material-symbols-outlined">forum</span>Wątki
                         </a></li>
                     </ul>
                 </nav>

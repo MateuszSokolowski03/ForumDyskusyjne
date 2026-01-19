@@ -14,8 +14,7 @@
 <body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
     <div class="admin-layout relative flex min-h-screen w-full overflow-x-hidden">
         <div class="admin-wrapper flex flex-col md:flex-row w-full min-h-screen">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0">
+            <aside class="admin-sidebar w-full md:w-64 h-screen bg-white dark:bg-[#192231] border-b md:border-r border-gray-200 dark:border-[#232f48] flex-shrink-0 sticky top-0 z-40 overflow-y-auto">
                 <div class="sidebar-header p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#232f48]">
                     <div class="admin-icon size-8 text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined !text-4xl">admin_panel_settings</span>
@@ -43,7 +42,7 @@
                             <span class="material-symbols-outlined">block</span>Słownik słów zakazanych
                         </a></li>
                         <li><a class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#232f48] text-gray-600 dark:text-gray-300" href="/admin/Announcements">
-                            <span class="material-symbols-outlined"></span> Ogłoszenia
+                            <span class="material-symbols-outlined">campaign</span> Ogłoszenia
                         </a></li>
                     </ul>
                 </nav>
@@ -53,7 +52,7 @@
                     </a>
                 </div>
             </aside>
-            <!-- Main Content -->
+            
             <main class="main-content flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
                 <div class="content-wrapper max-w-7xl mx-auto">
                     <header class="page-header mb-8">
@@ -74,7 +73,6 @@
                         </div>
                     </header>
 
-                    <!-- Threads Management -->
                     <div class="threads-section">
                         <div class="threads-card bg-white dark:bg-[#192231] rounded-lg shadow-sm border border-gray-200 dark:border-[#232f48] overflow-hidden">
                             <div class="card-header p-6 border-b border-gray-200 dark:border-[#232f48]">
@@ -86,162 +84,11 @@
                                 </div>
                             </div>
                             
-                            <div class="threads-table">
-                                <div class="table-header grid grid-cols-6 gap-4 p-4 bg-gray-50 dark:bg-[#101622] text-sm font-medium text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-[#232f48]">
-                                    <div>Wątek</div>
-                                    <div>Autor</div>
-                                    <div>Forum</div>
-                                    <div>Odpowiedzi</div>
-                                    <div>Status</div>
-                                    <div>Akcje</div>
-                                </div>
-                                
-                                <div class="thread-row grid grid-cols-6 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors">
-                                    <div class="thread-info">
-                                        <div class="thread-status flex items-center gap-2 mb-1">
-                                            <span class="status-indicator w-2 h-2 bg-red-500 rounded-full"></span>
-                                            <span class="status-badge bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-1 rounded-full text-xs">Zgłoszony</span>
-                                        </div>
-                                        <h4 class="thread-title font-medium text-gray-900 dark:text-white">Pomoc z instalacją .NET 8</h4>
-                                        <p class="thread-preview text-sm text-gray-500 dark:text-gray-400">Mam problem z instalacją najnowszej wersji...</p>
-                                    </div>
-                                    <div class="thread-author">
-                                        <div class="author-info flex items-center gap-2">
-                                            <div class="author-avatar w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-primary !text-sm">person</span>
-                                            </div>
-                                            <div>
-                                                <p class="author-name text-sm font-medium text-gray-900 dark:text-white">JanKowalski</p>
-                                                <p class="author-date text-xs text-gray-500 dark:text-gray-400">2 godz. temu</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="thread-forum text-sm text-gray-700 dark:text-gray-300">
-                                        <span class="forum-badge bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full text-xs">C# / .NET</span>
-                                    </div>
-                                    <div class="thread-stats text-sm text-gray-500 dark:text-gray-400">
-                                        <div class="replies-count flex items-center gap-1">
-                                            <span class="material-symbols-outlined !text-sm">chat</span>
-                                            <span>5 odpowiedzi</span>
-                                        </div>
-                                    </div>
-                                    <div class="thread-status">
-                                        <span class="status-badge bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-1 rounded-full text-xs">Zgłoszony</span>
-                                    </div>
-                                    <div class="thread-actions flex items-center gap-2">
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Zobacz wątek">
-                                            <span class="material-symbols-outlined !text-lg">visibility</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors" title="Zablokuj">
-                                            <span class="material-symbols-outlined !text-lg">block</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Usuń">
-                                            <span class="material-symbols-outlined !text-lg">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="thread-row grid grid-cols-6 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors">
-                                    <div class="thread-info">
-                                        <div class="thread-status flex items-center gap-2 mb-1">
-                                            <span class="status-indicator w-2 h-2 bg-green-500 rounded-full"></span>
-                                        </div>
-                                        <h4 class="thread-title font-medium text-gray-900 dark:text-white">Najlepsze praktyki w ASP.NET Core</h4>
-                                        <p class="thread-preview text-sm text-gray-500 dark:text-gray-400">Dzielę się swoimi doświadczeniami z projektami...</p>
-                                    </div>
-                                    <div class="thread-author">
-                                        <div class="author-info flex items-center gap-2">
-                                            <div class="author-avatar w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-primary !text-sm">person</span>
-                                            </div>
-                                            <div>
-                                                <p class="author-name text-sm font-medium text-gray-900 dark:text-white">ExpertDev</p>
-                                                <p class="author-date text-xs text-gray-500 dark:text-gray-400">5 godz. temu</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="thread-forum text-sm text-gray-700 dark:text-gray-300">
-                                        <span class="forum-badge bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full text-xs">C# / .NET</span>
-                                    </div>
-                                    <div class="thread-stats text-sm text-gray-500 dark:text-gray-400">
-                                        <div class="replies-count flex items-center gap-1">
-                                            <span class="material-symbols-outlined !text-sm">chat</span>
-                                            <span>12 odpowiedzi</span>
-                                        </div>
-                                    </div>
-                                    <div class="thread-status">
-                                        <span class="status-badge bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded-full text-xs">Aktywny</span>
-                                    </div>
-                                    <div class="thread-actions flex items-center gap-2">
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Zobacz wątek">
-                                            <span class="material-symbols-outlined !text-lg">visibility</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors" title="Zablokuj">
-                                            <span class="material-symbols-outlined !text-lg">block</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Usuń">
-                                            <span class="material-symbols-outlined !text-lg">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="thread-row grid grid-cols-6 gap-4 p-4 border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#101622] transition-colors">
-                                    <div class="thread-info">
-                                        <div class="thread-status flex items-center gap-2 mb-1">
-                                            <span class="status-indicator w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                            <span class="status-badge bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full text-xs">Zablokowany</span>
-                                        </div>
-                                        <h4 class="thread-title font-medium text-gray-900 dark:text-white">Problemy z bazą danych</h4>
-                                        <p class="thread-preview text-sm text-gray-500 dark:text-gray-400">Treść zawierająca nieodpowiednie słowa...</p>
-                                    </div>
-                                    <div class="thread-author">
-                                        <div class="author-info flex items-center gap-2">
-                                            <div class="author-avatar w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-primary !text-sm">person</span>
-                                            </div>
-                                            <div>
-                                                <p class="author-name text-sm font-medium text-gray-900 dark:text-white">UserXYZ</p>
-                                                <p class="author-date text-xs text-gray-500 dark:text-gray-400">1 dzień temu</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="thread-forum text-sm text-gray-700 dark:text-gray-300">
-                                        <span class="forum-badge bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 px-2 py-1 rounded-full text-xs">Bazy Danych</span>
-                                    </div>
-                                    <div class="thread-stats text-sm text-gray-500 dark:text-gray-400">
-                                        <div class="replies-count flex items-center gap-1">
-                                            <span class="material-symbols-outlined !text-sm">chat</span>
-                                            <span>3 odpowiedzi</span>
-                                        </div>
-                                    </div>
-                                    <div class="thread-status">
-                                        <span class="status-badge bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full text-xs">Zablokowany</span>
-                                    </div>
-                                    <div class="thread-actions flex items-center gap-2">
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Zobacz wątek">
-                                            <span class="material-symbols-outlined !text-lg">visibility</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors" title="Odblokuj">
-                                            <span class="material-symbols-outlined !text-lg">check_circle</span>
-                                        </button>
-                                        <button class="action-btn p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Usuń">
-                                            <span class="material-symbols-outlined !text-lg">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
+                            <div id="threads-table-container">
+                                <p class="text-center text-gray-500 py-8">Ładowanie...</p>
                             </div>
                             
-                            <!-- Pagination -->
-                            <div class="table-footer p-4 border-t border-gray-200 dark:border-[#232f48] flex items-center justify-between">
-                                <p class="pagination-info text-sm text-gray-600 dark:text-gray-400">Pokazano 3 z 156 wątków</p>
-                                <div class="pagination-controls flex items-center gap-2">
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622] disabled:opacity-50" disabled>Poprzednia</button>
-                                    <span class="pagination-current px-3 py-1 bg-primary text-white rounded">1</span>
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622]">2</button>
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622]">3</button>
-                                    <button class="pagination-btn px-3 py-1 border border-gray-300 dark:border-[#232f48] rounded hover:bg-gray-50 dark:hover:bg-[#101622]">Następna</button>
-                                </div>
-                            </div>
+                            <div id="pagination-container" class="border-t border-gray-200 dark:border-[#232f48]"></div>
                         </div>
                     </div>
                 </div>
@@ -259,59 +106,83 @@
 
     // ✅ ZAŁADUJ WĄTKI
     async function loadThreads() {
-        const container = document.querySelector('.threads-section') || document.querySelector('main');
+        const container = document.getElementById('threads-table-container');
         try {
             console.log('📋 Ładowanie wątków...');
             
             const res = await fetch('/api/admin/threads', { credentials: 'include' });
             if (!res.ok) {
                 console.error('❌ Błąd API:', res.status);
-                container.innerHTML = '<p class="text-center text-red-500">Błąd ładowania wątków</p>';
+                container.innerHTML = '<p class="text-center text-red-500 py-8">Błąd ładowania wątków</p>';
                 return;
             }
 
             threads = await res.json();
             console.log('✅ Załadowano wątków:', threads.length);
+            
+            // Sortowanie po dacie (najnowsze pierwsze)
+            threads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            currentPage = 1; // Reset strony po załadowaniu
             renderThreads();
         } catch (error) {
             console.error('❌ Błąd:', error);
-            container.innerHTML = '<p class="text-center text-red-500">Błąd ładowania wątków</p>';
+            container.innerHTML = '<p class="text-center text-red-500 py-8">Błąd połączenia z serwerem</p>';
         }
     }
 
-    // ✅ RENDERUJ WĄTKI
+    // ✅ RENDERUJ WĄTKI I PAGINACJĘ
     function renderThreads() {
-        const container = document.querySelector('.threads-card') || document.querySelector('.threads-section');
+        const container = document.getElementById('threads-table-container');
         
         if (!threads || threads.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-500 py-8">Brak wątków</p>';
+            document.getElementById('pagination-container').innerHTML = '';
             return;
         }
 
-        // Paginacja
-        const start = (currentPage - 1) * pageSize;
-        const end = start + pageSize;
-        const paginatedThreads = threads.slice(start, end);
+        // Paginacja logic
+        const totalThreads = threads.length;
+        const totalPages = Math.ceil(totalThreads / pageSize);
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
 
-        let html = '<div class="overflow-x-auto"><table class="w-full"><thead class="bg-gray-100 dark:bg-[#232f48]"><tr><th class="px-6 py-3 text-left text-sm font-semibold">Tytuł</th><th class="px-6 py-3 text-left text-sm font-semibold">Autor</th><th class="px-6 py-3 text-left text-sm font-semibold">Forum</th><th class="px-6 py-3 text-left text-sm font-semibold">Wiadomości</th><th class="px-6 py-3 text-left text-sm font-semibold">Widoki</th><th class="px-6 py-3 text-left text-sm font-semibold">Data</th><th class="px-6 py-3 text-center text-sm font-semibold">Akcje</th></tr></thead><tbody>';
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedThreads = threads.slice(startIndex, endIndex);
+
+        // Generowanie tabeli
+        let html = '<div class="overflow-x-auto"><table class="w-full"><thead class="bg-gray-50 dark:bg-[#1e293b] text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold"><tr><th class="px-6 py-3 text-left">Tytuł</th><th class="px-6 py-3 text-left">Autor</th><th class="px-6 py-3 text-left">Forum</th><th class="px-6 py-3 text-left">Odpowiedzi</th><th class="px-6 py-3 text-left">Data</th><th class="px-6 py-3 text-center">Akcje</th></tr></thead><tbody class="divide-y divide-gray-200 dark:divide-[#2a3851]">';
 
         paginatedThreads.forEach(thread => {
-            const createdDate = new Date(thread.createdAt || thread.CreatedAt).toLocaleDateString('pl-PL');
+            const createdDate = new Date(thread.createdAt || thread.CreatedAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            
             html += `
-                <tr class="border-b border-gray-200 dark:border-[#232f48] hover:bg-gray-50 dark:hover:bg-[#232f48]">
-                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-xs truncate">${escapeHtml(thread.title || thread.Title || '')}</td>
-                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${escapeHtml(thread.authorName || thread.Author?.username || 'Anonimowo')}</td>
-                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${escapeHtml(thread.forumName || thread.Forum?.name || '')}</td>
-                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${thread.repliesCount || thread.RepliesCount || 0}</td>
-                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">${thread.views || thread.Views || 0}</td>
-                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400 text-sm">${createdDate}</td>
-                    <td class="px-6 py-3 text-center">
+                <tr class="hover:bg-gray-50 dark:hover:bg-[#232f48] transition-colors">
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white max-w-xs truncate" title="${escapeHtml(thread.title)}">${escapeHtml(thread.title || thread.Title || '')}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold">
+                                ${(thread.authorName || 'A').charAt(0).toUpperCase()}
+                            </div>
+                            ${escapeHtml(thread.authorName || thread.Author?.username || 'Anonim')}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            ${escapeHtml(thread.forumName || thread.Forum?.name || '')}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${thread.repliesCount || thread.RepliesCount || 0}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${createdDate}</td>
+                    <td class="px-6 py-4 text-center">
                         <div class="flex gap-2 justify-center">
-                            <button onclick="viewThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors text-sm" title="Wyświetl">
-                                <span class="material-symbols-outlined text-sm">visibility</span>
+                            <button onclick="viewThread(${thread.id || thread.Id})" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 transition-colors" title="Wyświetl">
+                                <span class="material-symbols-outlined !text-xl">visibility</span>
                             </button>
-                            <button onclick="deleteThread(${thread.id || thread.Id})" class="px-2 py-1 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors text-sm" title="Usuń">
-                                <span class="material-symbols-outlined text-sm">delete</span>
+                            <button onclick="deleteThread(${thread.id || thread.Id})" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 hover:text-red-600 dark:text-gray-400 transition-colors" title="Usuń">
+                                <span class="material-symbols-outlined !text-xl">delete</span>
                             </button>
                         </div>
                     </td>
@@ -320,27 +191,87 @@
         });
 
         html += '</tbody></table></div>';
-        
-        // Paginacja
-        const totalPages = Math.ceil(threads.length / pageSize);
-        if (totalPages > 1) {
-            html += `<div class="flex justify-center gap-2 mt-6"><button onclick="previousPage()" class="px-3 py-2 rounded bg-gray-200 dark:bg-[#232f48] hover:bg-gray-300 transition-colors" ${currentPage === 1 ? 'disabled' : ''}>◀ Poprzednia</button>`;
-            html += `<span class="px-3 py-2">Strona ${currentPage} z ${totalPages}</span>`;
-            html += `<button onclick="nextPage()" class="px-3 py-2 rounded bg-gray-200 dark:bg-[#232f48] hover:bg-gray-300 transition-colors" ${currentPage === totalPages ? 'disabled' : ''}>Następna ▶</button></div>`;
+        container.innerHTML = html;
+
+        // Renderowanie Paginacji (Styl Users)
+        renderPagination(totalThreads, totalPages, startIndex, endIndex);
+    }
+
+    // ✅ FUNKCJA PAGINACJI (Styl z users.html - szare przyciski)
+    function renderPagination(total, totalPages, start, end) {
+        const container = document.getElementById('pagination-container');
+        if (!container) return;
+
+        // Jeśli brak wyników, ukryj paginację
+        if (total === 0) {
+            container.innerHTML = '';
+            return;
         }
 
-        container.innerHTML = html;
+        const displayStart = start + 1;
+        const displayEnd = Math.min(end, total);
+
+        // Generowanie numerków
+        let numbersHtml = '';
+        const maxButtons = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage + 1 < maxButtons) startPage = Math.max(1, endPage - maxButtons + 1);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            // Style przycisków
+            const activeClass = "bg-primary text-white border-primary";
+            const inactiveClass = "bg-white dark:bg-[#192231] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#232f48]";
+            
+            numbersHtml += `
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium border transition-colors ${isActive ? activeClass : inactiveClass}" 
+                    onclick="changePageTo(${i})" ${isActive ? 'disabled' : ''}>
+                    ${i}
+                </button>
+            `;
+        }
+
+        container.innerHTML = `
+            <div class="pagination-section p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="pagination-info text-sm text-gray-500 dark:text-gray-400">
+                    Pokazuję <span class="font-medium text-gray-900 dark:text-white">${displayStart}-${displayEnd}</span> z <span class="font-medium text-gray-900 dark:text-white">${total}</span> wątków
+                </div>
+                <div class="pagination-controls flex gap-2">
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#192231] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#232f48] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                            onclick="changePage(-1)" ${currentPage <= 1 ? 'disabled' : ''}>
+                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    </button>
+                    
+                    <div class="flex gap-1">${numbersHtml}</div>
+
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#192231] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#232f48] disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+                            onclick="changePage(1)" ${currentPage >= totalPages ? 'disabled' : ''}>
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function changePage(delta) {
+        changePageTo(currentPage + delta);
+    }
+
+    function changePageTo(page) {
+        const totalPages = Math.ceil(threads.length / pageSize);
+        if (page >= 1 && page <= totalPages) {
+            currentPage = page;
+            renderThreads();
+            // Scroll do góry tabeli (opcjonalnie)
+            // document.querySelector('.threads-card').scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     // ✅ WYŚWIETL WĄTEK
     function viewThread(threadId) {
         window.location.href = `/thread.html?threadId=${threadId}`;
     }
-
-    
-
-    // ✅ ZGŁOŚ WĄTEK
-    // ...existing code...
 
     // ✅ USUŃ WĄTEK
     async function deleteThread(threadId) {
@@ -365,22 +296,6 @@
         }
     }
 
-    // ✅ PAGINACJA
-    function previousPage() {
-        if (currentPage > 1) {
-            currentPage--;
-            renderThreads();
-        }
-    }
-
-    function nextPage() {
-        const totalPages = Math.ceil(threads.length / pageSize);
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderThreads();
-        }
-    }
-
     // Helper - escapuj HTML
     function escapeHtml(text) {
         if (!text) return '';
@@ -398,6 +313,6 @@
         console.log('🚀 Inicjalizowanie zarządzania wątkami');
         loadThreads();
     });
-</script>
+    </script>
 </body>
 </html>
